@@ -35,6 +35,7 @@ def getLinks():
         
 def checkLinks():
     #Checks for valid links.
+    tempList = []
     for link in linkList[::-1]:     
         try:
             response = requests.get(link,timeout=10,allow_redirects=True)
@@ -68,14 +69,14 @@ def checkLinks():
                             else:
                                 print(f"No backlinks found on {link}.")
                                 deletedBacklinks.append(link)
-                                linkList.remove(link)          
+                                tempList.append(link)          
                         else:
                             print(f"Noindex found on {link}. Status Code: {responseCode}")
                     except socket.gaierror as se:
                         print(f"{link} is not valid link. {se}")
                     except requests.exceptions.ConnectionError as ce:
                         print(f"{link} is not valid link. Removing... Error : {ce}")
-                        linkList.remove(link)
+                        tempList.append(link)
 
                     except Exception as parse_error:
                         print(f"Error processing content for {link}: {parse_error}")
@@ -84,21 +85,23 @@ def checkLinks():
             else:
                 print(f"Website {link} is not valid. Status Code: {responseCode}")
                 notWorkingLinks.append(link)
-                linkList.remove(link)
+                tempList.append(link)
         except RequestException as ree:
             print(f"Unexpected error please check link:{link} \n{ree}")
             notWorkingLinks.append(link)
-            linkList.remove(link) 
+            tempList.append(link) 
         except requests.exceptions.Timeout:
             print(f"Request timed out for {link}. Removing from list.")
             notWorkingLinks.append(link)
-            linkList.remove(link)
+            tempList.append(link)
         except requests.exceptions.RequestException as e:
             print(f"Error fetching {link}: {e}")
             notWorkingLinks.append(link)
-            linkList.remove(link)
+            tempList.append(link)
         except IndexError:
             print('You dont have any valid links.')
+    for link in tempList:
+        linkList.remove(link)
 
 def editFile():
     fileObject.truncate(0)
