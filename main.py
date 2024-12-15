@@ -125,10 +125,3 @@ print("\nSummary:")
 print(f"Valid Links Checked: {len(linkList)}")
 print(f"Deleted Backlinks: {deletedBacklinks}")
 print(f"Not Working Links: {len(notWorkingLinks)} - {notWorkingLinks}")
-"""Bir takım hatalar mevcut, bunları sıralayayım.
-getLinks() fonksiyonu, hep checkEmpty ve checkEmptyBacklink değişkenlerini kullanıyor. Ama fonksiyon her çağırıldığında güncellenmiyor. Bu da tutarsızlık yaratır.
-Bağlantı başarısız olursa deletedLinks.append(link) çağırıyorsun ama bunu iki kez çağırıyorsun. Bu da hataya neden olabilir.
-fileObject ve fileObjectBacklink açmışsın ama kapatmamışsın. Dosya ile işin bittikten sonra kapatmalısın.
-Kod siteden gelen 200 durum koduna bakıyor ama bazı sunucular 200 durum kodunu yanlış yönlendirebiliyor bu da backlink sağlam olsa bile sağlam değilmiş gibi gösterebilir. Bunun için BeautifulSoup analizinden önce Content-Type başlığını kontrol etmelisin.
-Sadece A etiketine bakarak backlinkleri kontrol etmişsin fakat kimi siteler bunu javascript ile yapıyor. Bunu da kontrol etmesi gerek.
-"""
