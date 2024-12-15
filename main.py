@@ -16,6 +16,7 @@ linkList = [] #Links from txt file.
 notWorkingLinks = [] #Links which is not working
 ourLinks = [] #backlink links
 deletedBacklinks = [] #deleted backlinks
+validLinks = [] #valid links
 
 checkEmpty = os.path.getsize(fileDirectory) == 0
 checkEmptyBacklink = os.path.getsize(fileDirectoryBacklink) == 0
@@ -35,52 +36,55 @@ def getLinks():
 
 def checkLinks():
     #Checks for valid links.
-    for link in linkList[:]: 
-        getLinks()      
+    for link in linkList[::-1]:     
         try:
             response = requests.get(link,timeout=10,allow_redirects=True)
             responseCode = response.status_code
             response.raise_for_status()
             content_type = response.headers.get('Content-Type', '').lower()
-            if responseCode == 200 or 'text/html' in content_type:
-                print(f"Website is existing.Checking for content: {link}")
-                #Web site exists. Check content.
-                try:
-                    #Parse the content
-                    bsObj = BeautifulSoup(response.content.decode(response.encoding, errors='ignore'), 'html.parser')
-                    #Check for noindex meta tag
-                    if not bsObj.findAll('meta', content=re.compile("noindex")):  
-                        #Check for specific links
-                        backlinks_found = []
-                        time.sleep(0.45)
-                        for pattern in ourLinks:
-                            if bsObj.find('a', href=re.compile(pattern)):
-                                backlinks_found.append(pattern)
-                                continue
-                            for scriptTag in bsObj.find_all('script'):
-                                if scriptTag.string and re.search(pattern,scriptTag.string):
+            if 'text/html' in content_type:
+                if responseCode == 200:
+                    print(f"Website is existing.Checking for content: {link}")
+                    #Web site exists. Check content.
+                    try:
+                        #Parse the content
+                        bsObj = BeautifulSoup(response.content.decode(response.encoding, errors='ignore'), 'html.parser')
+                        #Check for noindex meta tag
+                        if not bsObj.findAll('meta', content=re.compile("noindex")):  
+                            #Check for specific links
+                            backlinks_found = []
+                            time.sleep(0.45)
+                            for pattern in ourLinks:
+                                if bsObj.find('a', href=re.compile(pattern)):
                                     backlinks_found.append(pattern)
-                                    break
-                    
-                        if backlinks_found:
-                            print(f"Backlinks found on {link}: {', '.join(backlinks_found)}")
+                                    continue
+                                for scriptTag in bsObj.find_all('script'):
+                                    if scriptTag.string and re.search(pattern,scriptTag.string):
+                                        backlinks_found.append(pattern)
+                                        break
+                        
+                            if backlinks_found:
+                                print(f"Backlinks found on {link}: {', '.join(backlinks_found)}")
+                                validLinks.append(link)
+                            else:
+                                print(f"No backlinks found on {link}.")
+                                deletedBacklinks.append(link)
+                                linkList.remove(link)
+                                        
                         else:
-                            print(f"No backlinks found on {link}.")
-                            deletedBacklinks.append(link)
-                            linkList.remove(link)
-                                    
-                    else:
-                        print(f"Noindex found on {link}. Status Code: {responseCode}")
+                            print(f"Noindex found on {link}. Status Code: {responseCode}")
+                    
 
-                except socket.gaierror as se:
-                    print(f"{link} is not valid link. {se}")
-                except requests.exceptions.ConnectionError as ce:
-                    print(f"{link} is not valid link. Removing... Error : {ce}")
-                    linkList.remove(link)
+                    except socket.gaierror as se:
+                        print(f"{link} is not valid link. {se}")
+                    except requests.exceptions.ConnectionError as ce:
+                        print(f"{link} is not valid link. Removing... Error : {ce}")
+                        linkList.remove(link)
 
-                except Exception as parse_error:
-                    print(f"Error processing content for {link}: {parse_error}")
+                    except Exception as parse_error:
+                        print(f"Error processing content for {link}: {parse_error}")
                 
+                    
             else:
                 print(f"Website {link} is not valid. Status Code: {responseCode}")
                 notWorkingLinks.append(link)
@@ -103,19 +107,21 @@ def checkLinks():
 def editFile():
     fileObject.truncate(0)
     fileObject.seek(0)
-    for links in linkList:
-        fileObject.write(links)
-        fileObject.write("\n")
+    for links in validLinks:
+        fileObject.write(links + "\n")
+
 
         
 
                          
-getLinks()
-if linkList and ourLinks:
-    checkLinks()
-    editFile()
-else:
-    print("No valid links or backlink patterns to check.")
+
+if __name__ == "__main__":
+    getLinks()
+    if linkList and ourLinks:
+        checkLinks()
+        editFile()
+    else:
+        print("No valid links or backlink patterns to check.")
 
 
 fileObject.close()
@@ -125,3 +131,4 @@ print("\nSummary:")
 print(f"Valid Links Checked: {len(linkList)}")
 print(f"Deleted Backlinks: {deletedBacklinks}")
 print(f"Not Working Links: {len(notWorkingLinks)} - {notWorkingLinks}")
+
