@@ -33,7 +33,6 @@ def getLinks():
         for file in fileObjectBacklink:
             ourLinks.append(file.strip())
         
-
 def checkLinks():
     #Checks for valid links.
     for link in linkList[::-1]:     
@@ -69,12 +68,9 @@ def checkLinks():
                             else:
                                 print(f"No backlinks found on {link}.")
                                 deletedBacklinks.append(link)
-                                linkList.remove(link)
-                                        
+                                linkList.remove(link)          
                         else:
                             print(f"Noindex found on {link}. Status Code: {responseCode}")
-                    
-
                     except socket.gaierror as se:
                         print(f"{link} is not valid link. {se}")
                     except requests.exceptions.ConnectionError as ce:
@@ -110,11 +106,6 @@ def editFile():
     for links in validLinks:
         fileObject.write(links + "\n")
 
-
-        
-
-                         
-
 if __name__ == "__main__":
     getLinks()
     if linkList and ourLinks:
@@ -122,7 +113,6 @@ if __name__ == "__main__":
         editFile()
     else:
         print("No valid links or backlink patterns to check.")
-
 
 fileObject.close()
 fileObjectBacklink.close()
