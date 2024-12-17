@@ -7,10 +7,18 @@ import socket
 import time
 #GET LINKS ----> CHECK IF THEY ARE VALID -----> CHECK IF CONTENT IS EXIST -----> IF DELETED SEND EMAIL ------>
 #First check if file exists.
+
+menu = """
+WELCOME TO BACKLINK CHECKER
+
+"""
+print(menu)
 fileDirectory = "links.txt"
+fileDirectoryDeletedlink = "deletedlinks.txt"
 fileDirectoryBacklink = "backlinks.txt"
 fileObject = open(fileDirectory,"r+",encoding="utf-8")
 fileObjectBacklink = open(fileDirectoryBacklink,"r+",encoding="utf-8")
+fileObjectDeletedBacklink = open(fileDirectoryDeletedlink,"r+",encoding="utf-8")
 
 linkList = [] #Links from txt file.
 notWorkingLinks = [] #Links which is not working
@@ -108,6 +116,9 @@ def editFile():
     fileObject.seek(0)
     for links in validLinks:
         fileObject.write(links + "\n")
+    for links in deletedBacklinks:
+        fileObjectDeletedBacklink.write(links + "\n")
+        
 
 if __name__ == "__main__":
     getLinks()
@@ -119,6 +130,7 @@ if __name__ == "__main__":
 
 fileObject.close()
 fileObjectBacklink.close()
+fileObjectDeletedBacklink.close()
 #Summary
 print("\nSummary:")
 print(f"Valid Links Checked: {len(linkList)}")
