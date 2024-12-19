@@ -9,16 +9,28 @@ import time
 #First check if file exists.
 
 menu = """
-WELCOME TO BACKLINK CHECKER
-
+██████╗  █████╗  ██████╗██╗  ██╗██╗     ██╗███╗   ██╗██╗  ██╗     ██████╗██╗  ██╗███████╗ ██████╗██╗  ██╗███████╗██████╗ 
+██╔══██╗██╔══██╗██╔════╝██║ ██╔╝██║     ██║████╗  ██║██║ ██╔╝    ██╔════╝██║  ██║██╔════╝██╔════╝██║ ██╔╝██╔════╝██╔══██╗
+██████╔╝███████║██║     █████╔╝ ██║     ██║██╔██╗ ██║█████╔╝     ██║     ███████║█████╗  ██║     █████╔╝ █████╗  ██████╔╝
+██╔══██╗██╔══██║██║     ██╔═██╗ ██║     ██║██║╚██╗██║██╔═██╗     ██║     ██╔══██║██╔══╝  ██║     ██╔═██╗ ██╔══╝  ██╔══██╗
+██████╔╝██║  ██║╚██████╗██║  ██╗███████╗██║██║ ╚████║██║  ██╗    ╚██████╗██║  ██║███████╗╚██████╗██║  ██╗███████╗██║  ██║
+╚═════╝ ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝     ╚═════╝╚═╝  ╚═╝╚══════╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝                                                                                               
 """
 print(menu)
-fileDirectory = "links.txt"
-fileDirectoryDeletedlink = "deletedlinks.txt"
+input("PRESS ENTER TO CHECK YOUR LINKS!")
+fileDirectoryValidlinks = "./validlinks.txt"
+fileDirectory = "./links.txt"
+fileDirectoryDeletedlink = "./deletedlinks.txt"
 fileDirectoryBacklink = "backlinks.txt"
 fileObject = open(fileDirectory,"r+",encoding="utf-8")
 fileObjectBacklink = open(fileDirectoryBacklink,"r+",encoding="utf-8")
 fileObjectDeletedBacklink = open(fileDirectoryDeletedlink,"r+",encoding="utf-8")
+if not os.path.exists(fileDirectoryValidlinks):
+    fileObjectValidlinks = open(fileDirectoryValidlinks, "w")
+else:
+    fileObjectValidlinks=  open(fileDirectoryValidlinks,"r+")
+        
+       
 
 linkList = [] #Links from txt file.
 notWorkingLinks = [] #Links which is not working
@@ -111,26 +123,57 @@ def checkLinks():
     for link in tempList:
         linkList.remove(link)
 
-def editFile():
+def resetFile():
     fileObject.truncate(0)
     fileObject.seek(0)
-    for links in validLinks:
-        fileObject.write(links + "\n")
-    for links in deletedBacklinks:
-        fileObjectDeletedBacklink.write(links + "\n")
+    fileObjectDeletedBacklink.truncate(0)
+    fileObjectDeletedBacklink.seek(0)
+
+def editFile():
+    fileObjectValidlinks.seek(0) 
+    existing_valid_links = set(fileObjectValidlinks.read().splitlines())
+    new_valid_links = []
+    for link in validLinks:
+        if link not in existing_valid_links:
+            new_valid_links.append(link)
+    if new_valid_links:
+        fileObjectValidlinks.seek(0, os.SEEK_END)
+        for link in new_valid_links:
+            fileObjectValidlinks.write(link + "\n")
+
+    fileObjectDeletedBacklink.seek(0)
+    existing_deleted_links = set(fileObjectDeletedBacklink.read().splitlines())
+    new_deleted_links = []
+    for link in deletedBacklinks:
+        if link not in existing_deleted_links:
+            new_deleted_links.append(link)
+    if new_deleted_links:
+        fileObjectDeletedBacklink.seek(0, os.SEEK_END)
+        for link in new_deleted_links:
+            fileObjectDeletedBacklink.write(link + "\n")
+            
+    #remove links in links.txt which no working 
+
+            
         
 
 if __name__ == "__main__":
-    getLinks()
-    if linkList and ourLinks:
-        checkLinks()
-        editFile()
-    else:
-        print("No valid links or backlink patterns to check.")
-
+    try:
+        while(True):
+            getLinks()
+            if linkList and ourLinks:
+                checkLinks()
+                editFile()
+            else:
+                print("No valid links or backlink patterns to check.")
+                break
+            
+    except KeyboardInterrupt:
+        pass
 fileObject.close()
 fileObjectBacklink.close()
 fileObjectDeletedBacklink.close()
+fileObjectValidlinks.close()
 #Summary
 print("\nSummary:")
 print(f"Valid Links Checked: {len(linkList)}")
