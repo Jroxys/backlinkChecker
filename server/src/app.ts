@@ -14,6 +14,7 @@ import { alertRoutes } from './routes/alerts.js'
 import { googleRoutes } from './routes/google.js'
 import { competitorRoutes } from './routes/competitors.js'
 import { billingRoutes } from './routes/billing.js'
+import { toolRoutes } from './routes/tools.js'
 
 export function createApp(ctx: Ctx) {
   const app = new Hono<Env>()
@@ -47,6 +48,7 @@ export function createApp(ctx: Ctx) {
   app.route('/api/alerts', alertRoutes)
   app.route('/api/google', googleRoutes)
   app.route('/api/billing', billingRoutes)
+  app.route('/api/tools', toolRoutes)
 
   // Serve the built web app from the same origin (cookies stay first-party, one deploy).
   const dist = ctx.config.webDist ? resolve(ctx.config.webDist) : ''

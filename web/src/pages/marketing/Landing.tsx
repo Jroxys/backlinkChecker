@@ -20,7 +20,6 @@ import {
   Menu,
   X,
   Sparkles,
-  Code2,
 } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { useTheme } from '@/lib/theme'
@@ -36,7 +35,7 @@ import { LinkStatusBadge, LinkTypeBadge, AuthorityPill } from '@/components/doma
 import { indexSeries, lastDays } from '@/data/series'
 import { formatShortDate } from '@/utils/format'
 
-function Container({ children, className }: { children: ReactNode; className?: string }) {
+export function Container({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={cn('mx-auto w-full max-w-[1200px] px-4 sm:px-6', className)}>{children}</div>
 }
 
@@ -73,7 +72,7 @@ export function Landing() {
 
 /* ------------------------------------------------------------------ Nav */
 
-function Nav() {
+export function Nav() {
   const { theme, toggle } = useTheme()
   const [open, setOpen] = useState(false)
   const links = [
@@ -82,6 +81,7 @@ function Nav() {
     ['Automations', '#automations'],
     ['Pricing', '#pricing'],
     ['FAQ', '#faq'],
+    ['Free tools', '/tools'],
   ]
   return (
     <header className="sticky top-0 z-50 border-b border-line/70 bg-bg/80 backdrop-blur-md">
@@ -92,7 +92,7 @@ function Nav() {
           </Link>
           <nav className="hidden items-center gap-1 md:flex">
             {links.map(([l, h]) => (
-              <a key={h} href={h} className="rounded-lg px-3 py-1.5 text-[13.5px] font-medium text-fg-2 transition-colors hover:bg-surface-3 hover:text-fg">
+              <a key={h} href={h.startsWith('#') ? '/' + h : h} className="rounded-lg px-3 py-1.5 text-[13.5px] font-medium text-fg-2 transition-colors hover:bg-surface-3 hover:text-fg">
                 {l}
               </a>
             ))}
@@ -120,7 +120,7 @@ function Nav() {
       {open && (
         <div className="animate-fade-in border-t border-line bg-bg px-4 py-3 md:hidden">
           {links.map(([l, h]) => (
-            <a key={h} href={h} onClick={() => setOpen(false)} className="block rounded-lg px-3 py-2.5 text-[14px] font-medium text-fg-2 hover:bg-surface-3">
+            <a key={h} href={h.startsWith('#') ? '/' + h : h} onClick={() => setOpen(false)} className="block rounded-lg px-3 py-2.5 text-[14px] font-medium text-fg-2 hover:bg-surface-3">
               {l}
             </a>
           ))}
@@ -792,32 +792,28 @@ function FinalCta() {
 
 /* --------------------------------------------------------------- Footer */
 
-function Footer() {
-  const cols: [string, string[]][] = [
-    ['Product', ['Index Monitoring', 'Backlinks', 'SEO Audit', 'Competitors', 'Automations', 'Reports']],
-    ['Company', ['About', 'Customers', 'Careers', 'Changelog']],
-    ['Resources', ['Documentation', 'API reference', 'Guides', 'Status']],
-    ['Legal', ['Privacy', 'Terms', 'DPA', 'Security']],
+export function Footer() {
+  const cols: [string, [string, string][]][] = [
+    ['Product', [['Features', '/#features'], ['Pricing', '/#pricing'], ['Live demo', '/demo'], ['FAQ', '/#faq']]],
+    ['Free tools', [['Backlink checker', '/tools/backlink-checker'], ['Indexability checker', '/tools/indexability-checker']]],
+    ['Legal', [['Privacy', '/privacy'], ['Terms', '/terms']]],
   ]
   return (
     <footer className="border-t border-line py-14">
       <Container>
-        <div className="grid grid-cols-2 gap-8 md:grid-cols-6">
+        <div className="grid grid-cols-2 gap-8 md:grid-cols-5">
           <div className="col-span-2">
             <Logo />
-            <p className="mt-3 max-w-xs text-[13px] leading-relaxed text-fg-3">The SEO intelligence platform for teams who need to know — not guess — what Google sees.</p>
-            <div className="mt-4 flex items-center gap-2 text-[12.5px] text-fg-3">
-              <span className="size-2 rounded-full bg-success" /> All systems operational
-            </div>
+            <p className="mt-3 max-w-xs text-[13px] leading-relaxed text-fg-3">Know exactly what Google sees: index status, indexability and every backlink, checked for you every day.</p>
           </div>
           {cols.map(([h, items]) => (
             <div key={h}>
               <div className="text-[12.5px] font-semibold text-fg">{h}</div>
               <ul className="mt-3 space-y-2">
-                {items.map((i) => (
-                  <li key={i}>
-                    <a href="#" className="text-[13px] text-fg-3 transition-colors hover:text-fg">
-                      {i}
+                {items.map(([label, href]) => (
+                  <li key={label}>
+                    <a href={href} className="text-[13px] text-fg-3 transition-colors hover:text-fg">
+                      {label}
                     </a>
                   </li>
                 ))}
@@ -825,12 +821,7 @@ function Footer() {
             </div>
           ))}
         </div>
-        <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-line pt-6 text-[12.5px] text-fg-4 sm:flex-row">
-          <span>© 2026 Indexora. All rights reserved.</span>
-          <a href="#" className="inline-flex items-center gap-1.5 hover:text-fg-2">
-            <Code2 className="size-3.5" /> Open-source crawler
-          </a>
-        </div>
+        <div className="mt-12 border-t border-line pt-6 text-[12.5px] text-fg-4">© {new Date().getFullYear()} Indexora. All rights reserved.</div>
       </Container>
     </footer>
   )

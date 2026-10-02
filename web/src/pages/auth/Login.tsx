@@ -60,8 +60,14 @@ export function Login() {
           <Label>Email</Label>
           <Input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoFocus />
         </div>
+        {params.get('reset') && <div className="rounded-lg border border-success/25 bg-success-soft px-3 py-2.5 text-[13px] text-success-ink">Password updated. Sign in with your new password.</div>}
         <div>
-          <Label>Password</Label>
+          <div className="mb-1.5 flex items-baseline justify-between">
+            <span className="text-[12.5px] font-medium text-fg-2">Password</span>
+            <Link to="/forgot-password" className="text-[12px] font-medium text-primary-ink hover:underline">
+              Forgot password?
+            </Link>
+          </div>
           <Input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
         </div>
         <Button type="submit" variant="primary" size="lg" className="w-full" loading={busy}>
@@ -132,7 +138,88 @@ export function Signup() {
         <Button type="submit" variant="primary" size="lg" className="w-full" loading={busy}>
           Create account
         </Button>
-        <p className="text-center text-[12px] text-fg-4">By continuing you agree to the Terms and Privacy Policy.</p>
+        <p className="text-center text-[12px] text-fg-4">By continuing you agree to the <Link to="/terms" className="underline">Terms</Link> and <Link to="/privacy" className="underline">Privacy Policy</Link>.</p>
+      </form>
+    </AuthLayout>
+  )
+}
+
+export function ForgotPassword() {
+  const [email, setEmail] = useState('')
+  const [sent, setSent] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    setBusy(true)
+    setError(null)
+    try {
+      await api.post('/api/auth/forgot', { email })
+      setSent(true)
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Something went wrong')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <AuthLayout
+      title="Reset your password"
+      subtitle="We’ll email you a link to choose a new one."
+      footer={
+        <Link to="/login" className="font-medium text-primary-ink hover:underline">
+          Back to sign in
+        </Link>
+      }
+    >
+      {sent ? (
+        <div className="rounded-lg border border-success/25 bg-success-soft px-4 py-3 text-[13.5px] text-success-ink">If an account exists for {email}, a reset link is on its way. It works for one hour.</div>
+      ) : (
+        <form onSubmit={submit} className="space-y-4">
+          <FormError message={error} />
+          <div>
+            <Label>Email</Label>
+            <Input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoFocus />
+          </div>
+          <Button type="submit" variant="primary" size="lg" className="w-full" loading={busy}>
+            Send reset link
+          </Button>
+        </form>
+      )}
+    </AuthLayout>
+  )
+}
+
+export function ResetPassword() {
+  const [params] = useSearchParams()
+  const [password, setPassword] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const nav = useNavigate()
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    setBusy(true)
+    setError(null)
+    try {
+      await api.post('/api/auth/reset', { token: params.get('token') ?? '', password })
+      nav('/login?reset=1', { replace: true })
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Something went wrong')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <AuthLayout title="Choose a new password" subtitle="You’ll be signed out on all other devices." footer={null}>
+      <form onSubmit={submit} className="space-y-4">
+        <FormError message={error} />
+        <div>
+          <Label hint="At least 10 characters">New password</Label>
+          <Input type="password" autoComplete="new-password" minLength={10} required value={password} onChange={(e) => setPassword(e.target.value)} autoFocus />
+        </div>
+        <Button type="submit" variant="primary" size="lg" className="w-full" loading={busy}>
+          Set new password
+        </Button>
       </form>
     </AuthLayout>
   )

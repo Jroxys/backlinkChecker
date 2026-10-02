@@ -227,4 +227,18 @@ export const migrations: { id: number; name: string; sql: string }[] = [
       );
     `,
   },
+  {
+    id: 5,
+    name: 'password_resets',
+    sql: `
+      CREATE TABLE password_resets (
+        id TEXT PRIMARY KEY,            -- sha256 of the emailed token
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        created_at TEXT NOT NULL,
+        expires_at TEXT NOT NULL,
+        used_at TEXT
+      );
+      ALTER TABLE users ADD COLUMN last_summary_at TEXT;
+    `,
+  },
 ]

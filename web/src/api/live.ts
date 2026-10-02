@@ -1,4 +1,4 @@
-import { api, qs } from './client'
+import { api, qs, request } from './client'
 import type { DataSource } from './source'
 import type { HistoryPoint, NotificationSettings, Project } from './types'
 
@@ -42,4 +42,5 @@ export const liveSource: DataSource = {
   disconnectGoogle: async () => void (await api.del('/api/google')),
   checkout: (plan, cycle) => api.post('/api/billing/checkout', { plan, cycle }),
   logout: async () => void (await api.post('/api/auth/logout')),
+  deleteAccount: async (password) => void (await request('DELETE', '/api/auth/account', { password })),
 }

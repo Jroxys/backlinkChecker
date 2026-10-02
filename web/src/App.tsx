@@ -22,6 +22,10 @@ const Settings = lazy(() => import('./pages/app/Settings').then((m) => ({ defaul
 const Onboarding = lazy(() => import('./pages/app/Onboarding').then((m) => ({ default: m.Onboarding })))
 const Login = lazy(() => import('./pages/auth/Login').then((m) => ({ default: m.Login })))
 const Signup = lazy(() => import('./pages/auth/Login').then((m) => ({ default: m.Signup })))
+const ForgotPassword = lazy(() => import('./pages/auth/Login').then((m) => ({ default: m.ForgotPassword })))
+const ResetPassword = lazy(() => import('./pages/auth/Login').then((m) => ({ default: m.ResetPassword })))
+const Tools = lazy(() => import('./pages/marketing/Tools').then((m) => ({ default: m.Tools })))
+const Legal = lazy(() => import('./pages/marketing/Legal').then((m) => ({ default: m.Legal })))
 const NotFound = lazy(() => import('./pages/NotFound').then((m) => ({ default: m.NotFound })))
 
 export function App() {
@@ -29,8 +33,14 @@ export function App() {
     <Suspense fallback={<PageFallback />}>
       <Routes>
         <Route path="/" element={<Landing />} />
+        <Route path="/tools" element={<Tools />} />
+        <Route path="/tools/:slug" element={<Tools />} />
+        <Route path="/privacy" element={<Legal page="privacy" />} />
+        <Route path="/terms" element={<Legal page="terms" />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/app" element={<Shell source={liveSource} />}>
           {appRoutes()}
           <Route path="onboarding" element={<Onboarding />} />

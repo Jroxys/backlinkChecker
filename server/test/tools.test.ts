@@ -1,0 +1,50 @@
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import { client, fixtureSite, testCtx } from './helpers.js'
+
+test('free backlink checker finds the link and its rel; rate-limited per IP', async (t) => {
+  const site = await fixtureSite()
+  t.after(() => site.close())
+  site.set('/post', '<p>See <a rel="nofollow" href="https://www.example.com/pricing">pricing</a></p>')
+  const { ctx } = testCtx()
+  const api = client(ctx)
+  const r = await api.post('/api/tools/backlink-check', { pageUrl: site.url('/post'), target: 'example.com' })
+  assert.equal(r.status, 200)
+  assert.equal(r.json.found, true)
+  assert.equal(r.json.rel, 'nofollow')
+  assert.equal(r.json.anchor, 'pricing')
+  assert.equal(r.json.pageTitle, '')
+  const miss = await api.post('/api/tools/backlink-check', { pageUrl: site.url('/post'), target: 'https://example.com/blog/other' })
+  assert.equal(miss.json.found, false)
+  assert.equal(miss.json.linksToDomain, 1)
+  for (let i = 0; i < 8; i++) await api.post('/api/tools/backlink-check', { pageUrl: site.url('/post'), target: 'example.com' })
+  const limited = await api.post('/api/tools/backlink-check', { pageUrl: site.url('/post'), target: 'example.com' })
+  assert.equal(limited.status, 429)
+})
+
+test('free indexability checker explains every blocker', async (t) => {
+  const site = await fixtureSite()
+  t.after(() => site.close())
+  site.set('/robots.txt', { body: 'User-agent: Googlebot\nDisallow: /hidden', headers: { 'content-type': 'text/plain' } })
+  site.set('/hidden', '<title>x</title><meta name="robots" content="noindex"><p>hi</p>')
+  site.set('/ok', `<title>Fine</title><link rel="canonical" href="${site.url('/ok')}"><p>${'word '.repeat(400)}</p>`)
+  const { ctx } = testCtx()
+  const api = client(ctx)
+  const bad = await api.post('/api/tools/indexability', { url: site.url('/hidden') })
+  assert.equal(bad.json.indexable, false)
+  assert.equal(bad.json.googlebotAllowed, false)
+  assert.equal(bad.json.noindex, true)
+  assert.ok(bad.json.reasons.length >= 3)
+  const good = await api.post('/api/tools/indexability', { url: site.url('/ok') })
+  assert.equal(good.json.indexable, true)
+  assert.deepEqual(good.json.reasons, [])
+})
+
+test('free tools refuse private addresses in production mode', async () => {
+  const { ctx } = testCtx()
+  const { PoliteFetcher } = await import('../src/lib/fetcher.js')
+  ctx.fetcher = new PoliteFetcher({ userAgent: 'x', perHostDelayMs: 0 })
+  const r = await client(ctx).post('/api/tools/indexability', { url: 'http://169.254.169.254/latest/meta-data/' })
+  assert.equal(r.json.ok, false)
+  assert.match(r.json.problem, /can’t be checked/)
+})

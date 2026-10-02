@@ -1,8 +1,9 @@
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import { z } from 'zod'
 import { ApiError, body, requireUser, router } from '../http.js'
-import { RateLimiter, SESSION_COOKIE, createSession, destroySession, hashPassword, verifyPassword } from '../lib/auth.js'
-import { id, now } from '../lib/ids.js'
+import { randomBytes } from 'node:crypto'
+import { RateLimiter, SESSION_COOKIE, createSession, destroySession, hashPassword, sha256, verifyPassword } from '../lib/auth.js'
+import { addHours, id, now } from '../lib/ids.js'
 import { getPlan } from '../plans.js'
 import { usageFor } from '../services/usage.js'
 
@@ -69,4 +70,47 @@ authRoutes.get('/me', requireUser, (c) => {
     usage: usageFor(c.var.ctx.db, u.id),
     google: { connected: Boolean(google), email: google?.email ?? null, configured: c.var.ctx.google.configured },
   })
+})
+
+/** Always answers 200 so the endpoint can't be used to discover which emails have accounts. */
+authRoutes.post('/forgot', async (c) => {
+  const { db, config, notifier } = c.var.ctx
+  const { email } = await body(c, z.object({ email: z.string().trim().toLowerCase().email() }))
+  if (!limiterFor(c.var.ctx).take(`forgot:${ip(c)}`)) throw new ApiError(429, 'rate_limited', 'Too many attempts. Try again in a few minutes.')
+  const u = db.get<{ id: string; name: string }>('SELECT id, name FROM users WHERE email = ?', [email])
+  if (u) {
+    const token = randomBytes(32).toString('base64url')
+    db.run('INSERT INTO password_resets (id, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)', [sha256(token), u.id, now(), addHours(now(), 1)])
+    await notifier.email(
+      email,
+      'Reset your Indexora password',
+      `Hi ${u.name.split(' ')[0]},\n\nSomeone (hopefully you) asked to reset your Indexora password. This link works for one hour:\n\n${config.appUrl}/reset-password?token=${token}\n\nIf it wasn't you, ignore this email — your password stays the same.`,
+    )
+  }
+  return c.json({ ok: true })
+})
+
+authRoutes.post('/reset', async (c) => {
+  const { db } = c.var.ctx
+  const input = await body(c, z.object({ token: z.string().min(20).max(200), password: z.string().min(10, 'Use at least 10 characters').max(200) }))
+  const row = db.get<{ user_id: string; expires_at: string; used_at: string | null }>('SELECT user_id, expires_at, used_at FROM password_resets WHERE id = ?', [sha256(input.token)])
+  if (!row || row.used_at || row.expires_at < now()) throw new ApiError(400, 'invalid_token', 'This reset link is invalid or has expired. Request a new one.')
+  const hash = await hashPassword(input.password)
+  db.tx(() => {
+    db.run('UPDATE users SET password_hash = ? WHERE id = ?', [hash, row.user_id])
+    db.run('UPDATE password_resets SET used_at = ? WHERE id = ?', [now(), sha256(input.token)])
+    db.run('DELETE FROM sessions WHERE user_id = ?', [row.user_id]) // sign out everywhere
+  })
+  return c.json({ ok: true })
+})
+
+/** Permanently delete the account and everything in it (projects, history, tokens). */
+authRoutes.delete('/account', requireUser, async (c) => {
+  const { db } = c.var.ctx
+  const { password } = await body(c, z.object({ password: z.string().min(1).max(200) }))
+  const u = db.get<{ password_hash: string }>('SELECT password_hash FROM users WHERE id = ?', [c.var.user.id])!
+  if (!(await verifyPassword(password, u.password_hash))) throw new ApiError(401, 'invalid_credentials', 'Password is incorrect')
+  db.run('DELETE FROM users WHERE id = ?', [c.var.user.id]) // ON DELETE CASCADE removes the rest
+  deleteCookie(c, SESSION_COOKIE, { path: '/' })
+  return c.json({ ok: true })
 })

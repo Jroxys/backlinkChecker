@@ -98,6 +98,7 @@ export interface DataSource {
   disconnectGoogle(): Promise<void>
   checkout(plan: 'starter' | 'pro' | 'agency', cycle: 'monthly' | 'yearly'): Promise<{ url: string; founding: boolean }>
   logout(): Promise<void>
+  deleteAccount(password: string): Promise<void>
 }
 
 const Ctx = createContext<DataSource | null>(null)

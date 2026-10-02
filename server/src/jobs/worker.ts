@@ -5,6 +5,7 @@ import { discoverSitemaps, syncSitemap } from '../services/sitemaps.js'
 import { deliverPendingAlerts } from '../services/notifier.js'
 import { getPlan } from '../plans.js'
 import { snapshotAll } from '../services/stats.js'
+import { sendWeeklySummaries } from '../services/summary.js'
 import { claim, complete, enqueue, fail, prune, recoverStale, type Job } from './queue.js'
 
 type Handler = (ctx: Ctx, payload: Record<string, unknown>) => Promise<unknown>
@@ -43,6 +44,7 @@ export const handlers: Record<string, Handler> = {
     return { added }
   },
   'stats.snapshot': async (ctx) => snapshotAll(ctx),
+  'summary.weekly': (ctx) => sendWeeklySummaries(ctx),
   'maintenance': async (ctx) => {
     recoverStale(ctx.db)
     prune(ctx.db)
@@ -91,6 +93,8 @@ export function startWorker(ctx: Ctx, { concurrency = 3, pollMs = 2000 } = {}) {
     // Daily digest at 08:00 server time
     const d = new Date()
     if (d.getHours() === 8 && d.getMinutes() === 0) enqueue(ctx.db, 'alerts.digest', {}, { dedupeKey: `digest:${d.toDateString()}` })
+    // Weekly summary on Monday mornings (per-user guard prevents duplicates)
+    if (d.getDay() === 1 && d.getHours() === 8 && d.getMinutes() < 2) enqueue(ctx.db, 'summary.weekly', {}, { dedupeKey: `summary:${d.toDateString()}` })
   }
 
   const loops = Array.from({ length: concurrency }, async () => {

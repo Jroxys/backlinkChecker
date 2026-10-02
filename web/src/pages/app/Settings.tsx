@@ -14,7 +14,8 @@ import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Tabs, Segmented } from '@/components/ui/Tabs'
-import { Label, ProgressBar } from '@/components/ui/Controls'
+import { Input, Label, ProgressBar } from '@/components/ui/Controls'
+import { Modal } from '@/components/ui/Modal'
 import { Avatar } from '@/components/ui/Avatar'
 import { Select } from '@/components/ui/Dropdown'
 import { useToast } from '@/components/ui/Toast'
@@ -82,9 +83,10 @@ function General() {
               {me && <div className="mt-0.5 text-[12px] text-fg-4">Member since {formatDate(me.user.createdAt)}</div>}
             </div>
           </div>
-          <p className="text-[12.5px] text-fg-4">Need to change your email or delete your account? Write to support and we’ll do it within a day.</p>
+          <p className="text-[12.5px] text-fg-4">Need to change your email? Write to support and we’ll do it within a day.</p>
         </div>
       </Card>
+      <DangerZone />
       <Card>
         <CardHeader title="Appearance" />
         <div className="grid grid-cols-3 gap-3 p-5">
@@ -301,5 +303,44 @@ function Billing() {
       </div>
       <p className="text-[12px] text-fg-4">Payments are handled by Lemon Squeezy, our merchant of record — they add VAT/sales tax where required and issue your invoices.</p>
     </>
+  )
+}
+
+function DangerZone() {
+  const [open, setOpen] = useState(false)
+  const [password, setPassword] = useState('')
+  const del = useAction((s) => s.deleteAccount)
+  return (
+    <Card className="border-error/25">
+      <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="text-[14px] font-semibold text-fg">Delete account</div>
+          <p className="mt-0.5 text-[12.5px] text-fg-3">Permanently removes your projects, monitoring history, alerts and Google connection.</p>
+        </div>
+        <Button variant="danger" size="sm" onClick={() => setOpen(true)}>
+          Delete account
+        </Button>
+      </div>
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        size="sm"
+        title="Delete your account?"
+        description="This can’t be undone. Cancel any paid subscription in the billing portal first."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="danger" disabled={!password} loading={del.isPending} onClick={() => del.mutateAsync([password]).then(() => (window.location.href = '/'), () => undefined)}>
+              Delete forever
+            </Button>
+          </>
+        }
+      >
+        <Label>Confirm with your password</Label>
+        <Input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+      </Modal>
+    </Card>
   )
 }

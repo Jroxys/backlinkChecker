@@ -101,6 +101,7 @@ export function client(ctx: Ctx) {
     put: (p: string, b?: unknown) => call('PUT', p, b ?? {}),
     patch: (p: string, b?: unknown) => call('PATCH', p, b ?? {}),
     del: (p: string) => call('DELETE', p),
+    call,
     clearCookie: () => (cookie = ''),
   }
 }

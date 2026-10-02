@@ -322,6 +322,7 @@ export const demoSource: DataSource = {
   disconnectGoogle: demoOnly,
   checkout: demoOnly,
   logout: async () => undefined,
+  deleteAccount: demoOnly,
 }
 
 export const DEMO_NOW = NOW

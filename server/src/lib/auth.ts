@@ -20,7 +20,7 @@ export async function verifyPassword(password: string, stored: string) {
   return got.length === expected.length && timingSafeEqual(got, expected)
 }
 
-const sha256 = (s: string) => createHash('sha256').update(s).digest('hex')
+export const sha256 = (s: string) => createHash('sha256').update(s).digest('hex')
 export const SESSION_COOKIE = 'ix_session'
 const SESSION_DAYS = 30
 
