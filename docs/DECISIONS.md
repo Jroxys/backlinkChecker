@@ -55,3 +55,30 @@ Her kararda önce seçenekleri, sonra kendi itirazlarımı yazıyorum. Yeni kara
 - Alt router'lardaki `use('*', requireUser)`, `/api` altındaki **tüm** yolları (herkese açık fiyat uç noktası dahil) kilitliyordu → yol bazlı ara katmana geçildi.
 - `node:sqlite` kullanılmayan isimli parametrede hata veriyor → sarmalayıcı sadece SQL'de geçen parametreleri bağlıyor.
 - Hız sınırlayıcı modül seviyesindeydi → uygulama örneği başına.
+
+### K14 · Tek kaynaktan iki mod: /app (gerçek) ve /demo (örnek veri)
+- İki ayrı arayüz yazmak kodu ikiye katlar. Sayfalar bir `DataSource` arayüzü üzerinden konuşuyor; `live` API'yi, `demo` örnek veriyi kullanıyor. Demo'da yazma işlemleri dürüst bir "bu bir demo" mesajı veriyor.
+
+### K15 · Backend, derlenmiş frontend'i de sunar
+- Ayrı CDN + API yerine tek origin: çerezler birinci taraf kalır, CORS sorunu yok, tek deploy.
+
+### K16 · Anahtar kelimeler: SERP kazıma değil, Search Console
+- SERP API'leri sorgu başına ücretli ve kazıma Google koşullarına aykırı. Search Analytics API ücretsiz, gerçek tıklama/gösterim verir ve zaten aldığımız salt okunur izinle çalışır. Sıra takibi yerine "vurucu mesafe" (4–15. sıra) ve "düşük CTR" içgörüleri.
+
+### K17 · Fırsatlar: önce sahip olduğumuz veriden
+- Rakip boşluğu ücretli veri istiyor. Ama kaybolan dofollow linkleri geri kazanmak ve 404 sayfaya giden linkleri 301 ile kurtarmak **bedava ve outreach'ten daha yüksek dönüşümlü**. Lansmanda fırsatlar bu ikisinden geliyor.
+
+### K18 · Ücretsiz araçlar (kayıtsız)
+- 0 müşteride trafik kaynağı. Kötüye kullanım riskine karşı: IP başına saatte 10, toplam saatte 500 istek; robots.txt'ye uyum; SSRF koruması; sayfa içeriği asla döndürülmüyor.
+
+### K19 · Haftalık özet e-postası
+- İzleme ürünleri "her şey yolundayken" görünmez olur ve iptal edilir. Pazartesi özeti ürünün çalıştığını hatırlatır.
+
+### K20 · Yayına alma: tek VPS + Docker Compose + Caddy + Litestream
+- Vercel/Netlify sürekli çalışan worker ve kalıcı dosya desteklemiyor. ~5 €/ay VPS + sürekli S3 yedeği en ucuz ve dayanıklı seçenek. Fly.io alternatif olarak hazır.
+
+### K21 · Uçtan uca testte bulunan hatalar
+- Yanıt süresine sunucu başına nezaket beklemesi karışıyordu, her site "yavaş" görünüyordu → sadece ağ süresi ölçülüyor.
+- `index.html` açılışta önbelleğe alınıyordu, yeniden derlemede eski dosyalara işaret ediyordu → değişince yeniden okunuyor.
+- `timeAgo` sabit bir "şimdi" kullanıyordu → gerçek saat.
+- Anahtar kelime önbelleği iki farklı saat kaynağı kullanıyordu → `ctx.now()`.
