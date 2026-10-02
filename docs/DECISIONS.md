@@ -82,3 +82,7 @@ Her kararda önce seçenekleri, sonra kendi itirazlarımı yazıyorum. Yeni kara
 - `index.html` açılışta önbelleğe alınıyordu, yeniden derlemede eski dosyalara işaret ediyordu → değişince yeniden okunuyor.
 - `timeAgo` sabit bir "şimdi" kullanıyordu → gerçek saat.
 - Anahtar kelime önbelleği iki farklı saat kaynağı kullanıyordu → `ctx.now()`.
+
+### K22 · Kendi kodumun güvenlik incelemesi
+- **DNS rebinding:** IP kontrolü bağlantıdan önce yapılıyordu, `fetch` ise DNS'i yeniden çözüyordu. Kötü niyetli bir DNS önce genel, sonra özel IP döndürebilirdi (ücretsiz araçlar herkese açık olduğu için ciddi). → Bağlantı anında çalışan, özel IP'leri reddeden bir undici `Agent`. Node'un yerleşik `fetch`'i farklı bir undici sürümü gömdüğü için tarayıcı undici'nin kendi `fetch`'ine geçirildi.
+- **Slack biçimlendirme enjeksiyonu:** üçüncü taraf sayfalardan gelen anchor metinleri Slack'te sahte link olabiliyordu → `& < >` kaçışlanıyor.

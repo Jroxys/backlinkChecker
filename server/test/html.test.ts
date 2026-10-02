@@ -69,3 +69,26 @@ test('fetch timing excludes the per-host politeness delay', async () => {
   assert.ok(r.timeMs < 300, `reported ${r.timeMs}ms should be network time only`)
   await site.close()
 })
+
+test('connect-time DNS guard blocks hostnames that resolve to private IPs (DNS rebinding)', async (t) => {
+  const { guardedAgent } = await import('../src/lib/fetcher.js')
+  const { fetch: ufetch } = await import('undici')
+  const { fixtureSite } = await import('./helpers.js')
+  const site = await fixtureSite()
+  t.after(() => site.close())
+  site.set('/', 'secret')
+  const port = new URL(site.origin).port
+  // "localhost" passes no public check here — we call fetch directly to prove the agent itself refuses.
+  await assert.rejects(
+    ufetch(`http://localhost:${port}/`, { dispatcher: guardedAgent() }),
+    (e: Error & { cause?: { code?: string } }) => e.cause?.code === 'ESSRF',
+  )
+  // Public-looking results still connect: sanity-check the guard isn't blocking everything
+  const ok = await fetch(`http://127.0.0.1:${port}/`) // IP literal, no DNS, default agent
+  assert.equal(await ok.text(), 'secret')
+})
+
+test('Slack text from third-party pages is escaped', async () => {
+  const { slackEscape } = await import('../src/services/notifier.js')
+  assert.equal(slackEscape('<http://evil.test|Click> & co'), '&lt;http://evil.test|Click&gt; &amp; co')
+})

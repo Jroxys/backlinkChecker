@@ -1,4 +1,6 @@
 import { lookup } from 'node:dns/promises'
+import { lookup as lookupCb, type LookupAddress } from 'node:dns'
+import { Agent, fetch as undiciFetch } from 'undici'
 import { createRequire } from 'node:module'
 
 interface Robots {
@@ -56,11 +58,42 @@ interface RobotsEntry {
  * - follows redirects manually so every hop is SSRF- and robots-checked
  * - caps body size and time
  */
+function isPrivateAddress(address: string, family: number) {
+  if (family === 4) return !isPublicHost(address)
+  const a = address.toLowerCase()
+  return a === '::1' || a === '::' || a.startsWith('fc') || a.startsWith('fd') || a.startsWith('fe80') || a.startsWith('::ffff:') && !isPublicHost(a.slice(7))
+}
+
+/**
+ * Undici agent whose DNS lookup refuses private addresses *at connect time*.
+ * Checking the hostname before fetching isn't enough: a malicious DNS server can
+ * answer with a public IP first and 127.0.0.1 on the second lookup (DNS rebinding).
+ */
+export function guardedAgent() {
+  return new Agent({
+    connect: {
+      lookup(hostname, options, callback) {
+        lookupCb(hostname, { ...options, all: true }, (err, addresses) => {
+          if (err) return callback(err, '', 0)
+          const list = (Array.isArray(addresses) ? addresses : [{ address: addresses as unknown as string, family: 4 }]) as LookupAddress[]
+          const bad = list.find((a) => isPrivateAddress(a.address, a.family))
+          if (bad) return callback(Object.assign(new Error(`Refusing to connect to private address ${bad.address}`), { code: 'ESSRF' }), '', 0)
+          const pick = list[0]
+          // undici calls lookup with `all` unset by default; honour both shapes
+          if ((options as { all?: boolean }).all) return (callback as unknown as (e: null, a: LookupAddress[]) => void)(null, list)
+          callback(null, pick.address, pick.family)
+        })
+      },
+    },
+  })
+}
+
 export class PoliteFetcher {
   private robots = new Map<string, RobotsEntry>()
   private hostQueue = new Map<string, Promise<void>>()
   private lastHit = new Map<string, number>()
   private opts: Required<Omit<FetcherOptions, 'fetchImpl'>> & { fetchImpl: typeof fetch }
+  private dispatcher: Agent | undefined
 
   constructor(opts: FetcherOptions) {
     this.opts = {
@@ -70,9 +103,11 @@ export class PoliteFetcher {
       maxBytes: 3 * 1024 * 1024,
       maxRedirects: 5,
       respectRobots: true,
-      fetchImpl: globalThis.fetch,
+      // undici's own fetch: Node's built-in fetch bundles a different undici and rejects our Agent
+      fetchImpl: undiciFetch as unknown as typeof fetch,
       ...opts,
     }
+    if (!this.opts.allowPrivate) this.dispatcher = guardedAgent()
   }
 
   get userAgent() {
@@ -118,12 +153,14 @@ export class PoliteFetcher {
     const t = setTimeout(() => ctrl.abort(), this.opts.timeoutMs)
     try {
       return await this.opts.fetchImpl(u, {
+        ...({ dispatcher: this.dispatcher } as object),
         redirect: 'manual',
         signal: ctrl.signal,
         headers: { 'user-agent': this.opts.userAgent, accept, 'accept-language': 'en;q=0.9,*;q=0.5' },
       })
     } catch (e) {
       if ((e as Error).name === 'AbortError') throw new FetchError(`Timed out after ${this.opts.timeoutMs}ms`, 'timeout')
+      if (((e as { cause?: { code?: string } }).cause?.code ?? '') === 'ESSRF') throw new FetchError('Refusing to connect to a private address', 'ssrf')
       throw new FetchError((e as Error).message || 'Network error', 'network')
     } finally {
       clearTimeout(t)

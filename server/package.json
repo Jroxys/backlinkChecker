@@ -19,6 +19,7 @@
     "hono": "^4.13.12",
     "nodemailer": "^10.0.13",
     "robots-parser": "^3.0.1",
+    "undici": "^8.11.2",
     "zod": "^4.6.5"
   },
   "devDependencies": {

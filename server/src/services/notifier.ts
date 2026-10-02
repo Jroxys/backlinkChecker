@@ -57,6 +57,9 @@ export function memoryNotifier() {
   return n
 }
 
+/** Slack mrkdwn treats <…|…> as links and & < > as control chars; neutralise text from third-party pages. */
+export const slackEscape = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
 const rank: Record<string, number> = { info: 0, success: 0, warning: 1, critical: 2 }
 
 /**
@@ -108,7 +111,7 @@ export async function deliverPendingAlerts(ctx: Ctx, { digest = false } = {}) {
           await ctx.notifier.email(u.email, subject, text + '\n\nManage notifications: ' + ctx.config.appUrl + '/app/alerts')
         }
         if (u.slack_webhook)
-          await ctx.notifier.slack(u.slack_webhook, relevant.map((i) => `*${i.title}*${i.domain ? ` · ${i.domain}` : ''}\n${i.body}\n<${link(i.href)}|Open in Indexora>`).join('\n\n'))
+          await ctx.notifier.slack(u.slack_webhook, relevant.map((i) => `*${slackEscape(i.title)}*${i.domain ? ` · ${slackEscape(i.domain)}` : ''}\n${slackEscape(i.body)}\n<${link(i.href)}|Open in Indexora>`).join('\n\n'))
         if (u.webhook_url)
           await ctx.notifier.webhook(u.webhook_url, { alerts: relevant.map((i) => ({ id: i.id, title: i.title, body: i.body, severity: i.severity, project: i.domain, url: link(i.href) })) })
       }
