@@ -72,7 +72,7 @@ export function IndexingChart({ projectId, height = 300 }: { projectId: string |
               </div>
               <div className="mt-1 flex items-baseline gap-2">
                 <span className="tnum text-[18px] font-semibold text-fg">{last ? formatNumber(last[s.key]) : '—'}</span>
-                <Delta value={pct(s.key)} invert={s.key !== 'indexed'} className="!px-1 !py-0 !text-[11px]" />
+                {data.length > 1 && <Delta value={pct(s.key)} invert={s.key !== 'indexed'} className="!px-1 !py-0 !text-[11px]" />}
               </div>
             </button>
           )

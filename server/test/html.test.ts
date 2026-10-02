@@ -54,3 +54,18 @@ test('image links use alt text as anchor; lookalike domains do not match', () =>
   assert.equal(findBacklink(a, 'example.com').anchor, '[img] Example logo')
   assert.equal(findBacklink(a, 'example.com').matches, 1)
 })
+
+test('fetch timing excludes the per-host politeness delay', async () => {
+  const { PoliteFetcher } = await import('../src/lib/fetcher.js')
+  const { fixtureSite } = await import('./helpers.js')
+  const site = await fixtureSite()
+  site.set('/a', '<p>a</p>')
+  site.set('/b', '<p>b</p>')
+  const f = new PoliteFetcher({ userAgent: 'test', allowPrivate: true, perHostDelayMs: 600 })
+  await f.fetchPage(site.url('/a'))
+  const t0 = Date.now()
+  const r = await f.fetchPage(site.url('/b'))
+  assert.ok(Date.now() - t0 >= 550, 'second request to the same host waited')
+  assert.ok(r.timeMs < 300, `reported ${r.timeMs}ms should be network time only`)
+  await site.close()
+})

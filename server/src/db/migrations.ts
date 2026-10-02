@@ -213,4 +213,18 @@ export const migrations: { id: number; name: string; sql: string }[] = [
     name: 'oauth_return_to',
     sql: `ALTER TABLE oauth_states ADD COLUMN return_to TEXT;`,
   },
+  {
+    id: 4,
+    name: 'gsc_cache',
+    sql: `
+      -- Cached Search Console Search Analytics responses (keyed by project + query signature).
+      CREATE TABLE gsc_cache (
+        project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        key TEXT NOT NULL,
+        body TEXT NOT NULL,
+        fetched_at TEXT NOT NULL,
+        PRIMARY KEY (project_id, key)
+      );
+    `,
+  },
 ]

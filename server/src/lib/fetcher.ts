@@ -192,16 +192,18 @@ export class PoliteFetcher {
     } catch {
       throw new FetchError(`Invalid URL: ${input}`, 'bad_url')
     }
-    const start = Date.now()
+    let networkMs = 0
     const redirects: FetchResult['redirects'] = []
     for (let hop = 0; hop <= this.opts.maxRedirects; hop++) {
       if (current.protocol !== 'http:' && current.protocol !== 'https:') throw new FetchError(`Unsupported protocol ${current.protocol}`, 'bad_url')
       await this.assertAllowedHost(current)
       if (!ownSite && !(await this.allowedByRobots(current))) throw new FetchError(`Blocked by robots.txt: ${current.href}`, 'robots')
       const target = current
-      const res = await this.slot(target.host, () => this.raw(target, accept))
+      let hopStart = 0
+      const res = await this.slot(target.host, () => ((hopStart = Date.now()), this.raw(target, accept)))
       if (res.status >= 300 && res.status < 400 && res.headers.get('location')) {
         await res.body?.cancel()
+        networkMs += Date.now() - hopStart
         const next = new URL(res.headers.get('location')!, current)
         redirects.push({ from: current.href, to: next.href, status: res.status })
         current = next
@@ -210,7 +212,9 @@ export class PoliteFetcher {
       const contentType = res.headers.get('content-type') ?? ''
       const textual = !contentType || /html|xml|text|json/i.test(contentType)
       const body = textual ? await this.readCapped(res) : (await res.body?.cancel(), '')
-      return { url: input, finalUrl: current.href, status: res.status, headers: res.headers, body, contentType, redirects, timeMs: Date.now() - start }
+      // Network time only: politeness waits and robots.txt lookups are excluded
+      networkMs += Date.now() - hopStart
+      return { url: input, finalUrl: current.href, status: res.status, headers: res.headers, body, contentType, redirects, timeMs: networkMs }
     }
     throw new FetchError(`More than ${this.opts.maxRedirects} redirects`, 'too_many_redirects')
   }

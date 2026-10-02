@@ -198,3 +198,45 @@ export interface AuditResult {
   categories: { key: AuditCategoryKey; name: string; description: string; score: number; passed: number; warnings: number; errors: number }[]
   checks: AuditCheck[]
 }
+
+export interface KeywordRow {
+  query: string
+  page: string | null
+  clicks: number
+  impressions: number
+  ctr: number
+  position: number
+  prevPosition: number | null
+  prevClicks: number | null
+}
+
+export interface KeywordsResponse {
+  connected: boolean
+  rows: KeywordRow[]
+  range: { start: string; end: string } | null
+}
+
+export interface Opportunity {
+  id: string
+  kind: 'reclaim' | 'redirect' | 'competitor-gap' | 'unlinked-mention' | 'broken-link' | 'resource-page'
+  domain: string
+  authority: number | null
+  headline: string
+  reason: string
+  sourceUrl: string | null
+  targetUrl: string | null
+  competitors: string[]
+  priority: number
+}
+
+export interface OpportunitiesResponse {
+  opportunities: Opportunity[]
+  gapStatus: 'ok' | 'no_provider' | 'no_competitors' | 'error'
+  competitors: string[]
+}
+
+export interface Competitor {
+  id: string
+  domain: string
+  createdAt: string
+}

@@ -70,6 +70,21 @@ export function useAudit(projectId: string | undefined) {
   return useQuery({ queryKey: [s.mode, 'audit', projectId], queryFn: () => s.audit(projectId!), enabled: !!projectId })
 }
 
+export function useKeywords(projectId: string | undefined) {
+  const s = useSource()
+  return useQuery({ queryKey: [s.mode, 'keywords', projectId], queryFn: () => s.keywords(projectId!), enabled: !!projectId, staleTime: 10 * 60_000 })
+}
+
+export function useOpportunities(projectId: string | undefined) {
+  const s = useSource()
+  return useQuery({ queryKey: [s.mode, 'opportunities', projectId], queryFn: () => s.opportunities(projectId!), enabled: !!projectId })
+}
+
+export function useCompetitors(projectId: string | undefined) {
+  const s = useSource()
+  return useQuery({ queryKey: [s.mode, 'competitors', projectId], queryFn: () => s.competitors(projectId!), enabled: !!projectId })
+}
+
 /* --------------------------------------------------------------- writes */
 
 /**

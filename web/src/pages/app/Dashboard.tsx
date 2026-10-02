@@ -171,7 +171,7 @@ export function Dashboard() {
       </Card>
 
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
-        <MovementCard history={h} loading={loading} />
+        <MovementCard history={h} loading={loading} tracked={s?.trackedBacklinks ?? 0} />
         <AlertsCard />
         <MonitoringCard project={project} />
       </div>
@@ -293,7 +293,7 @@ function CoverageCard({ project, loading }: { project: Project | undefined; load
   )
 }
 
-function MovementCard({ history, loading }: { history: HistoryPoint[]; loading: boolean }) {
+function MovementCard({ history, loading, tracked }: { history: HistoryPoint[]; loading: boolean; tracked: number }) {
   const c = useChartColors()
   const movement = useMemo(() => history.slice(-14).map((p) => ({ date: p.date, gained: p.gained, lost: -p.lost })), [history])
   const gained = movement.reduce((a, x) => a + x.gained, 0)
@@ -317,14 +317,16 @@ function MovementCard({ history, loading }: { history: HistoryPoint[]; loading: 
         <EmptyState
           className="py-10"
           icon={<Link2 />}
-          title="No backlink history yet"
-          description="Import your existing links and we’ll chart every gain and loss from tomorrow on."
+          title={tracked ? 'History starts tomorrow' : 'No backlinks tracked yet'}
+          description={tracked ? `We’re verifying your ${formatNumber(tracked)} links. Daily gains and losses appear here from the second day on.` : 'Import your existing links and we’ll chart every gain and loss from tomorrow on.'}
           action={
-            <Link to="/app/backlinks">
-              <Button size="sm" leftIcon={<Upload />}>
-                Import backlinks
-              </Button>
-            </Link>
+            tracked ? undefined : (
+              <Link to="/app/backlinks">
+                <Button size="sm" leftIcon={<Upload />}>
+                  Import backlinks
+                </Button>
+              </Link>
+            )
           }
         />
       ) : (

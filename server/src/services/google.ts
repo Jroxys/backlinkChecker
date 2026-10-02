@@ -53,6 +53,23 @@ export interface GoogleClient {
   listSites(accessToken: string): Promise<{ siteUrl: string; permissionLevel: string }[]>
   inspect(accessToken: string, siteUrl: string, url: string): Promise<InspectionResult>
   listSitemaps(accessToken: string, siteUrl: string): Promise<{ path: string; lastDownloaded?: string; errors?: number; warnings?: number; isPending?: boolean }[]>
+  searchAnalytics(accessToken: string, siteUrl: string, q: AnalyticsQuery): Promise<AnalyticsRow[]>
+}
+
+export interface AnalyticsQuery {
+  startDate: string
+  endDate: string
+  dimensions: ('query' | 'page' | 'date' | 'country' | 'device')[]
+  rowLimit?: number
+  page?: string
+}
+
+export interface AnalyticsRow {
+  keys: string[]
+  clicks: number
+  impressions: number
+  ctr: number
+  position: number
 }
 
 export function createGoogleClient(clientId: string, clientSecret: string, fetchImpl: typeof fetch = globalThis.fetch): GoogleClient {
@@ -152,6 +169,23 @@ export function createGoogleClient(clientId: string, clientSecret: string, fetch
         warnings: Number(s.warnings ?? 0),
         isPending: Boolean(s.isPending),
       }))
+    },
+    async searchAnalytics(token, siteUrl, q) {
+      const body = await json(
+        await fetchImpl(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`, {
+          method: 'POST',
+          headers: authed(token),
+          body: JSON.stringify({
+            startDate: q.startDate,
+            endDate: q.endDate,
+            dimensions: q.dimensions,
+            rowLimit: q.rowLimit ?? 250,
+            dataState: 'final',
+            ...(q.page ? { dimensionFilterGroups: [{ filters: [{ dimension: 'page', operator: 'equals', expression: q.page }] }] } : {}),
+          }),
+        }),
+      )
+      return ((body.rows as AnalyticsRow[]) ?? []).map((r) => ({ keys: r.keys ?? [], clicks: r.clicks ?? 0, impressions: r.impressions ?? 0, ctr: r.ctr ?? 0, position: r.position ?? 0 }))
     },
   }
 }

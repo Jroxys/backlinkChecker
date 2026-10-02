@@ -1,4 +1,7 @@
+import { existsSync, readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { Hono } from 'hono'
+import { serveStatic } from '@hono/node-server/serve-static'
 import { cors } from 'hono/cors'
 import { secureHeaders } from 'hono/secure-headers'
 import type { Ctx } from './context.js'
@@ -44,6 +47,19 @@ export function createApp(ctx: Ctx) {
   app.route('/api/alerts', alertRoutes)
   app.route('/api/google', googleRoutes)
   app.route('/api/billing', billingRoutes)
+
+  // Serve the built web app from the same origin (cookies stay first-party, one deploy).
+  const dist = ctx.config.webDist ? resolve(ctx.config.webDist) : ''
+  if (dist && existsSync(resolve(dist, 'index.html'))) {
+    const indexHtml = readFileSync(resolve(dist, 'index.html'), 'utf8')
+    app.use('/assets/*', async (c, next) => {
+      await next()
+      c.header('cache-control', 'public, max-age=31536000, immutable')
+    })
+    app.use('*', serveStatic({ root: dist }))
+    // SPA fallback: any non-API GET renders the app shell
+    app.get('*', (c) => (c.req.path.startsWith('/api/') ? c.json({ error: { code: 'not_found', message: 'No such endpoint' } }, 404) : c.html(indexHtml)))
+  }
 
   app.notFound((c) => c.json({ error: { code: 'not_found', message: 'No such endpoint' } }, 404))
   app.onError((err, c) => {

@@ -55,7 +55,7 @@ export function AppLayout() {
   return (
     <div className="min-h-screen bg-bg">
       {source.mode === 'demo' && (
-        <div className="relative z-50 flex items-center justify-center gap-3 bg-[#0B0F19] px-4 py-2 text-[12.5px] text-white/80">
+        <div className="relative z-50 flex items-center justify-center gap-3 bg-[#0B0F19] px-4 py-2 text-[12.5px] text-white/80 print:hidden">
           <Sparkles className="size-3.5 shrink-0 text-[#A5B4FC]" />
           <span className="truncate">You’re exploring a demo with sample data.</span>
           <a href="/signup" className="inline-flex shrink-0 items-center gap-1 font-medium text-white hover:underline">
@@ -67,7 +67,7 @@ export function AppLayout() {
       <div className="flex">
         <aside
           className={cn(
-            'sticky top-14 hidden h-[calc(100vh-3.5rem)] shrink-0 lg:block',
+            'sticky top-14 hidden h-[calc(100vh-3.5rem)] shrink-0 lg:block print:hidden',
           )}
         >
           <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
@@ -83,7 +83,7 @@ export function AppLayout() {
         )}
 
         <main id="app-main" className="min-w-0 flex-1">
-          <div key={pathname} className="mx-auto w-full max-w-[1440px] animate-rise px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          <div key={pathname} className="mx-auto w-full max-w-[1440px] animate-rise px-4 py-6 sm:px-6 lg:px-8 lg:py-8 print:p-0">
             <Suspense fallback={<PageFallback />}>
               <Outlet />
             </Suspense>

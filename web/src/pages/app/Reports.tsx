@@ -1,293 +1,174 @@
-import { useState } from 'react'
-import { CalendarClock, Download, FileBarChart2, FileText, Link2, ScanSearch, ShieldCheck, Sparkles, Eye, Send, CalendarRange } from 'lucide-react'
-import type { Report } from '@/types'
-import { cn } from '@/lib/cn'
+import { Printer, FileBarChart2, ShieldCheck, Link2, KeyRound, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react'
+import { useAudit, useHistory, useKeywords, useMe } from '@/api/hooks'
+import { useSource } from '@/api/source'
+import { useProject } from '@/lib/project'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { Badge } from '@/components/ui/Badge'
-import { Modal } from '@/components/ui/Modal'
-import { Input, Label, Switch } from '@/components/ui/Controls'
-import { Select } from '@/components/ui/Dropdown'
-import { Table, THead, TH, TR, TD } from '@/components/ui/Table'
 import { LogoMark } from '@/components/ui/Logo'
 import { Sparkline } from '@/components/ui/Sparkline'
-import { useToast } from '@/components/ui/Toast'
-import { reports as initial, reportTemplates } from '@/data/reports'
-import { projects } from '@/data/projects'
-import { formatDate } from '@/utils/format'
-
-const typeIcon: Record<Report['type'], typeof FileText> = {
-  weekly: CalendarRange,
-  monthly: FileBarChart2,
-  indexing: ScanSearch,
-  backlink: Link2,
-  technical: ShieldCheck,
-}
+import { formatDate, formatNumber } from '@/utils/format'
+import { ReportsDemo } from './ReportsDemo'
 
 export function Reports() {
-  const [list, setList] = useState(initial)
-  const [gen, setGen] = useState<Report['type'] | null>(null)
-  const [preview, setPreview] = useState(false)
-  const toast = useToast()
+  const { mode } = useSource()
+  return mode === 'demo' ? <ReportsDemo /> : <ReportLive />
+}
 
-  const generate = (type: Report['type'], project: string) => {
-    const t = reportTemplates.find((x) => x.type === type)!
-    const id = `r${Date.now()}`
-    setList((l) => [
-      { id, name: t.name, type, project, period: 'Sep 2 – Oct 1, 2026', created: '2026-10-02T09:14:00Z', status: 'generating', pages: t.pages, recipients: 0 },
-      ...l,
-    ])
-    setGen(null)
-    toast({ title: 'Generating report', description: `${t.name} for ${project}`, tone: 'info' })
-    setTimeout(() => {
-      setList((l) => l.map((r) => (r.id === id ? { ...r, status: 'ready' } : r)))
-      toast({ title: 'Report ready', description: `${t.name} · ${t.pages} pages` })
-    }, 3500)
-  }
+const pct = (a: number, b: number) => (b ? ((a - b) / b) * 100 : 0)
+const fmtPct = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(n).toFixed(1)}%`
+
+/** A one-page, client-ready report rendered from live data. Print → "Save as PDF". */
+function ReportLive() {
+  const { project } = useProject()
+  const me = useMe().data
+  const history = useHistory(project?.id, 30).data ?? []
+  const audit = useAudit(project?.id).data
+  const kw = useKeywords(project?.id).data
+  const s = project?.stats
+  if (!project || !s) return null
+  const gsc = s.unknown < s.urls
+  const first = history[0]
+  const last = history[history.length - 1]
+  const topIssues = (audit?.checks ?? []).filter((c) => c.affected > 0).sort((a, b) => (a.severity === 'error' ? -1 : 1) - (b.severity === 'error' ? -1 : 1) || b.affected - a.affected).slice(0, 5)
+  const topQueries = (kw?.rows ?? []).slice(0, 8)
+  const periodEnd = new Date()
+  const periodStart = new Date(periodEnd.getTime() - 29 * 86_400_000)
 
   return (
     <>
-      <PageHeader
-        title="Reports"
-        description="Client-ready PDF reports with your branding. Generate on demand or schedule them to send automatically."
-        actions={
-          <Button variant="primary" leftIcon={<FileBarChart2 />} onClick={() => setGen('monthly')}>
-            Generate Report
-          </Button>
-        }
-      />
-
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-3">
-          {reportTemplates.map((t) => {
-            const Icon = typeIcon[t.type]
-            return (
-              <Card key={t.type} interactive className="flex flex-col p-4.5">
-                <div className="flex items-start justify-between">
-                  <span className="flex size-9 items-center justify-center rounded-lg border border-line bg-surface-2 text-fg-2">
-                    <Icon className="size-4" />
-                  </span>
-                  <span className="tnum text-[11.5px] text-fg-4">{t.pages} pages</span>
-                </div>
-                <h3 className="mt-3.5 text-[14px] font-semibold text-fg">{t.name}</h3>
-                <p className="mt-1 flex-1 text-[12.5px] leading-relaxed text-fg-3">{t.description}</p>
-                <div className="mt-4 flex gap-2">
-                  <Button size="sm" variant="secondary" onClick={() => setGen(t.type)}>
-                    Generate
-                  </Button>
-                  <Button size="sm" variant="ghost" leftIcon={<Eye />} onClick={() => setPreview(true)}>
-                    Preview
-                  </Button>
-                </div>
-              </Card>
-            )
-          })}
-        </div>
-
-        <Card className="overflow-hidden">
-          <CardHeader title="Report preview" description="Monthly SEO Report · fernandpine.co" actions={<Badge tone="primary" icon={<Sparkles />}>White-label</Badge>} />
-          <div className="p-5">
-            <ReportCover />
-          </div>
-        </Card>
+      <div className="print:hidden">
+        <PageHeader
+          title="Reports"
+          description="A client-ready summary of the last 30 days, built from live data. Use your browser’s “Save as PDF” to send it."
+          actions={
+            <Button variant="primary" leftIcon={<Printer />} onClick={() => window.print()}>
+              Print / Save as PDF
+            </Button>
+          }
+        />
       </div>
 
-      <Card className="mt-4 overflow-hidden">
-        <CardHeader
-          title="Report history"
-          description="Generated and scheduled reports across all projects"
-          actions={<Badge tone="neutral" icon={<CalendarClock />}>2 scheduled</Badge>}
-        />
-        <div className="mt-4">
-          <Table minWidth={900}>
-            <THead>
-              <TH>Report</TH>
-              <TH>Project</TH>
-              <TH>Period</TH>
-              <TH>Created</TH>
-              <TH>Status</TH>
-              <TH align="right">Actions</TH>
-            </THead>
-            <tbody>
-              {list.map((r) => {
-                const Icon = typeIcon[r.type]
-                return (
-                  <TR key={r.id}>
-                    <TD>
-                      <div className="flex items-center gap-3">
-                        <span className="flex size-8 items-center justify-center rounded-lg bg-surface-3 text-fg-3">
-                          <Icon className="size-4" />
-                        </span>
-                        <div>
-                          <div className="font-medium text-fg">{r.name}</div>
-                          <div className="tnum text-[12px] text-fg-4">
-                            {r.pages} pages{r.recipients ? ` · sent to ${r.recipients}` : ''}
-                          </div>
-                        </div>
-                      </div>
-                    </TD>
-                    <TD>{r.project}</TD>
-                    <TD className="tnum">{r.period}</TD>
-                    <TD className="tnum">{formatDate(r.created)}</TD>
-                    <TD>
-                      {r.status === 'ready' ? (
-                        <Badge size="xs" tone="success" dot>Ready</Badge>
-                      ) : r.status === 'generating' ? (
-                        <Badge size="xs" tone="primary">
-                          <span className="size-2.5 animate-spin rounded-full border-[1.5px] border-current border-r-transparent" />
-                          Generating
-                        </Badge>
-                      ) : (
-                        <Badge size="xs" tone="neutral" icon={<CalendarClock />}>Scheduled</Badge>
-                      )}
-                    </TD>
-                    <TD align="right">
-                      <div className="flex justify-end gap-1">
-                        <Button size="xs" variant="ghost" leftIcon={<Send />} disabled={r.status !== 'ready'} onClick={() => toast({ title: 'Report sent', description: r.name })}>
-                          Send
-                        </Button>
-                        <Button size="xs" variant="secondary" leftIcon={<Download />} disabled={r.status !== 'ready'} onClick={() => toast({ title: 'Downloading PDF', description: r.name })}>
-                          PDF
-                        </Button>
-                      </div>
-                    </TD>
-                  </TR>
-                )
-              })}
-            </tbody>
-          </Table>
-        </div>
-      </Card>
+      <article className="mx-auto max-w-[820px] rounded-xl border border-[#E2E8F0] bg-white p-8 text-[#0B0F19] shadow-card print:max-w-none print:border-0 print:p-0 print:shadow-none sm:p-12">
+        <header className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <LogoMark size={22} />
+            <span className="text-[13px] font-semibold tracking-tight">{me?.plan.features.whiteLabel ? me.user.name : 'Indexora'}</span>
+          </div>
+          <span className="text-[12px] text-[#64748B]">
+            {formatDate(periodStart)} – {formatDate(periodEnd)}
+          </span>
+        </header>
+        <h1 className="mt-8 text-[30px] leading-tight font-semibold tracking-[-0.03em]">SEO Report</h1>
+        <p className="text-[14px] text-[#64748B]">{project.domain}</p>
+        <div className="mt-6 h-px bg-[#E2E8F0]" />
 
-      <GenerateModal key={gen ?? 'closed'} type={gen} onClose={() => setGen(null)} onGenerate={generate} />
+        <Section icon={<FileBarChart2 className="size-4" />} title="Summary">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              gsc
+                ? ['Indexed URLs', s.indexed, first && last ? pct(last.indexed, first.indexed) : null, history.map((h) => h.indexed)]
+                : ['Indexable URLs', s.indexable, first && last ? pct(last.indexable, first.indexable) : null, history.map((h) => h.indexable)],
+              ['Live backlinks', s.backlinks, first && last ? pct(last.backlinks, first.backlinks) : null, history.map((h) => h.backlinks)],
+              ['Referring domains', s.refDomains, first && last ? pct(last.ref_domains, first.ref_domains) : null, history.map((h) => h.ref_domains)],
+              ['Audit score', audit?.score ?? 0, null, []],
+            ].map(([label, value, delta, trend]) => (
+              <div key={label as string} className="rounded-lg border border-[#E2E8F0] p-3">
+                <div className="text-[11px] text-[#64748B]">{label as string}</div>
+                <div className="tnum mt-1 text-[22px] font-semibold">{formatNumber(value as number)}</div>
+                <div className="mt-1 flex items-end justify-between">
+                  <span className={`tnum text-[11px] font-medium ${delta === null ? 'text-[#94A3B8]' : (delta as number) >= 0 ? 'text-[#047857]' : 'text-[#B91C1C]'}`}>{delta === null ? '' : fmtPct(delta as number)}</span>
+                  {(trend as number[]).length > 1 && <Sparkline data={trend as number[]} width={56} height={18} color="#6366F1" fill={false} />}
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 text-[13.5px] leading-relaxed text-[#334155]">
+            {gsc ? `${formatNumber(s.indexed)} of ${formatNumber(s.urls)} monitored URLs are indexed by Google.` : `${formatNumber(s.indexable)} of ${formatNumber(s.urls)} monitored URLs are indexable (Google’s own index status appears once Search Console is connected).`} In the last 30 days {formatNumber(s.gained30d)} new backlinks were verified and {formatNumber(s.lost30d)} were lost.
+            {s.issues ? ` ${formatNumber(s.issues)} URLs currently have indexability issues.` : ' No URLs currently have indexability issues.'}
+          </p>
+        </Section>
 
-      <Modal open={preview} onClose={() => setPreview(false)} title="Report preview" description="Page 1 of 14 · cover and executive summary" size="lg">
-        <ReportCover large />
-      </Modal>
+        <Section icon={<ShieldCheck className="size-4" />} title="Top issues to fix">
+          {topIssues.length === 0 ? (
+            <p className="text-[13.5px] text-[#334155]">No open issues. Every monitored URL is reachable and indexable.</p>
+          ) : (
+            <ol className="space-y-3">
+              {topIssues.map((c) => (
+                <li key={c.id} className="flex gap-3 text-[13px]">
+                  {c.severity === 'error' ? <XCircle className="mt-0.5 size-4 shrink-0 text-[#EF4444]" /> : <AlertTriangle className="mt-0.5 size-4 shrink-0 text-[#F59E0B]" />}
+                  <div>
+                    <div className="font-medium">
+                      {c.title} <span className="tnum font-normal text-[#64748B]">· {formatNumber(c.affected)}</span>
+                    </div>
+                    <div className="text-[#475569]">{c.fix}</div>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+        </Section>
+
+        <Section icon={<Link2 className="size-4" />} title="Backlinks">
+          <div className="grid grid-cols-3 gap-3 text-[13px]">
+            <Stat label="Verified live" value={s.backlinks} />
+            <Stat label="New (30 days)" value={s.gained30d} good />
+            <Stat label="Lost (30 days)" value={s.lost30d} bad={s.lost30d > 0} />
+          </div>
+        </Section>
+
+        {topQueries.length > 0 && (
+          <Section icon={<KeyRound className="size-4" />} title="Top search queries">
+            <table className="w-full text-[12.5px]">
+              <thead>
+                <tr className="border-b border-[#E2E8F0] text-left text-[#64748B]">
+                  <th className="py-1.5 font-medium">Query</th>
+                  <th className="py-1.5 text-right font-medium">Position</th>
+                  <th className="py-1.5 text-right font-medium">Clicks</th>
+                  <th className="py-1.5 text-right font-medium">Impressions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topQueries.map((r) => (
+                  <tr key={r.query} className="border-b border-[#F1F5F9]">
+                    <td className="py-1.5">{r.query}</td>
+                    <td className="tnum py-1.5 text-right">{r.position.toFixed(1)}</td>
+                    <td className="tnum py-1.5 text-right">{formatNumber(r.clicks)}</td>
+                    <td className="tnum py-1.5 text-right">{formatNumber(r.impressions)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Section>
+        )}
+
+        <footer className="mt-10 flex items-center justify-between border-t border-[#E2E8F0] pt-4 text-[11px] text-[#94A3B8]">
+          <span>Generated {formatDate(new Date())}</span>
+          <span className="inline-flex items-center gap-1">
+            <CheckCircle2 className="size-3" /> Data: Google Search Console & Indexora crawler
+          </span>
+        </footer>
+      </article>
     </>
   )
 }
 
-function GenerateModal({ type, onClose, onGenerate }: { type: Report['type'] | null; onClose: () => void; onGenerate: (t: Report['type'], p: string) => void }) {
-  const [t, setT] = useState<Report['type']>(type ?? 'monthly')
-  const [project, setProject] = useState(projects[2].domain)
-  const [schedule, setSchedule] = useState(false)
-
+function Section({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
-    <Modal
-      open={!!type}
-      onClose={onClose}
-      title="Generate report"
-      description="Reports use your workspace branding and can be sent straight to clients."
-      footer={
-        <>
-          <Button variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button variant="primary" leftIcon={<FileBarChart2 />} onClick={() => onGenerate(t, project)}>
-            Generate Report
-          </Button>
-        </>
-      }
-    >
-      <div className="space-y-4">
-        <div>
-          <Label>Report type</Label>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {reportTemplates.map((r) => {
-              const Icon = typeIcon[r.type]
-              return (
-                <button
-                  key={r.type}
-                  onClick={() => setT(r.type)}
-                  className={cn(
-                    'flex items-center gap-2.5 rounded-xl border p-3 text-left text-[13px] font-medium transition-all',
-                    t === r.type ? 'border-primary bg-primary-soft text-fg ring-3 ring-[var(--ring)]' : 'border-line text-fg-2 hover:border-line-strong',
-                  )}
-                >
-                  <Icon className={cn('size-4', t === r.type ? 'text-primary' : 'text-fg-4')} />
-                  {r.name}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <Label>Project</Label>
-            <Select value={project} onChange={setProject} width={260} options={projects.map((p) => ({ value: p.domain, label: p.domain }))} />
-          </div>
-          <div>
-            <Label>Period</Label>
-            <Select
-              value="30d"
-              onChange={() => {}}
-              options={[
-                { value: '30d', label: 'Last 30 days' },
-                { value: 'month', label: 'September 2026' },
-                { value: 'q', label: 'Q3 2026' },
-              ]}
-            />
-          </div>
-        </div>
-        <div>
-          <Label hint="Comma separated">Send to</Label>
-          <Input defaultValue="marketing@fernandpine.co, lea@fernandpine.co" />
-        </div>
-        <div className="flex items-center justify-between rounded-xl border border-line p-3.5">
-          <div>
-            <div className="text-[13px] font-medium text-fg">Repeat automatically</div>
-            <div className="text-[12px] text-fg-3">Generate and send on the 1st of every month at 07:00</div>
-          </div>
-          <Switch label="Repeat automatically" checked={schedule} onChange={setSchedule} />
-        </div>
-      </div>
-    </Modal>
+    <section className="mt-8 break-inside-avoid">
+      <h2 className="mb-3 flex items-center gap-2 text-[11px] font-semibold tracking-wide text-[#4F46E5] uppercase">
+        {icon}
+        {title}
+      </h2>
+      {children}
+    </section>
   )
 }
 
-/** A miniature, client-ready report page rendered in HTML. Always light, like the PDF. */
-function ReportCover({ large }: { large?: boolean }) {
+function Stat({ label, value, good, bad }: { label: string; value: number; good?: boolean; bad?: boolean }) {
   return (
-    <div className={cn('overflow-hidden rounded-lg border border-[#E2E8F0] bg-white text-[#0B0F19] shadow-card', large ? 'p-8' : 'p-5')}>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <LogoMark size={large ? 22 : 18} />
-          <span className={cn('font-semibold tracking-tight', large ? 'text-[13px]' : 'text-[11px]')}>Northwind Studio</span>
-        </div>
-        <span className={cn('text-[#64748B]', large ? 'text-[12px]' : 'text-[10px]')}>September 2026</span>
-      </div>
-      <div className={cn('mt-6 font-semibold tracking-[-0.03em]', large ? 'text-[28px]' : 'text-[19px]')}>Monthly SEO Report</div>
-      <div className={cn('text-[#64748B]', large ? 'text-[14px]' : 'text-[11.5px]')}>fernandpine.co · Sep 1 – Sep 30, 2026</div>
-      <div className="mt-5 h-px bg-[#E2E8F0]" />
-      <div className={cn('mt-4 font-semibold tracking-wide text-[#4F46E5] uppercase', large ? 'text-[11px]' : 'text-[9px]')}>Executive summary</div>
-      <p className={cn('mt-1.5 leading-relaxed text-[#334155]', large ? 'text-[13.5px]' : 'text-[11px]')}>
-        Organic visibility grew for the fifth consecutive month. Indexed pages rose 3.6% to 3,917, and 41 new referring domains were acquired — including
-        two editorial links above authority 80.
-      </p>
-      <div className="mt-4 grid grid-cols-3 gap-2">
-        {[
-          ['Indexed pages', '3,917', '+3.6%', [3610, 3671, 3725, 3790, 3858, 3917]],
-          ['Ref. domains', '1,093', '+3.9%', [1012, 1031, 1049, 1061, 1080, 1093]],
-          ['SEO score', '91', '+2', [84, 85, 87, 88, 90, 91]],
-        ].map(([l, v, d, tr]) => (
-          <div key={String(l)} className="rounded-md border border-[#E2E8F0] p-2.5">
-            <div className={cn('text-[#64748B]', large ? 'text-[11px]' : 'text-[9px]')}>{l as string}</div>
-            <div className={cn('tnum font-semibold', large ? 'text-[20px]' : 'text-[14px]')}>{v as string}</div>
-            <div className="mt-1 flex items-end justify-between">
-              <span className={cn('tnum font-medium text-[#047857]', large ? 'text-[11px]' : 'text-[9px]')}>{d as string}</span>
-              <Sparkline data={tr as number[]} width={large ? 64 : 40} height={large ? 20 : 14} color="#6366F1" />
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className={cn('mt-4 font-semibold tracking-wide text-[#4F46E5] uppercase', large ? 'text-[11px]' : 'text-[9px]')}>Next actions</div>
-      <ul className={cn('mt-1.5 space-y-1 text-[#334155]', large ? 'text-[13px]' : 'text-[10.5px]')}>
-        <li>1. Consolidate 18 thin collection pages flagged “Crawled – not indexed”.</li>
-        <li>2. Reclaim 3 lost links from authority 60+ domains.</li>
-        <li>3. Compress hero images on /journal/* to bring LCP under 2.5s.</li>
-      </ul>
+    <div className="rounded-lg border border-[#E2E8F0] p-3">
+      <div className="text-[11px] text-[#64748B]">{label}</div>
+      <div className={`tnum mt-1 text-[20px] font-semibold ${good ? 'text-[#047857]' : bad ? 'text-[#B91C1C]' : ''}`}>{formatNumber(value)}</div>
     </div>
   )
 }

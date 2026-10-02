@@ -13,7 +13,7 @@ const db = openDb(config.databasePath)
 const ctx: Ctx = {
   db,
   config,
-  fetcher: new PoliteFetcher({ userAgent: config.userAgent }),
+  fetcher: new PoliteFetcher({ userAgent: config.userAgent, allowPrivate: config.crawlerAllowPrivate }),
   notifier: await createNotifier(config.smtpUrl, config.mailFrom),
   provider: config.dataforseo.login ? new DataForSeoProvider(config.dataforseo.login, config.dataforseo.password) : null,
   google: createGoogleClient(config.google.clientId, config.google.clientSecret),

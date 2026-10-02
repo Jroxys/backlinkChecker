@@ -7,6 +7,7 @@ import { enqueue } from '../jobs/queue.js'
 import { addUrls } from '../services/urls.js'
 import { projectSnapshot } from '../services/stats.js'
 import { runAudit } from '../services/audit.js'
+import { keywordsFor } from '../services/keywords.js'
 
 export const projectRoutes = router()
 projectRoutes.use('*', requireUser)
@@ -125,4 +126,14 @@ projectRoutes.post('/:id/sitemaps', async (c) => {
 projectRoutes.get('/:id/audit', (c) => {
   const p = ownedProject(c, c.req.param('id'))
   return c.json(runAudit(c.var.ctx.db, p.id, c.var.ctx.now().toISOString()))
+})
+
+/** Queries this site ranks for, from Search Console (cached 6h; ?refresh=1 forces a reload). */
+projectRoutes.get('/:id/keywords', async (c) => {
+  const p = ownedProject(c, c.req.param('id'))
+  try {
+    return c.json(await keywordsFor(c.var.ctx, p.id, { force: c.req.query('refresh') === '1' }))
+  } catch (e) {
+    throw new ApiError(503, 'google_unavailable', `Search Console didn’t answer: ${(e as Error).message}`)
+  }
 })

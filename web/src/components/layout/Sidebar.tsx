@@ -6,8 +6,12 @@ import { cn } from '@/lib/cn'
 import { Tooltip } from '@/components/ui/Tooltip'
 import { ProgressBar } from '@/components/ui/Controls'
 import { navGroups, settingsItem, type NavItem } from './nav'
+import { useAlerts, useMe, useOpportunities } from '@/api/hooks'
+import { useProject } from '@/lib/project'
+import { Link } from '@/lib/router'
+import { formatNumber } from '@/utils/format'
 
-function Item({ item, collapsed, onNavigate }: { item: NavItem; collapsed: boolean; onNavigate?: () => void }) {
+function Item({ item, collapsed, onNavigate, badge }: { item: NavItem; collapsed: boolean; onNavigate?: () => void; badge?: number }) {
   const pathname = useAppPath(useLocation().pathname)
   const active = item.to === '/app' ? pathname === '/app' : pathname.startsWith(item.to)
   const Icon = item.icon
@@ -24,17 +28,17 @@ function Item({ item, collapsed, onNavigate }: { item: NavItem; collapsed: boole
       {active && !collapsed && <span className="absolute top-1.5 bottom-1.5 -left-3 w-[3px] rounded-r-full bg-primary" />}
       <Icon className={cn('size-4 shrink-0', active ? 'text-primary' : 'text-fg-3 group-hover:text-fg-2')} strokeWidth={1.9} />
       {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
-      {!collapsed && item.badge && (
+      {!collapsed && !!badge && (
         <span
           className={cn(
             'tnum rounded-md px-1.5 text-[11px] leading-5',
             active ? 'bg-primary-soft text-primary-ink' : 'bg-surface-3 text-fg-3 dark:bg-surface',
           )}
         >
-          {item.badge}
+          {badge}
         </span>
       )}
-      {collapsed && item.badge && <span className="absolute top-1 right-1 size-1.5 rounded-full bg-primary" />}
+      {collapsed && !!badge && <span className="absolute top-1 right-1 size-1.5 rounded-full bg-primary" />}
     </NavLink>
   )
   return collapsed ? (
@@ -57,6 +61,13 @@ export function Sidebar({
   onNavigate?: () => void
   mobile?: boolean
 }) {
+  const me = useMe().data
+  const { project } = useProject()
+  const unread = useAlerts().data?.unread ?? 0
+  const opps = useOpportunities(project?.id).data?.opportunities.length ?? 0
+  const badges: Record<string, number> = { '/app/alerts': unread, '/app/opportunities': opps }
+  const used = me ? Math.max(me.usage.urls / me.plan.limits.urls, me.usage.backlinks / me.plan.limits.backlinks) : 0
+  const tight = me ? (me.usage.urls / me.plan.limits.urls >= me.usage.backlinks / me.plan.limits.backlinks ? 'urls' : 'backlinks') : 'urls'
   return (
     <nav
       aria-label="Main"
@@ -80,29 +91,31 @@ export function Sidebar({
             {g.label && collapsed && <div className="mx-auto mb-2 h-px w-5 bg-line" />}
             <div className="space-y-0.5">
               {g.items.map((it) => (
-                <Item key={it.to} item={it} collapsed={collapsed} onNavigate={onNavigate} />
+                <Item key={it.to} item={it} collapsed={collapsed} onNavigate={onNavigate} badge={badges[it.to]} />
               ))}
             </div>
           </div>
         ))}
       </div>
 
-      {!collapsed && (
+      {!collapsed && me && (
         <div className="mx-3 mb-3 rounded-xl border border-line bg-surface p-3 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-[12px] font-medium text-fg">Growth plan</span>
-            <span className="tnum text-[11.5px] text-fg-3">18 days left</span>
+            <span className="text-[12px] font-medium text-fg">{me.plan.name} plan</span>
+            {me.user.founding && <span className="text-[11px] text-primary-ink">Founding</span>}
           </div>
           <div className="mt-2.5 flex items-baseline justify-between text-[11.5px] text-fg-3">
-            <span>URL checks</span>
+            <span>{tight === 'urls' ? 'Monitored URLs' : 'Tracked backlinks'}</span>
             <span className="tnum">
-              <span className="font-medium text-fg-2">38,412</span> / 50,000
+              <span className="font-medium text-fg-2">{formatNumber(tight === 'urls' ? me.usage.urls : me.usage.backlinks)}</span> / {formatNumber(tight === 'urls' ? me.plan.limits.urls : me.plan.limits.backlinks)}
             </span>
           </div>
-          <ProgressBar value={76.8} className="mt-1.5" />
-          <button className="mt-2.5 inline-flex items-center gap-1 text-[12px] font-medium text-primary-ink hover:underline">
-            Upgrade to Agency <ArrowUpRight className="size-3" />
-          </button>
+          <ProgressBar value={used * 100} tone={used > 0.9 ? 'warning' : 'primary'} className="mt-1.5" />
+          {me.plan.id !== 'agency' && (
+            <Link to="/app/settings?tab=billing" onClick={onNavigate} className="mt-2.5 inline-flex items-center gap-1 text-[12px] font-medium text-primary-ink hover:underline">
+              {me.plan.id === 'free' ? 'Upgrade — from $9/mo' : 'Compare plans'} <ArrowUpRight className="size-3" />
+            </Link>
+          )}
         </div>
       )}
 

@@ -3,6 +3,9 @@ import type {
   AddResult,
   Alert,
   AuditResult,
+  KeywordsResponse,
+  OpportunitiesResponse,
+  Competitor,
   Backlink,
   BacklinkProfile,
   HistoryPoint,
@@ -71,6 +74,11 @@ export interface DataSource {
   alerts(opts?: { unread?: boolean }): Promise<{ alerts: Alert[]; unread: number }>
   notificationSettings(): Promise<NotificationSettings>
   audit(projectId: string): Promise<AuditResult>
+  keywords(projectId: string, refresh?: boolean): Promise<KeywordsResponse>
+  opportunities(projectId: string): Promise<OpportunitiesResponse>
+  competitors(projectId: string): Promise<{ competitors: Competitor[]; providerConfigured: boolean }>
+  addCompetitor(projectId: string, domain: string): Promise<void>
+  deleteCompetitor(projectId: string, id: string): Promise<void>
 
   createProject(input: { domain: string; name?: string }): Promise<Project>
   updateProject(id: string, input: { name?: string; gscProperty?: string | null }): Promise<Project>

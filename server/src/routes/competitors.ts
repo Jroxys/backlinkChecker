@@ -3,6 +3,7 @@ import { ApiError, body, ownedProject, requireUser, router } from '../http.js'
 import { id, now } from '../lib/ids.js'
 import { normalizeDomain } from '../lib/url.js'
 import { getPlan } from '../plans.js'
+import { opportunitiesFor } from '../services/opportunities.js'
 
 export const competitorRoutes = router()
 competitorRoutes.use('/projects/*', requireUser)
@@ -39,4 +40,10 @@ competitorRoutes.get('/projects/:id/competitors/gap', async (c) => {
   const comps = c.var.ctx.db.all<{ domain: string }>('SELECT domain FROM competitors WHERE project_id = ?', [p.id]).map((r) => r.domain)
   if (!comps.length) return c.json({ gap: [] })
   return c.json({ gap: await provider.gap(p.domain, comps, { limit: 50 }) })
+})
+
+/** Ranked link opportunities: reclaim lost links, redirect broken targets, competitor gaps. */
+competitorRoutes.get('/projects/:id/opportunities', async (c) => {
+  const p = ownedProject(c, c.req.param('id'))
+  return c.json(await opportunitiesFor(c.var.ctx, p.id))
 })

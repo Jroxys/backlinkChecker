@@ -18,6 +18,11 @@ export const liveSource: DataSource = {
   alerts: (o) => api.get(`/api/alerts${qs({ unread: o?.unread, pageSize: 100 })}`),
   notificationSettings: async () => (await api.get<{ settings: NotificationSettings }>('/api/alerts/settings')).settings,
 
+  keywords: (id, refresh) => api.get(`/api/projects/${id}/keywords${refresh ? '?refresh=1' : ''}`),
+  opportunities: (id) => api.get(`/api/projects/${id}/opportunities`),
+  competitors: (id) => api.get(`/api/projects/${id}/competitors`),
+  addCompetitor: async (id, domain) => void (await api.post(`/api/projects/${id}/competitors`, { domain })),
+  deleteCompetitor: async (id, cid) => void (await api.del(`/api/projects/${id}/competitors/${cid}`)),
   audit: (id) => api.get(`/api/projects/${id}/audit`),
   createProject: async (input) => (await api.post<{ project: Project }>('/api/projects', input)).project,
   updateProject: async (id, input) => (await api.patch<{ project: Project }>(`/api/projects/${id}`, input)).project,

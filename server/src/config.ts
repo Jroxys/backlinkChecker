@@ -13,6 +13,10 @@ export const config = {
   cookieSecure: bool(env.COOKIE_SECURE, false),
   userAgent: env.CRAWLER_USER_AGENT ?? 'IndexoraBot/0.1 (+https://indexora.app/bot)',
   runWorker: bool(env.RUN_WORKER, true),
+  /** Let the crawler reach private/loopback hosts. Local development only — never in production. */
+  crawlerAllowPrivate: bool(env.CRAWLER_ALLOW_PRIVATE, false) && env.NODE_ENV !== 'production',
+  /** Built web app to serve (vite build output). Empty = API only. */
+  webDist: env.WEB_DIST ?? '../web/dist',
   google: {
     clientId: env.GOOGLE_CLIENT_ID ?? '',
     clientSecret: env.GOOGLE_CLIENT_SECRET ?? '',

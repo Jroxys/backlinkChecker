@@ -6,6 +6,8 @@ import { urls as mockUrls, urlHistory } from '@/data/urls'
 import { backlinks as mockBacklinks, anchorDistribution, authorityBuckets } from '@/data/backlinks'
 import { alerts as mockAlerts } from '@/data/alerts'
 import { auditCategories, auditChecks } from '@/data/audit'
+import { keywords as mockKeywords } from '@/data/keywords'
+import { opportunities as mockOpps } from '@/data/opportunities'
 import { indexSeries, backlinkSeries } from '@/data/series'
 import { NOW } from '@/utils/format'
 
@@ -250,6 +252,54 @@ export const demoSource: DataSource = {
   notificationSettings: () => wait({ email: 1, slackWebhook: 'https://hooks.slack.com/services/demo', webhookUrl: null, digest: 0, minSeverity: 'warning' as const }),
 
   audit: () => wait(demoAudit),
+  opportunities: () =>
+    wait({
+      gapStatus: 'ok' as const,
+      competitors: ['crawlwise.io', 'rankpilot.com', 'serpstack.dev'],
+      opportunities: [
+        {
+          id: 'reclaim:backlinko',
+          kind: 'reclaim' as const,
+          domain: 'backlinko.com',
+          authority: 82,
+          headline: 'Your link “Northwind Labs” was removed',
+          reason: 'It was last seen 2026-09-30. Links removed during a page update are often restored after a short, friendly email.',
+          sourceUrl: 'https://backlinko.com/seo-tools',
+          targetUrl: 'https://northwindlabs.com/',
+          competitors: [],
+          priority: 97,
+        },
+        ...mockOpps.map((o) => ({
+          id: o.id,
+          kind: o.kind,
+          domain: o.domain,
+          authority: o.authority,
+          headline: o.headline,
+          reason: o.reason,
+          sourceUrl: `https://${o.domain}`,
+          targetUrl: `https://northwindlabs.com${o.suggestedTarget}`,
+          competitors: o.competitors,
+          priority: o.relevance,
+        })),
+      ],
+    }),
+  competitors: () =>
+    wait({
+      providerConfigured: true,
+      competitors: ['crawlwise.io', 'rankpilot.com', 'serpstack.dev'].map((d, i) => ({ id: `c${i}`, domain: d, createdAt: '2026-04-01T00:00:00Z' })),
+    }),
+  addCompetitor: demoOnly,
+  deleteCompetitor: demoOnly,
+  keywords: () =>
+    wait({
+      connected: true,
+      range: { start: '2026-09-02', end: '2026-09-29' },
+      rows: mockKeywords.map((k) => {
+        const impressions = Math.round(k.volume * (k.position <= 3 ? 0.9 : k.position <= 10 ? 0.55 : 0.12))
+        const ctr = k.position <= 1 ? 0.28 : k.position <= 3 ? 0.12 : k.position <= 10 ? 0.03 : 0.006
+        return { query: k.keyword, page: `https://northwindlabs.com${k.url}`, clicks: Math.round(impressions * ctr), impressions, ctr, position: k.position, prevPosition: k.position + k.change, prevClicks: null }
+      }),
+    }),
   createProject: demoOnly,
   updateProject: demoOnly,
   deleteProject: demoOnly,

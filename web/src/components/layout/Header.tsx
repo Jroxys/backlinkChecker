@@ -49,7 +49,7 @@ export function Header({
   const desktop = useMediaQuery('(min-width: 1024px)')
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center border-b border-line bg-bg/85 backdrop-blur-md">
+    <header className="sticky top-0 z-40 flex h-14 items-center border-b border-line bg-bg/85 backdrop-blur-md print:hidden">
       <div
         className={cn(
           'flex h-full shrink-0 items-center gap-2 px-4 transition-[width] duration-200 lg:border-r lg:border-line',
