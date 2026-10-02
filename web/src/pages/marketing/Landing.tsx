@@ -102,12 +102,12 @@ function Nav() {
           <button onClick={toggle} aria-label="Toggle theme" className="rounded-lg p-2 text-fg-3 transition-colors hover:bg-surface-3 hover:text-fg">
             {theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
           </button>
-          <Link to="/app" className="hidden sm:block">
+          <Link to="/login" className="hidden sm:block">
             <Button variant="ghost" size="sm">
               Sign in
             </Button>
           </Link>
-          <Link to="/app">
+          <Link to="/signup">
             <Button variant="primary" size="sm">
               Start Free
             </Button>
@@ -157,12 +157,12 @@ function Hero() {
             Monitor indexing, backlinks, technical SEO and search visibility from one intelligent platform.
           </p>
           <div className="mt-9 flex animate-rise flex-col items-center justify-center gap-3 [animation-delay:180ms] sm:flex-row">
-            <Link to="/app">
+            <Link to="/signup">
               <Button variant="primary" size="lg" rightIcon={<ArrowRight />}>
                 Start Free
               </Button>
             </Link>
-            <Link to="/app">
+            <Link to="/demo">
               <Button variant="secondary" size="lg">
                 Explore Demo
               </Button>
@@ -679,7 +679,7 @@ function Pricing() {
                         ? `Billed $${(p.price[0] * 10).toLocaleString('en-US')} yearly`
                         : 'Billed monthly'}
                 </p>
-                <Link to="/app" className="mt-6">
+                <Link to={p.price[0] === 0 ? '/signup' : `/signup?plan=${p.name.toLowerCase()}`} className="mt-6">
                   <Button variant={p.featured ? 'primary' : 'secondary'} className="w-full" size="lg">
                     {p.cta}
                   </Button>
@@ -778,7 +778,7 @@ function FinalCta() {
             <LogoMark size={40} className="mx-auto" />
             <h2 className="display mt-6 text-[34px] leading-[1.1] font-semibold text-fg sm:text-[48px]">Stop guessing. Start monitoring.</h2>
             <p className="mx-auto mt-4 max-w-md text-[16px] text-fg-3">Connect Search Console and see your first index report in under a minute.</p>
-            <Link to="/app" className="mt-8 inline-block">
+            <Link to="/signup" className="mt-8 inline-block">
               <Button variant="primary" size="lg" rightIcon={<ArrowRight />}>
                 Start Free
               </Button>

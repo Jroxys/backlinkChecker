@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { Hono } from 'hono'
 import { serveStatic } from '@hono/node-server/serve-static'
@@ -51,14 +51,21 @@ export function createApp(ctx: Ctx) {
   // Serve the built web app from the same origin (cookies stay first-party, one deploy).
   const dist = ctx.config.webDist ? resolve(ctx.config.webDist) : ''
   if (dist && existsSync(resolve(dist, 'index.html'))) {
-    const indexHtml = readFileSync(resolve(dist, 'index.html'), 'utf8')
+    // Re-read index.html when it changes, so a rebuild never serves stale asset hashes
+    const indexPath = resolve(dist, 'index.html')
+    let cached = { mtime: 0, html: '' }
+    const indexHtml = () => {
+      const m = statSync(indexPath).mtimeMs
+      if (m !== cached.mtime) cached = { mtime: m, html: readFileSync(indexPath, 'utf8') }
+      return cached.html
+    }
     app.use('/assets/*', async (c, next) => {
       await next()
       c.header('cache-control', 'public, max-age=31536000, immutable')
     })
     app.use('*', serveStatic({ root: dist }))
     // SPA fallback: any non-API GET renders the app shell
-    app.get('*', (c) => (c.req.path.startsWith('/api/') ? c.json({ error: { code: 'not_found', message: 'No such endpoint' } }, 404) : c.html(indexHtml)))
+    app.get('*', (c) => (c.req.path.startsWith('/api/') ? c.json({ error: { code: 'not_found', message: 'No such endpoint' } }, 404) : c.html(indexHtml())))
   }
 
   app.notFound((c) => c.json({ error: { code: 'not_found', message: 'No such endpoint' } }, 404))

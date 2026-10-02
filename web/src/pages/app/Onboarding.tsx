@@ -28,7 +28,14 @@ export function Onboarding() {
 
   const done = () => {
     qc.invalidateQueries({ queryKey: [source.mode] })
-    nav('/app')
+    let intended: string | null = null
+    try {
+      intended = sessionStorage.getItem('indexora-intended-plan')
+      sessionStorage.removeItem('indexora-intended-plan')
+    } catch {
+      /* ignore */
+    }
+    nav(intended ? '/app/settings?tab=billing' : '/app')
   }
 
   return (

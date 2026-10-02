@@ -74,6 +74,8 @@ export function Login() {
 
 export function Signup() {
   const [form, setForm] = useState({ name: '', email: '', password: '' })
+  const [params] = useSearchParams()
+  const plan = params.get('plan')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const nav = useNavigate()
@@ -85,6 +87,11 @@ export function Signup() {
     setError(null)
     try {
       await api.post('/api/auth/signup', form)
+      try {
+        if (plan && ['starter', 'pro', 'agency'].includes(plan)) sessionStorage.setItem('indexora-intended-plan', plan)
+      } catch {
+        /* ignore */
+      }
       qc.clear()
       nav('/app/onboarding', { replace: true })
     } catch (err) {
@@ -98,7 +105,7 @@ export function Signup() {
   return (
     <AuthLayout
       title="Create your account"
-      subtitle="Free forever for one site. No credit card."
+      subtitle={plan && plan !== 'free' ? `Start free, then pick ${plan[0].toUpperCase() + plan.slice(1)} after setup. No card needed now.` : 'Free forever for one site. No credit card.'}
       footer={
         <>
           Already have an account?{' '}
