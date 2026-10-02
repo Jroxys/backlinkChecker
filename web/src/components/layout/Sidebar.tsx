@@ -1,0 +1,127 @@
+import { NavLink, useLocation } from 'react-router-dom'
+import { PanelLeftClose, PanelLeftOpen, ArrowUpRight, X } from 'lucide-react'
+import { Logo } from '@/components/ui/Logo'
+import { cn } from '@/lib/cn'
+import { Tooltip } from '@/components/ui/Tooltip'
+import { ProgressBar } from '@/components/ui/Controls'
+import { navGroups, settingsItem, type NavItem } from './nav'
+
+function Item({ item, collapsed, onNavigate }: { item: NavItem; collapsed: boolean; onNavigate?: () => void }) {
+  const { pathname } = useLocation()
+  const active = item.to === '/app' ? pathname === '/app' : pathname.startsWith(item.to)
+  const Icon = item.icon
+  const link = (
+    <NavLink
+      to={item.to}
+      onClick={onNavigate}
+      className={cn(
+        'group relative flex h-8 items-center gap-2.5 rounded-lg text-[13px] font-medium transition-colors duration-150',
+        collapsed ? 'w-8 justify-center' : 'px-2.5',
+        active ? 'bg-surface text-fg shadow-xs ring-1 ring-line dark:bg-surface-3' : 'text-fg-2 hover:bg-surface-3 hover:text-fg',
+      )}
+    >
+      {active && !collapsed && <span className="absolute top-1.5 bottom-1.5 -left-3 w-[3px] rounded-r-full bg-primary" />}
+      <Icon className={cn('size-4 shrink-0', active ? 'text-primary' : 'text-fg-3 group-hover:text-fg-2')} strokeWidth={1.9} />
+      {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
+      {!collapsed && item.badge && (
+        <span
+          className={cn(
+            'tnum rounded-md px-1.5 text-[11px] leading-5',
+            active ? 'bg-primary-soft text-primary-ink' : 'bg-surface-3 text-fg-3 dark:bg-surface',
+          )}
+        >
+          {item.badge}
+        </span>
+      )}
+      {collapsed && item.badge && <span className="absolute top-1 right-1 size-1.5 rounded-full bg-primary" />}
+    </NavLink>
+  )
+  return collapsed ? (
+    <Tooltip content={item.label} side="right">
+      {link}
+    </Tooltip>
+  ) : (
+    link
+  )
+}
+
+export function Sidebar({
+  collapsed,
+  onToggle,
+  onNavigate,
+  mobile,
+}: {
+  collapsed: boolean
+  onToggle?: () => void
+  onNavigate?: () => void
+  mobile?: boolean
+}) {
+  return (
+    <nav
+      aria-label="Main"
+      className={cn(
+        'flex h-full flex-col border-r border-line bg-bg transition-[width] duration-200 ease-out',
+        collapsed ? 'w-[60px]' : 'w-[232px]',
+      )}
+    >
+      {mobile && (
+        <div className="flex h-14 shrink-0 items-center justify-between border-b border-line px-4">
+          <Logo />
+          <button onClick={onNavigate} aria-label="Close navigation" className="rounded-lg p-1.5 text-fg-3 hover:bg-surface-3 hover:text-fg">
+            <X className="size-4" />
+          </button>
+        </div>
+      )}
+      <div className={cn('no-scrollbar flex-1 overflow-y-auto py-3', collapsed ? 'px-[14px]' : 'px-3')}>
+        {navGroups.map((g, gi) => (
+          <div key={gi} className={cn(gi > 0 && 'mt-5')}>
+            {g.label && !collapsed && <div className="eyebrow mb-1.5 px-2.5 !text-[10.5px] !text-fg-4">{g.label}</div>}
+            {g.label && collapsed && <div className="mx-auto mb-2 h-px w-5 bg-line" />}
+            <div className="space-y-0.5">
+              {g.items.map((it) => (
+                <Item key={it.to} item={it} collapsed={collapsed} onNavigate={onNavigate} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {!collapsed && (
+        <div className="mx-3 mb-3 rounded-xl border border-line bg-surface p-3 shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-[12px] font-medium text-fg">Growth plan</span>
+            <span className="tnum text-[11.5px] text-fg-3">18 days left</span>
+          </div>
+          <div className="mt-2.5 flex items-baseline justify-between text-[11.5px] text-fg-3">
+            <span>URL checks</span>
+            <span className="tnum">
+              <span className="font-medium text-fg-2">38,412</span> / 50,000
+            </span>
+          </div>
+          <ProgressBar value={76.8} className="mt-1.5" />
+          <button className="mt-2.5 inline-flex items-center gap-1 text-[12px] font-medium text-primary-ink hover:underline">
+            Upgrade to Agency <ArrowUpRight className="size-3" />
+          </button>
+        </div>
+      )}
+
+      <div className={cn('space-y-0.5 border-t border-line py-2', collapsed ? 'px-[14px]' : 'px-3')}>
+        <Item item={settingsItem} collapsed={collapsed} onNavigate={onNavigate} />
+        {!mobile && onToggle && (
+          <Tooltip content={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} side="right" className="w-full">
+            <button
+              onClick={onToggle}
+              className={cn(
+                'flex h-8 items-center gap-2.5 rounded-lg text-[13px] font-medium text-fg-3 transition-colors hover:bg-surface-3 hover:text-fg',
+                collapsed ? 'w-8 justify-center' : 'w-full px-2.5',
+              )}
+            >
+              {collapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
+              {!collapsed && 'Collapse'}
+            </button>
+          </Tooltip>
+        )}
+      </div>
+    </nav>
+  )
+}
