@@ -69,7 +69,7 @@ export const plans: Record<PlanId, Plan> = {
     monthly: 79,
     yearly: 790,
     founding: 49,
-    limits: { projects: 50, urls: 50_000, backlinks: 50_000, competitorsPerProject: 5, seats: 10, backlinkCheckHours: 24, urlCheckHours: 6, discovery: 'daily' },
+    limits: { projects: 50, urls: 50_000, backlinks: 50_000, competitorsPerProject: 5, seats: 10, backlinkCheckHours: 24, urlCheckHours: 6, discovery: 'weekly' },
     features: { slack: true, webhooks: true, reports: true, whiteLabel: true, api: true },
   },
 }

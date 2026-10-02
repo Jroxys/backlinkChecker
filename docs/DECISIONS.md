@@ -1,0 +1,57 @@
+# Karar günlüğü
+
+Her kararda önce seçenekleri, sonra kendi itirazlarımı yazıyorum. Yeni kararlar en alta eklenir.
+
+---
+
+### K1 · Backend dili ve çatısı → TypeScript + Hono
+- **Seçenekler:** Python (mevcut `main.py` Python), Go, TypeScript.
+- **Python lehine:** depoda zaten Python betiği var.
+- **İtiraz:** Frontend TypeScript. Tek dil = tipleri paylaşmak, tek kişinin iki ekosistem yönetmemesi. `main.py` 200 satırlık bir prototip, korunacak bir mimari değil.
+- **Karar:** TypeScript. Express yerine Hono: daha küçük, tipli ve test etmesi kolay (`app.request()` ile sunucu açmadan test).
+
+### K2 · Veritabanı → Node'un yerleşik SQLite'ı (`node:sqlite`)
+- **Postgres lehine:** ölçeklenir, çok sunucu.
+- **İtiraz:** 0 müşteride ayrı bir veritabanı sunucusu = ek maliyet ve bakım. SQLite tek dosya; WAL modunda saniyede binlerce yazma kaldırır. `better-sqlite3` native derleme istiyor, `node:sqlite` hiçbir şey istemiyor.
+- **Risk:** `node:sqlite` hâlâ "experimental" uyarısı veriyor. → Tüm erişim `db/index.ts`'teki ince bir sarmalayıcıdan geçiyor; sürücü değişirse tek dosya değişir. SQL standart tutuldu.
+- **Ne zaman değiştir:** birden fazla API sunucusu gerektiğinde ya da ~50 GB'ı geçtiğinde.
+
+### K3 · İş kuyruğu → SQLite tablosu
+- **Redis/BullMQ lehine:** olgun.
+- **İtiraz:** Bir altyapı parçası daha. Bizim işler dakikada bir "vadesi gelenleri işle" türünde, saniyede binlerce iş yok.
+- **Karar:** `jobs` tablosu + atomik `UPDATE … RETURNING` ile iş alma, `dedupe_key`, üstel geri çekilme, çöken işleri kurtarma.
+
+### K4 · Backlink keşfi → kiralık veri, doğrulama bizde
+- Tüm web'i taramak imkânsız. Ama başkasının verisini körü körüne göstermek de yanlış: o veriler haftalar gecikmeli olabiliyor.
+- **Karar:** Keşif sağlayıcıdan gelir, ama her link **bizim tarayıcımızla doğrulanmadan** "yeni" olarak gösterilmez. Bu ürünün farkı: "Ahrefs'in söylediği değil, şu an sayfada gerçekten olan."
+
+### K5 · "Kayıp" kaç kontrolde?
+- 1 kontrol: hızlı ama yanlış alarm çok. 3 kontrol: güvenilir ama 3 gün gecikme.
+- **Karar:** Sayfa açılıyor ama link yoksa 2 kontrol, ikinci kontrol 6 saat sonra (yani kayıp en geç ~6 saatte doğrulanır). Ağ hataları daha gürültülü olduğu için 3 kontrol. robots.txt engeli asla "kayıp" sayılmaz.
+
+### K6 · Search Console izni → salt okunur
+- Tam izinle sitemap gönderebilirdik.
+- **İtiraz:** Tanınmamış bir ürünün "Search Console'una yazma izni istiyoruz" demesi kayıt oranını düşürür. Sitemap göndermek zaten yılda birkaç kez yapılan bir iş.
+- **Karar:** `webmasters.readonly`. Landing sayfasında güven argümanı olarak kullanılıyor.
+
+### K7 · "İndekslemeyi zorla" butonu → yok
+- Rakiplerin bir kısmı Indexing API'yi kurallara aykırı şekilde kullanıyor.
+- **Karar:** Yapmıyoruz. Arayüzdeki "Request indexing" butonu Search Console'daki ilgili sayfaya yönlendirecek. Dürüstlük, uzun vadede "garantili indeksleme" vaadinden daha çok satar. Yalan vaat iade ve kötü yorum demek.
+
+### K8 · Otomatik link üretme → asla
+- Kullanıcı istese bile: Google spam politikası, müşterinin sitesine zarar. Bunun yerine "fırsatlar + outreach taslağı" sunuyoruz.
+
+### K9 · Ödeme → Lemon Squeezy (bkz. PRICING.md §7)
+
+### K10 · Fiyatlar → Free/$12/$29/$79, kurucu fiyatı $9/$19/$49 (bkz. PRICING.md)
+
+### K11 · Agency keşfi günlük → haftalık
+- Maliyet hesabı yapınca günlük keşfin marjı yiyebileceği çıktı. Haftalık, link izleme için zaten yeterli bir sıklık.
+
+### K12 · CSRF koruması → SameSite=Lax + Origin kontrolü
+- CSRF token'ı SPA için ekstra karmaşa. Lax çerez + durum değiştiren her istekte `Origin` başlığının uygulamanın kendisi olması zorunlu. İmzalı webhook'lar hariç.
+
+### K13 · Test ederken bulunan hatalar
+- Alt router'lardaki `use('*', requireUser)`, `/api` altındaki **tüm** yolları (herkese açık fiyat uç noktası dahil) kilitliyordu → yol bazlı ara katmana geçildi.
+- `node:sqlite` kullanılmayan isimli parametrede hata veriyor → sarmalayıcı sadece SQL'de geçen parametreleri bağlıyor.
+- Hız sınırlayıcı modül seviyesindeydi → uygulama örneği başına.

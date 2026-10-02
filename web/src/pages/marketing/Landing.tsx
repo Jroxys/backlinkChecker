@@ -169,7 +169,7 @@ function Hero() {
             </Link>
           </div>
           <div className="mt-5 flex animate-rise flex-wrap items-center justify-center gap-x-5 gap-y-1 text-[12.5px] text-fg-4 [animation-delay:220ms]">
-            {['14-day free trial', 'No credit card', 'Connects to Search Console in 60s'].map((t) => (
+            {['Free plan, no card', 'Read-only Search Console access', 'Founding price locked for life'].map((t) => (
               <span key={t} className="inline-flex items-center gap-1.5">
                 <Check className="size-3.5 text-primary" />
                 {t}
@@ -238,7 +238,7 @@ function Features() {
           description="Six tightly connected modules that share one data model. A lost backlink, a dropped page and a robots.txt change are never separate stories."
         />
         <div className="mt-12 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <FeatureCard icon={<ScanSearch />} title="Index Monitoring" text="Know the moment a page is indexed, dropped or stuck in “Discovered”. Checked via the URL Inspection API, every six hours.">
+          <FeatureCard icon={<ScanSearch />} title="Index Monitoring" text="Know the moment a page is indexed, dropped or stuck in “Discovered” — straight from Search Console, plus our own indexability checks.">
             <div className="space-y-1.5">
               {[
                 ['/blog/technical-seo-guide', 'Indexed', 'success'],
@@ -252,7 +252,7 @@ function Features() {
               ))}
             </div>
           </FeatureCard>
-          <FeatureCard icon={<Link2 />} title="Backlink Intelligence" text="Every new and lost link, verified daily — with authority, anchor and follow status. Lost links trigger alerts within 24 hours.">
+          <FeatureCard icon={<Link2 />} title="Backlink Intelligence" text="Every link re-verified daily — anchor, dofollow or nofollow, and whether the linking page is still indexable. Lost links alert you within a day.">
             <div className="space-y-1.5">
               {[
                 ['web.dev', 'new', 92],
@@ -268,7 +268,7 @@ function Features() {
               ))}
             </div>
           </FeatureCard>
-          <FeatureCard icon={<ShieldCheck />} title="Technical SEO" text="142 checks across crawlability, canonicals, Core Web Vitals and structured data — prioritised by impact, with the fix spelled out.">
+          <FeatureCard icon={<ShieldCheck />} title="Technical SEO" text="Status codes, redirects, noindex, canonicals, robots rules, titles and thin content on every monitored URL — prioritised by impact, with the fix spelled out.">
             <div className="flex items-center gap-4 rounded-lg border border-line-soft bg-surface-2 p-3">
               <div className="relative flex size-14 items-center justify-center">
                 <svg viewBox="0 0 36 36" className="absolute inset-0 -rotate-90">
@@ -582,82 +582,124 @@ function BacklinkSection() {
 
 /* -------------------------------------------------------------- Pricing */
 
+// Mirrors server/src/plans.ts — keep in sync. Reasoning: docs/PRICING.md
 const plans = [
   {
-    name: 'Starter',
-    price: [39, 32],
-    desc: 'For a single site that needs reliable monitoring.',
-    features: ['2 projects', '10,000 URL checks / month', 'Daily backlink monitoring', 'Weekly technical audit', 'Email alerts'],
+    name: 'Free',
+    price: [0, 0],
+    founding: null as number | null,
+    desc: 'Watch one site and see if Indexora earns its place.',
+    features: ['1 project', '100 monitored URLs', '100 tracked backlinks', 'Weekly backlink checks', 'Daily index & indexability checks', 'Email alerts'],
+    cta: 'Start free',
   },
   {
-    name: 'Growth',
-    price: [129, 107],
-    desc: 'For growing teams managing several websites.',
-    features: ['10 projects', '50,000 URL checks / month', 'Competitor gap analysis', 'Automations & Slack alerts', 'Client-ready PDF reports', '5 team seats'],
+    name: 'Starter',
+    price: [12, 10],
+    founding: 9,
+    desc: 'For a single business site or a side project.',
+    features: ['3 projects', '1,000 monitored URLs', '1,000 tracked backlinks', 'Daily backlink verification', 'Search Console index status', 'Slack alerts & monthly reports'],
+    cta: 'Start 14-day trial',
+  },
+  {
+    name: 'Pro',
+    price: [29, 24],
+    founding: 19,
+    desc: 'For consultants and growing sites with real link building.',
+    features: ['10 projects', '10,000 monitored URLs', '10,000 tracked backlinks', 'Weekly new-backlink discovery', 'Competitor backlink gap (3 per project)', 'Webhooks, API, 3 seats'],
     featured: true,
+    cta: 'Start 14-day trial',
   },
   {
     name: 'Agency',
-    price: [349, 290],
+    price: [79, 66],
+    founding: 49,
     desc: 'For agencies reporting to many clients.',
-    features: ['Unlimited projects', '250,000 URL checks / month', 'White-label reports & domain', 'API & webhooks', 'Client workspaces', 'Priority support & SSO'],
+    features: ['50 projects', '50,000 monitored URLs', '50,000 tracked backlinks', 'URL checks every 6 hours', 'White-label client reports', '10 seats'],
+    cta: 'Start 14-day trial',
   },
 ]
 
 function Pricing() {
-  const [cycle, setCycle] = useState<'monthly' | 'yearly'>('yearly')
+  const [cycle, setCycle] = useState<'monthly' | 'yearly'>('monthly')
   return (
     <section id="pricing" className="scroll-mt-16 border-t border-line bg-surface-2/50 py-24">
       <Container>
-        <SectionHeading center eyebrow="Pricing" title="Transparent pricing. No surprises." description="Every plan includes all modules. You only scale by projects and URL checks." />
-        <div className="mt-8 flex justify-center">
+        <SectionHeading
+          center
+          eyebrow="Pricing"
+          title="Honest pricing for honest monitoring."
+          description="Start free. Upgrade when Indexora has caught something worth paying for. Every plan includes every module — you only scale by sites, URLs and links."
+        />
+        <div className="mt-8 flex flex-col items-center gap-3">
           <Segmented
             value={cycle}
             onChange={setCycle}
             items={[
               { value: 'monthly', label: 'Monthly' },
-              { value: 'yearly', label: <span className="inline-flex items-center gap-1.5">Yearly <span className="text-[11px] text-primary-ink">−17%</span></span> },
+              { value: 'yearly', label: <span className="inline-flex items-center gap-1.5">Yearly <span className="text-[11px] text-primary-ink">2 months free</span></span> },
             ]}
           />
+          {cycle === 'monthly' && (
+            <p className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary-soft px-3 py-1 text-[12.5px] text-primary-ink">
+              <Sparkles className="size-3.5" />
+              Founding customers: the first 100 subscribers keep their launch price for life
+            </p>
+          )}
         </div>
-        <div className="mx-auto mt-10 grid max-w-5xl grid-cols-1 gap-4 md:grid-cols-3">
-          {plans.map((p) => (
-            <div
-              key={p.name}
-              className={cn(
-                'relative flex flex-col rounded-2xl border bg-surface p-6',
-                p.featured ? 'border-primary shadow-[0_0_0_1px_var(--primary),0_24px_48px_-24px_rgba(79,70,229,0.45)] md:-my-3 md:py-9' : 'border-line',
-              )}
-            >
-              {p.featured && (
-                <span className="absolute -top-3 left-6 rounded-full bg-primary px-2.5 py-1 text-[11.5px] font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
-                  Recommended
-                </span>
-              )}
-              <h3 className="text-[16px] font-semibold text-fg">{p.name}</h3>
-              <p className="mt-1 text-[13px] text-fg-3">{p.desc}</p>
-              <div className="mt-6 flex items-baseline gap-1">
-                <span className="tnum display text-[44px] leading-none font-semibold text-fg">${cycle === 'monthly' ? p.price[0] : p.price[1]}</span>
-                <span className="text-[13px] text-fg-3">/ month</span>
+        <div className="mx-auto mt-10 grid max-w-6xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {plans.map((p) => {
+            const showFounding = cycle === 'monthly' && p.founding !== null
+            const price = showFounding ? p.founding! : cycle === 'monthly' ? p.price[0] : p.price[1]
+            return (
+              <div
+                key={p.name}
+                className={cn(
+                  'relative flex flex-col rounded-2xl border bg-surface p-6',
+                  p.featured ? 'border-primary shadow-[0_0_0_1px_var(--primary),0_24px_48px_-24px_rgba(79,70,229,0.45)]' : 'border-line',
+                )}
+              >
+                {p.featured && (
+                  <span className="absolute -top-3 left-6 rounded-full bg-primary px-2.5 py-1 text-[11.5px] font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
+                    Recommended
+                  </span>
+                )}
+                <h3 className="text-[16px] font-semibold text-fg">{p.name}</h3>
+                <p className="mt-1 min-h-[40px] text-[13px] text-fg-3">{p.desc}</p>
+                <div className="mt-5 flex items-baseline gap-1.5">
+                  <span className="tnum display text-[40px] leading-none font-semibold text-fg">${price}</span>
+                  <span className="text-[13px] text-fg-3">/ month</span>
+                  {showFounding && <span className="tnum text-[13px] text-fg-4 line-through">${p.price[0]}</span>}
+                </div>
+                <p className="tnum mt-1.5 h-4 text-[12px] text-fg-4">
+                  {p.price[0] === 0
+                    ? 'Free forever · no card'
+                    : showFounding
+                      ? `Founding price, locked for life`
+                      : cycle === 'yearly'
+                        ? `Billed $${(p.price[0] * 10).toLocaleString('en-US')} yearly`
+                        : 'Billed monthly'}
+                </p>
+                <Link to="/app" className="mt-6">
+                  <Button variant={p.featured ? 'primary' : 'secondary'} className="w-full" size="lg">
+                    {p.cta}
+                  </Button>
+                </Link>
+                <ul className="mt-7 space-y-3 border-t border-line pt-6">
+                  {p.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2.5 text-[13.5px] text-fg-2">
+                      <Check className={cn('mt-0.5 size-4 shrink-0', p.featured ? 'text-primary' : 'text-fg-3')} />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <p className="tnum mt-1.5 h-4 text-[12px] text-fg-4">{cycle === 'yearly' ? `Billed $${(p.price[1] * 12).toLocaleString('en-US')} yearly` : 'Billed monthly'}</p>
-              <Link to="/app" className="mt-6">
-                <Button variant={p.featured ? 'primary' : 'secondary'} className="w-full" size="lg">
-                  Start Free
-                </Button>
-              </Link>
-              <ul className="mt-7 space-y-3 border-t border-line pt-6">
-                {p.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2.5 text-[13.5px] text-fg-2">
-                    <Check className={cn('mt-0.5 size-4 shrink-0', p.featured ? 'text-primary' : 'text-fg-3')} />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+            )
+          })}
         </div>
-        <p className="mt-10 text-center text-[13px] text-fg-3">All prices in USD, excluding VAT. Cancel anytime from Settings.</p>
+        <p className="mx-auto mt-10 max-w-2xl text-center text-[13px] leading-relaxed text-fg-3">
+          Prices in USD; VAT/sales tax is added at checkout where applicable. Trials need no card. If Indexora doesn’t catch a single
+          issue or lost link in your first 30 days of a paid plan, email us for a full refund.
+        </p>
       </Container>
     </section>
   )
@@ -666,12 +708,30 @@ function Pricing() {
 /* ------------------------------------------------------------------ FAQ */
 
 const faqs = [
-  ['Where does Indexora get index data from?', 'Directly from Google via the Search Console URL Inspection API and coverage reports, using the properties you connect. We store every result so you get history Search Console doesn’t keep.'],
-  ['How is backlink data collected?', 'We combine our own crawler with Search Console link data, then re-verify every referring page daily. A link is only marked “lost” after two consecutive failed checks.'],
-  ['Do I need to install anything on my website?', 'No. Indexora works from the outside — Search Console access, your sitemaps and a polite crawler. There’s no script or plugin to install.'],
-  ['Can I white-label reports for my clients?', 'Yes. Growth includes your logo on reports; Agency adds fully white-labelled reports, a custom sending domain and client workspaces.'],
-  ['What happens when I hit my URL check limit?', 'Monitoring continues for your priority URLs and we’ll let you know before you reach the limit. You can upgrade or buy a one-off top-up anytime.'],
-  ['Is my data secure?', 'Search Console access is read-only and encrypted at rest. We’re GDPR compliant, host in the EU and never share or resell your data.'],
+  [
+    'How does backlink monitoring actually work?',
+    'You tell us which links you have — add them by hand, paste a list, or upload the “Latest links” export from Search Console (or an Ahrefs/Semrush export). Every day our crawler opens each linking page, finds your link and records the anchor, dofollow/nofollow/UGC/sponsored and whether the page is noindex. A link is only marked lost after it is missing on two checks in a row, so a cache hiccup never wakes you up.',
+  ],
+  [
+    'Does Indexora find new backlinks automatically?',
+    'On Pro and Agency, yes: once a week we pull newly discovered links to your domain from a commercial backlink index, then verify each one with our own crawler before it shows up as “new”. On Free and Starter you add or import links yourself — still verified daily.',
+  ],
+  [
+    'Where does index status come from?',
+    'From Google itself, through the Search Console URL Inspection API, using read-only access to the properties you connect. Alongside that we run our own checks — HTTP status, noindex, canonical and robots.txt rules for Googlebot — so you see why a page is or isn’t indexable.',
+  ],
+  [
+    'Can Indexora force Google to index my pages?',
+    'No — and you should be wary of any tool that claims to. Google offers no public API to request indexing for normal pages. We show you exactly what’s blocking a page and what to fix; the “Request indexing” button in Search Console remains the official route.',
+  ],
+  [
+    'Will you build backlinks for me?',
+    'No. Automated link building breaks Google’s spam policies and can get a site penalised. Indexora monitors and protects the links you earn, and points you to real opportunities — competitor gaps, unlinked mentions and broken links — with a drafted outreach email you send yourself.',
+  ],
+  [
+    'Is my data safe?',
+    'Search Console access is read-only, OAuth tokens are encrypted at rest, and passwords are hashed with scrypt. We never resell or share your data, and you can disconnect Google or delete your account at any time.',
+  ],
 ]
 
 function Faq() {
