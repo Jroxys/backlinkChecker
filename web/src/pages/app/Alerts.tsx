@@ -1,47 +1,46 @@
-import { useMemo, useState } from 'react'
-import { Link } from '@/lib/router'
-import { ArrowRight, BellOff, CheckCheck, Mail, MessageSquare, Settings2, Inbox } from 'lucide-react'
-import type { Alert } from '@/types'
+import { useEffect, useMemo, useState } from 'react'
+import { ArrowRight, BellOff, CheckCheck, Mail, MessageSquare, Settings2, Inbox, Webhook } from 'lucide-react'
+import type { Alert } from '@/api/types'
+import { useAction, useAlerts, useMe, useNotificationSettings } from '@/api/hooks'
 import { cn } from '@/lib/cn'
+import { Link } from '@/lib/router'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Tabs } from '@/components/ui/Tabs'
 import { Select } from '@/components/ui/Dropdown'
-import { Switch } from '@/components/ui/Controls'
+import { Input, Label, Switch } from '@/components/ui/Controls'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { useToast } from '@/components/ui/Toast'
+import { Skeleton } from '@/components/ui/Skeleton'
 import { AlertIcon } from '@/components/AlertIcon'
-import { alerts as initial } from '@/data/alerts'
-import { formatTime, formatDate, NOW } from '@/utils/format'
+import { formatTime, formatDate } from '@/utils/format'
 
 type View = 'all' | 'unread' | 'critical'
 
-function dayLabel(iso: string) {
+function dayLabel(iso: string, now: Date) {
   const d = new Date(iso)
-  const diff = Math.floor((Date.UTC(NOW.getUTCFullYear(), NOW.getUTCMonth(), NOW.getUTCDate()) - Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())) / 86400000)
-  return diff === 0 ? 'Today' : diff === 1 ? 'Yesterday' : formatDate(iso)
+  const diff = Math.floor((Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())) / 86400000)
+  return diff <= 0 ? 'Today' : diff === 1 ? 'Yesterday' : formatDate(iso)
 }
 
 export function Alerts() {
-  const [list, setList] = useState<Alert[]>(initial)
+  const q = useAlerts()
   const [view, setView] = useState<View>('all')
   const [kind, setKind] = useState<'all' | Alert['kind']>('all')
-  const [prefs, setPrefs] = useState({ lost: true, index: true, technical: true, digest: false })
-  const toast = useToast()
+  const markRead = useAction((s) => s.markAlertRead, { invalidate: ['alerts'] })
+  const markAll = useAction((s) => s.markAllAlertsRead, { invalidate: ['alerts'], success: () => ({ title: 'All alerts marked as read' }) })
+  const list = q.data?.alerts ?? []
+  const now = new Date()
 
-  const shown = list.filter(
-    (a) => (view === 'all' || (view === 'unread' ? !a.read : a.severity === 'critical')) && (kind === 'all' || a.kind === kind),
-  )
+  const shown = list.filter((a) => (view === 'all' || (view === 'unread' ? !a.read : a.severity === 'critical')) && (kind === 'all' || a.kind === kind))
   const groups = useMemo(() => {
     const g: Record<string, Alert[]> = {}
-    shown.forEach((a) => (g[dayLabel(a.time)] ??= []).push(a))
+    shown.forEach((a) => (g[dayLabel(a.time, now)] ??= []).push(a))
     return Object.entries(g)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shown])
-
   const unread = list.filter((a) => !a.read).length
-  const markRead = (id: string) => setList((l) => l.map((a) => (a.id === id ? { ...a, read: true } : a)))
 
   return (
     <>
@@ -49,20 +48,13 @@ export function Alerts() {
         title="Alerts"
         description="Changes that need a decision. Each alert explains what happened and what to do next."
         actions={
-          <Button
-            leftIcon={<CheckCheck />}
-            disabled={!unread}
-            onClick={() => {
-              setList((l) => l.map((a) => ({ ...a, read: true })))
-              toast({ title: 'All alerts marked as read' })
-            }}
-          >
+          <Button leftIcon={<CheckCheck />} disabled={!unread} loading={markAll.isPending} onClick={() => markAll.mutate([])}>
             Mark all as read
           </Button>
         }
       />
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
         <Card className="overflow-hidden">
           <div className="flex flex-wrap items-end justify-between gap-3 px-5 pt-3">
             <Tabs<View>
@@ -94,19 +86,20 @@ export function Alerts() {
             </div>
           </div>
           <div className="border-t border-line">
-            {groups.length === 0 ? (
+            {q.isLoading ? (
+              <div className="space-y-4 p-5">
+                {[0, 1, 2].map((i) => (
+                  <Skeleton key={i} className="h-16 w-full" />
+                ))}
+              </div>
+            ) : groups.length === 0 ? (
               <EmptyState
                 icon={view === 'unread' ? <Inbox /> : <BellOff />}
-                title={view === 'unread' ? 'You’re all caught up' : 'No alerts of this type'}
+                title={list.length === 0 ? 'No alerts yet' : view === 'unread' ? 'You’re all caught up' : 'No alerts of this type'}
                 description={
-                  view === 'unread'
-                    ? 'New changes to indexing, backlinks and technical health will appear here as soon as an automation detects them.'
-                    : 'Nothing matched this filter in the last 30 days. That’s usually a good sign.'
-                }
-                action={
-                  <Link to="/app/automations">
-                    <Button size="sm">Review automations</Button>
-                  </Link>
+                  list.length === 0
+                    ? 'Alerts appear when something changes: a lost backlink, a page dropping out of the index, a new server error or new URLs in your sitemap.'
+                    : 'Nothing matched this filter. That’s usually a good sign.'
                 }
               />
             ) : (
@@ -115,10 +108,7 @@ export function Alerts() {
                   <div className="sticky top-14 z-[1] border-b border-line-soft bg-surface-2/95 px-5 py-2 text-[11.5px] font-medium text-fg-3 backdrop-blur">{day}</div>
                   <div className="divide-y divide-line-soft">
                     {items.map((a) => (
-                      <div
-                        key={a.id}
-                        className={cn('group relative flex gap-4 px-5 py-4 transition-colors hover:bg-surface-2', !a.read && 'bg-primary-soft/35')}
-                      >
+                      <div key={a.id} className={cn('group relative flex gap-4 px-5 py-4 transition-colors hover:bg-surface-2', !a.read && 'bg-primary-soft/35')}>
                         {!a.read && <span className="absolute top-0 bottom-0 left-0 w-0.5 bg-primary" />}
                         <AlertIcon alert={a} />
                         <div className="min-w-0 flex-1">
@@ -132,13 +122,20 @@ export function Alerts() {
                           </div>
                           <p className="mt-1 text-[13px] leading-relaxed text-fg-2">{a.description}</p>
                           <div className="mt-2.5 flex flex-wrap items-center gap-3">
-                            <Link to={a.href} onClick={() => markRead(a.id)}>
-                              <Button size="xs" variant={a.severity === 'critical' ? 'primary' : 'secondary'} rightIcon={<ArrowRight />}>
-                                {a.action}
-                              </Button>
-                            </Link>
+                            {a.href && (
+                              <Link to={a.href} onClick={() => !a.read && markRead.mutate([a.id])}>
+                                <Button size="xs" variant={a.severity === 'critical' ? 'primary' : 'secondary'} rightIcon={<ArrowRight />}>
+                                  Open
+                                </Button>
+                              </Link>
+                            )}
+                            {!a.read && (
+                              <button onClick={() => markRead.mutate([a.id])} className="text-[12px] font-medium text-fg-3 hover:text-fg">
+                                Mark read
+                              </button>
+                            )}
                             <span className="text-[12px] text-fg-4">
-                              {a.project} · <span className="tnum">{formatTime(a.time)}</span>
+                              {a.project ?? 'Account'} · <span className="tnum">{formatTime(a.time)}</span>
                             </span>
                           </div>
                         </div>
@@ -151,43 +148,103 @@ export function Alerts() {
           </div>
         </Card>
 
-        <div className="space-y-4">
-          <Card>
-            <CardHeader title="Notify me about" icon={<Settings2 />} />
-            <div className="mt-3 divide-y divide-line-soft border-t border-line-soft">
-              {(
-                [
-                  ['lost', 'Lost backlinks', 'Authority 40+ only'],
-                  ['index', 'Index status changes', 'Priority URLs'],
-                  ['technical', 'New technical errors', 'Errors, not warnings'],
-                  ['digest', 'Daily digest instead', 'One email at 08:00'],
-                ] as const
-              ).map(([k, t, d]) => (
-                <div key={k} className="flex items-center justify-between gap-3 px-5 py-3">
-                  <div>
-                    <div className="text-[13px] font-medium text-fg">{t}</div>
-                    <div className="text-[12px] text-fg-4">{d}</div>
-                  </div>
-                  <Switch size="sm" label={t} checked={prefs[k]} onChange={(v) => setPrefs((p) => ({ ...p, [k]: v }))} />
-                </div>
-              ))}
-            </div>
-          </Card>
-          <Card className="p-5">
-            <div className="text-[13px] font-semibold text-fg">Delivery channels</div>
-            <div className="mt-3 space-y-2.5 text-[13px]">
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-2 text-fg-2"><Mail className="size-4 text-fg-4" /> Email</span>
-                <Badge size="xs" tone="success" dot>Active</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-2 text-fg-2"><MessageSquare className="size-4 text-fg-4" /> Slack · #seo-alerts</span>
-                <Badge size="xs" tone="success" dot>Active</Badge>
-              </div>
-            </div>
-          </Card>
-        </div>
+        <NotificationPrefs />
       </div>
     </>
+  )
+}
+
+function NotificationPrefs() {
+  const q = useNotificationSettings()
+  const me = useMe().data
+  const save = useAction((s) => s.saveNotificationSettings, { invalidate: ['notificationSettings'], success: () => ({ title: 'Notification settings saved' }) })
+  const [slack, setSlack] = useState('')
+  const [hook, setHook] = useState('')
+  useEffect(() => {
+    if (q.data) {
+      setSlack(q.data.slackWebhook ?? '')
+      setHook(q.data.webhookUrl ?? '')
+    }
+  }, [q.data])
+  const s = q.data
+  const canSlack = me?.plan.features.slack
+  const canHook = me?.plan.features.webhooks
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader title="How we notify you" icon={<Settings2 />} />
+        <div className="mt-3 divide-y divide-line-soft border-t border-line-soft">
+          <Row title="Email alerts" desc={me?.user.email ?? ''} icon={<Mail className="size-4 text-fg-4" />}>
+            <Switch size="sm" label="Email alerts" checked={!!s?.email} onChange={(v) => save.mutate([{ email: v }])} />
+          </Row>
+          <Row title="Daily digest" desc="One email at 08:00 instead of instant alerts">
+            <Switch size="sm" label="Daily digest" checked={!!s?.digest} onChange={(v) => save.mutate([{ digest: v }])} />
+          </Row>
+          <div className="px-5 py-3">
+            <Label>Minimum severity</Label>
+            <Select
+              size="sm"
+              value={s?.minSeverity ?? 'warning'}
+              onChange={(v) => save.mutate([{ minSeverity: v }])}
+              width={260}
+              options={[
+                { value: 'info', label: 'Everything (incl. new URLs)' },
+                { value: 'warning', label: 'Warnings and critical' },
+                { value: 'critical', label: 'Critical only' },
+              ]}
+            />
+            <p className="mt-1.5 text-[11.5px] text-fg-4">Good news (newly indexed pages, new or recovered links) is always included.</p>
+          </div>
+        </div>
+      </Card>
+      <Card className="p-5">
+        <div className="flex items-center gap-2 text-[13px] font-semibold text-fg">
+          <MessageSquare className="size-4 text-fg-4" /> Slack
+          {!canSlack && <Badge size="xs" tone="primary">Starter+</Badge>}
+        </div>
+        <p className="mt-1 text-[12px] text-fg-3">Paste an incoming-webhook URL for the channel that should get alerts.</p>
+        <Input className="mt-3" disabled={!canSlack} value={slack} onChange={(e) => setSlack(e.target.value)} placeholder="https://hooks.slack.com/services/…" />
+        <div className="mt-4 flex items-center gap-2 text-[13px] font-semibold text-fg">
+          <Webhook className="size-4 text-fg-4" /> Webhook
+          {!canHook && <Badge size="xs" tone="primary">Pro+</Badge>}
+        </div>
+        <p className="mt-1 text-[12px] text-fg-3">We POST a JSON payload with each batch of alerts.</p>
+        <Input className="mt-3" disabled={!canHook} value={hook} onChange={(e) => setHook(e.target.value)} placeholder="https://example.com/hooks/indexora" />
+        <div className="mt-4 flex justify-between">
+          {!canSlack ? (
+            <Link to="/app/settings?tab=billing" className="self-center text-[12.5px] font-medium text-primary-ink hover:underline">
+              Compare plans
+            </Link>
+          ) : (
+            <span />
+          )}
+          <Button
+            size="sm"
+            variant="primary"
+            disabled={!canSlack}
+            loading={save.isPending}
+            onClick={() => save.mutate([{ ...(canSlack ? { slackWebhook: slack || null } : {}), ...(canHook ? { webhookUrl: hook || null } : {}) }])}
+          >
+            Save channels
+          </Button>
+        </div>
+      </Card>
+    </div>
+  )
+}
+
+function Row({ title, desc, icon, children }: { title: string; desc: string; icon?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3 px-5 py-3">
+      <div className="flex min-w-0 items-start gap-2.5">
+        {icon && <span className="mt-0.5">{icon}</span>}
+        <div className="min-w-0">
+          <div className="text-[13px] font-medium text-fg">{title}</div>
+          <div className="truncate text-[12px] text-fg-4">{desc}</div>
+        </div>
+      </div>
+      {children}
+    </div>
   )
 }

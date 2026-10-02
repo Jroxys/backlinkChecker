@@ -18,11 +18,12 @@ export const formatDate = (d: string | Date) => dateFmt.format(new Date(d))
 export const formatShortDate = (d: string | Date) => shortFmt.format(new Date(d))
 export const formatTime = (d: string | Date) => timeFmt.format(new Date(d))
 
-/** Fixed "now" so the mock data reads consistently. */
-export const NOW = new Date('2026-10-02T09:14:00Z')
+/** Reference "now". Demo data is generated relative to it. */
+export const NOW = new Date()
 
 export function timeAgo(d: string | Date) {
-  const diff = (NOW.getTime() - new Date(d).getTime()) / 1000
+  const diff = (Date.now() - new Date(d).getTime()) / 1000
+  if (diff < 0) return 'in ' + formatShortDate(d)
   if (diff < 60) return 'just now'
   if (diff < 3600) return `${Math.round(diff / 60)}m ago`
   if (diff < 86400) return `${Math.round(diff / 3600)}h ago`
