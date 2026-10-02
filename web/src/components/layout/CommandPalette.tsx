@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from '@/lib/router'
 import { CornerDownLeft, FileText, FolderKanban, Search } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { Kbd } from '@/components/ui/Badge'

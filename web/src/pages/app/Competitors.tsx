@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link } from '@/lib/router'
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { ArrowRight, Crown, Plus, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/cn'

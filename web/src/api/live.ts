@@ -1,0 +1,40 @@
+import { api, qs } from './client'
+import type { DataSource } from './source'
+import type { HistoryPoint, NotificationSettings, Project } from './types'
+
+export const liveSource: DataSource = {
+  mode: 'live',
+  base: '/app',
+  me: () => api.get('/api/auth/me'),
+  plans: () => api.get('/api/billing/plans'),
+  projects: async () => (await api.get<{ projects: Project[] }>('/api/projects')).projects,
+  project: async (id) => (await api.get<{ project: Project }>(`/api/projects/${id}`)).project,
+  history: async (id, days) => (await api.get<{ history: HistoryPoint[] }>(`/api/projects/${id}/history${qs({ days })}`)).history,
+  sitemaps: (id) => api.get(`/api/projects/${id}/sitemaps`),
+  urls: (id, q) => api.get(`/api/projects/${id}/urls${qs({ page: q.page, pageSize: q.pageSize, q: q.q, status: q.status, sort: q.sort, dir: q.dir })}`),
+  url: (id) => api.get(`/api/urls/${id}`),
+  backlinks: (id, q) => api.get(`/api/projects/${id}/backlinks${qs({ page: q.page, pageSize: q.pageSize, q: q.q, filter: q.filter, sort: q.sort, dir: q.dir })}`),
+  backlinkProfile: (id) => api.get(`/api/projects/${id}/backlinks/profile`),
+  alerts: (o) => api.get(`/api/alerts${qs({ unread: o?.unread, pageSize: 100 })}`),
+  notificationSettings: async () => (await api.get<{ settings: NotificationSettings }>('/api/alerts/settings')).settings,
+
+  audit: (id) => api.get(`/api/projects/${id}/audit`),
+  createProject: async (input) => (await api.post<{ project: Project }>('/api/projects', input)).project,
+  updateProject: async (id, input) => (await api.patch<{ project: Project }>(`/api/projects/${id}`, input)).project,
+  deleteProject: async (id) => void (await api.del(`/api/projects/${id}`)),
+  scanProject: (id) => api.post(`/api/projects/${id}/scan`),
+  addUrls: (id, urls) => api.post(`/api/projects/${id}/urls`, { urls }),
+  recheckUrl: (id) => api.post(`/api/urls/${id}/recheck`),
+  addSitemap: async (id, url) => void (await api.post(`/api/projects/${id}/sitemaps`, { url })),
+  addBacklinks: (id, links) => api.post(`/api/projects/${id}/backlinks`, { links }),
+  importBacklinks: (id, text) => api.post(`/api/projects/${id}/backlinks/import`, text),
+  recheckBacklink: (id) => api.post(`/api/backlinks/${id}/recheck`),
+  deleteBacklink: async (id) => void (await api.del(`/api/backlinks/${id}`)),
+  markAlertRead: async (id) => void (await api.post(`/api/alerts/${id}/read`)),
+  markAllAlertsRead: async () => void (await api.post('/api/alerts/read-all')),
+  saveNotificationSettings: async (s) => void (await api.put('/api/alerts/settings', s)),
+  googleSites: async () => (await api.get<{ sites: { siteUrl: string; permissionLevel: string }[] }>('/api/google/sites')).sites,
+  disconnectGoogle: async () => void (await api.del('/api/google')),
+  checkout: (plan, cycle) => api.post('/api/billing/checkout', { plan, cycle }),
+  logout: async () => void (await api.post('/api/auth/logout')),
+}

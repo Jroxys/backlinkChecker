@@ -1,8 +1,10 @@
-import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Download, Filter, MoreHorizontal, RefreshCw, Send, X, Check, Minus, Link as LinkIcon, FileSearch } from 'lucide-react'
-import type { IndexStatus, UrlRecord } from '@/types'
+import { useState } from 'react'
+import { Filter, MoreHorizontal, RefreshCw, X, Check, Minus, Link as LinkIcon, FileSearch, Plus, ExternalLink } from 'lucide-react'
+import type { IndexStatus, UrlItem } from '@/api/types'
+import { useUrls, useAction } from '@/api/hooks'
 import { cn } from '@/lib/cn'
+import { useNavigate } from '@/lib/router'
+import { statusMeta, statusOrder } from '@/lib/status'
 import { Table, THead, TH, TR, TD } from '@/components/ui/Table'
 import { Checkbox, SearchInput } from '@/components/ui/Controls'
 import { Pagination } from '@/components/ui/Pagination'
@@ -11,26 +13,24 @@ import { Dropdown, MenuItem, MenuLabel, MenuSeparator } from '@/components/ui/Dr
 import { EmptyState } from '@/components/ui/EmptyState'
 import { TableSkeleton } from '@/components/ui/Skeleton'
 import { Tooltip } from '@/components/ui/Tooltip'
-import { useToast } from '@/components/ui/Toast'
-import { statusMeta } from '@/data/urls'
-import { timeAgo, formatDate, formatNumber } from '@/utils/format'
+import { timeAgo, formatDate } from '@/utils/format'
 import { HttpBadge, IndexStatusBadge } from './StatusBadge'
 
-type SortKey = 'path' | 'status' | 'http' | 'lastCrawl' | 'lastChecked'
-const statusOrder: IndexStatus[] = ['indexed', 'crawled', 'discovered', 'blocked', 'error']
+type SortKey = 'url' | 'status' | 'http' | 'lastCrawl' | 'lastChecked'
 
+/** Server-paginated table of monitored URLs for one project. */
 export function UrlTable({
-  data,
-  loading,
+  projectId,
   pageSize = 10,
   initialStatus,
   dense,
+  onAddUrls,
 }: {
-  data: UrlRecord[]
-  loading?: boolean
+  projectId: string | undefined
   pageSize?: number
   initialStatus?: IndexStatus[]
   dense?: boolean
+  onAddUrls?: () => void
 }) {
   const [q, setQ] = useState('')
   const [statuses, setStatuses] = useState<IndexStatus[]>(initialStatus ?? [])
@@ -38,46 +38,24 @@ export function UrlTable({
   const [page, setPage] = useState(1)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const nav = useNavigate()
-  const toast = useToast()
+  const query = useUrls(projectId, { page, pageSize, q: q || undefined, status: statuses, sort: sort.key, dir: sort.dir })
+  const recheck = useAction((s) => s.recheckUrl, { invalidate: ['urls', 'url', 'projects'], success: () => ({ title: 'Re-checked', description: 'Latest results are in the table.' }) })
 
-  const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase()
-    let xs = data.filter(
-      (u) => (!s || u.path.toLowerCase().includes(s) || u.title.toLowerCase().includes(s)) && (!statuses.length || statuses.includes(u.status)),
-    )
-    xs = [...xs].sort((a, b) => {
-      const d = sort.dir === 'asc' ? 1 : -1
-      switch (sort.key) {
-        case 'path':
-          return a.path.localeCompare(b.path) * d
-        case 'status':
-          return (statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status)) * d
-        case 'http':
-          return (a.http - b.http) * d
-        case 'lastCrawl':
-          return ((a.lastCrawl ?? '').localeCompare(b.lastCrawl ?? '')) * d
-        default:
-          return a.lastChecked.localeCompare(b.lastChecked) * d
-      }
-    })
-    return xs
-  }, [data, q, statuses, sort])
-
-  const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize)
-  const allOnPage = pageRows.length > 0 && pageRows.every((r) => selected.has(r.id))
-  const someOnPage = pageRows.some((r) => selected.has(r.id))
-
-  const toggleSort = (key: SortKey) => setSort((s) => ({ key, dir: s.key === key && s.dir === 'desc' ? 'asc' : 'desc' }))
+  const rows = query.data?.urls ?? []
+  const total = query.data?.total ?? 0
+  const counts = query.data?.counts ?? {}
+  const allOnPage = rows.length > 0 && rows.every((r) => selected.has(r.id))
+  const someOnPage = rows.some((r) => selected.has(r.id))
+  const toggleSort = (key: SortKey) => {
+    setSort((s) => ({ key, dir: s.key === key && s.dir === 'desc' ? 'asc' : 'desc' }))
+    setPage(1)
+  }
   const sorted = (k: SortKey) => (sort.key === k ? sort.dir : false)
-  const counts = useMemo(() => {
-    const c: Record<string, number> = {}
-    data.forEach((u) => (c[u.status] = (c[u.status] ?? 0) + 1))
-    return c
-  }, [data])
 
-  const bulk = (label: string) => {
-    toast({ title: `${label} queued`, description: `${selected.size} URL${selected.size > 1 ? 's' : ''} will be processed in the next run.` })
+  const recheckSelected = async () => {
+    const ids = [...selected]
     setSelected(new Set())
+    for (const id of ids.slice(0, 20)) await recheck.mutateAsync([id]).catch(() => undefined)
   }
 
   return (
@@ -94,13 +72,11 @@ export function UrlTable({
             className="w-full sm:w-72"
           />
           <Dropdown
-            width={250}
+            width={260}
             trigger={({ toggle, open }) => (
               <Button size="md" variant="secondary" onClick={toggle} leftIcon={<Filter />} className={cn(open && 'bg-surface-2')}>
                 Status
-                {statuses.length > 0 && (
-                  <span className="tnum rounded bg-primary-soft px-1.5 text-[11px] text-primary-ink">{statuses.length}</span>
-                )}
+                {statuses.length > 0 && <span className="tnum rounded bg-primary-soft px-1.5 text-[11px] text-primary-ink">{statuses.length}</span>}
               </Button>
             )}
           >
@@ -142,30 +118,19 @@ export function UrlTable({
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="md"
-            leftIcon={<Download />}
-            onClick={() => toast({ title: 'Export started', description: `${formatNumber(filtered.length)} URLs exported to CSV.` })}
-          >
-            Export
+        {onAddUrls && (
+          <Button variant="secondary" size="md" leftIcon={<Plus />} onClick={onAddUrls}>
+            Add URLs
           </Button>
-        </div>
+        )}
       </div>
 
       {selected.size > 0 && (
         <div className="mx-5 mb-3 flex animate-pop flex-wrap items-center gap-2 rounded-xl border border-primary/25 bg-primary-soft px-3 py-2">
           <span className="tnum text-[13px] font-medium text-primary-ink">{selected.size} selected</span>
           <span className="mx-1 h-4 w-px bg-primary/25" />
-          <Button size="xs" variant="ghost" leftIcon={<RefreshCw />} onClick={() => bulk('Re-inspection')}>
-            Re-inspect
-          </Button>
-          <Button size="xs" variant="ghost" leftIcon={<Send />} onClick={() => bulk('Indexing request')}>
-            Request indexing
-          </Button>
-          <Button size="xs" variant="ghost" leftIcon={<Download />} onClick={() => bulk('Export')}>
-            Export
+          <Button size="xs" variant="ghost" leftIcon={<RefreshCw />} loading={recheck.isPending} onClick={recheckSelected}>
+            Re-check now
           </Button>
           <button onClick={() => setSelected(new Set())} className="ml-auto text-[12.5px] font-medium text-primary-ink hover:underline">
             Clear
@@ -173,27 +138,36 @@ export function UrlTable({
         </div>
       )}
 
-      {loading ? (
+      {query.isLoading ? (
         <TableSkeleton rows={Math.min(pageSize, 8)} cols={6} />
-      ) : filtered.length === 0 ? (
-        <EmptyState
-          icon={<FileSearch />}
-          title="No URLs match these filters"
-          description="Try removing a status filter or searching for a shorter path, like “/blog”."
-          action={
-            <Button
-              size="sm"
-              onClick={() => {
-                setQ('')
-                setStatuses([])
-              }}
-            >
-              Reset filters
-            </Button>
-          }
-        />
+      ) : rows.length === 0 ? (
+        q || statuses.length ? (
+          <EmptyState
+            icon={<FileSearch />}
+            title="No URLs match these filters"
+            description="Try removing a status filter or searching for a shorter path, like “/blog”."
+            action={
+              <Button
+                size="sm"
+                onClick={() => {
+                  setQ('')
+                  setStatuses([])
+                }}
+              >
+                Reset filters
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            icon={<FileSearch />}
+            title="No URLs monitored yet"
+            description="We add your homepage and every URL in your sitemaps automatically. You can also add important pages by hand."
+            action={onAddUrls && <Button size="sm" variant="primary" leftIcon={<Plus />} onClick={onAddUrls}>Add URLs</Button>}
+          />
+        )
       ) : (
-        <>
+        <div className={cn('transition-opacity', query.isPlaceholderData && 'opacity-60')}>
           <Table minWidth={980}>
             <THead>
               <TH className="w-10 !pr-0">
@@ -204,13 +178,13 @@ export function UrlTable({
                   onChange={() =>
                     setSelected((s) => {
                       const n = new Set(s)
-                      pageRows.forEach((r) => (allOnPage ? n.delete(r.id) : n.add(r.id)))
+                      rows.forEach((r) => (allOnPage ? n.delete(r.id) : n.add(r.id)))
                       return n
                     })
                   }
                 />
               </TH>
-              <TH sortable sorted={sorted('path')} onSort={() => toggleSort('path')}>
+              <TH sortable sorted={sorted('url')} onSort={() => toggleSort('url')}>
                 URL
               </TH>
               <TH sortable sorted={sorted('status')} onSort={() => toggleSort('status')}>
@@ -230,118 +204,130 @@ export function UrlTable({
               <TH className="w-10" />
             </THead>
             <tbody>
-              {pageRows.map((u) => (
-                <TR key={u.id} selected={selected.has(u.id)} onClick={() => nav(`/app/indexing/${u.id}`)}>
-                  <TD className="w-10 !pr-0">
-                    <Checkbox
-                      label={`Select ${u.path}`}
-                      checked={selected.has(u.id)}
-                      onChange={() =>
-                        setSelected((s) => {
-                          const n = new Set(s)
-                          n.has(u.id) ? n.delete(u.id) : n.add(u.id)
-                          return n
-                        })
-                      }
-                    />
-                  </TD>
-                  <TD className={cn('max-w-[340px]', dense ? 'h-11' : 'h-13')}>
-                    <div className="min-w-0">
-                      <div className="truncate font-medium text-fg group-hover:text-primary-ink">{u.path}</div>
-                      {!dense && <div className="truncate text-[12px] text-fg-4">{u.title}</div>}
-                    </div>
-                  </TD>
-                  <TD>
-                    <IndexStatusBadge status={u.status} />
-                  </TD>
-                  <TD>
-                    <HttpBadge code={u.http} />
-                  </TD>
-                  <TD>
-                    {u.indexable ? (
-                      <span className="inline-flex items-center gap-1.5 text-fg-2">
-                        <Check className="size-3.5 text-success" /> Indexable
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 text-fg-3">
-                        <Minus className="size-3.5 text-fg-4" />
-                        {u.robots === 'noindex' ? 'Noindex' : u.robots === 'blocked' ? 'Robots blocked' : 'Non-indexable'}
-                      </span>
-                    )}
-                  </TD>
-                  <TD>
-                    {u.canonical === 'self' ? (
-                      <span className="text-fg-2">Self</span>
-                    ) : u.canonical === 'other' ? (
-                      <Tooltip content={`Canonicalised to ${u.canonicalTarget}`}>
-                        <span className="inline-flex items-center gap-1 text-warning-ink">
-                          <LinkIcon className="size-3" /> Other
-                        </span>
-                      </Tooltip>
-                    ) : (
-                      <span className="text-error-ink">Missing</span>
-                    )}
-                  </TD>
-                  <TD className="tnum">
-                    {u.lastCrawl ? (
-                      <Tooltip content={formatDate(u.lastCrawl)}>
-                        <span>{timeAgo(u.lastCrawl)}</span>
-                      </Tooltip>
-                    ) : (
-                      <span className="text-fg-4">Never</span>
-                    )}
-                  </TD>
-                  <TD className="tnum">{timeAgo(u.lastChecked)}</TD>
-                  <TD className="w-10" onClick={(e) => e.stopPropagation()}>
-                    <Dropdown
-                      align="right"
-                      width={200}
-                      trigger={({ toggle }) => (
-                        <button
-                          onClick={toggle}
-                          aria-label="Row actions"
-                          className="rounded-md p-1 text-fg-4 opacity-60 transition hover:bg-surface-3 hover:text-fg group-hover:opacity-100"
-                        >
-                          <MoreHorizontal className="size-4" />
-                        </button>
-                      )}
-                    >
-                      {(close) => (
-                        <>
-                          <MenuItem icon={<FileSearch />} onClick={() => nav(`/app/indexing/${u.id}`)}>
-                            Inspect URL
-                          </MenuItem>
-                          <MenuItem
-                            icon={<RefreshCw />}
-                            onClick={() => {
-                              toast({ title: 'Re-inspection queued', description: u.path })
-                              close()
-                            }}
-                          >
-                            Re-inspect now
-                          </MenuItem>
-                          <MenuItem
-                            icon={<Send />}
-                            onClick={() => {
-                              toast({ title: 'Indexing requested', description: u.path })
-                              close()
-                            }}
-                          >
-                            Request indexing
-                          </MenuItem>
-                        </>
-                      )}
-                    </Dropdown>
-                  </TD>
-                </TR>
+              {rows.map((u) => (
+                <UrlRow
+                  key={u.id}
+                  u={u}
+                  dense={dense}
+                  selected={selected.has(u.id)}
+                  onSelect={() =>
+                    setSelected((s) => {
+                      const n = new Set(s)
+                      if (n.has(u.id)) n.delete(u.id)
+                      else n.add(u.id)
+                      return n
+                    })
+                  }
+                  onOpen={() => nav(`/app/indexing/${u.id}`)}
+                  onRecheck={() => recheck.mutate([u.id])}
+                />
               ))}
             </tbody>
           </Table>
           <div className="border-t border-line">
-            <Pagination page={page} pageSize={pageSize} total={filtered.length} onChange={setPage} />
+            <Pagination page={page} pageSize={pageSize} total={total} onChange={setPage} />
           </div>
-        </>
+        </div>
       )}
     </div>
+  )
+}
+
+function Indexability({ u }: { u: UrlItem }) {
+  if (u.indexable === null) return <span className="text-fg-4">Checking…</span>
+  if (u.indexable)
+    return (
+      <span className="inline-flex items-center gap-1.5 text-fg-2">
+        <Check className="size-3.5 text-success" /> Indexable
+      </span>
+    )
+  const why =
+    u.robots === 'noindex' ? 'Noindex' : u.robots === 'blocked' ? 'Robots blocked' : u.http && u.http >= 300 && u.http < 400 ? 'Redirects' : u.http && u.http >= 400 ? `HTTP ${u.http}` : u.canonical === 'other' ? 'Canonicalised' : 'Non-indexable'
+  return (
+    <span className="inline-flex items-center gap-1.5 text-fg-3">
+      <Minus className="size-3.5 text-fg-4" />
+      {why}
+    </span>
+  )
+}
+
+function UrlRow({ u, dense, selected, onSelect, onOpen, onRecheck }: { u: UrlItem; dense?: boolean; selected: boolean; onSelect: () => void; onOpen: () => void; onRecheck: () => void }) {
+  return (
+    <TR selected={selected} onClick={onOpen}>
+      <TD className="w-10 !pr-0">
+        <Checkbox label={`Select ${u.path}`} checked={selected} onChange={onSelect} />
+      </TD>
+      <TD className={cn('max-w-[340px]', dense ? 'h-11' : 'h-13')}>
+        <div className="min-w-0">
+          <div className="truncate font-medium text-fg group-hover:text-primary-ink">{u.path}</div>
+          {!dense && <div className="truncate text-[12px] text-fg-4">{u.title ?? '—'}</div>}
+        </div>
+      </TD>
+      <TD>
+        <IndexStatusBadge status={u.status} />
+      </TD>
+      <TD>
+        <HttpBadge code={u.http} />
+      </TD>
+      <TD>
+        <Indexability u={u} />
+      </TD>
+      <TD>
+        {u.canonical === 'self' ? (
+          <span className="text-fg-2">Self</span>
+        ) : u.canonical === 'other' ? (
+          <Tooltip content={`Canonicalised to ${u.canonicalUrl}`}>
+            <span className="inline-flex items-center gap-1 text-warning-ink">
+              <LinkIcon className="size-3" /> Other
+            </span>
+          </Tooltip>
+        ) : u.canonical === 'missing' ? (
+          <span className="text-error-ink">Missing</span>
+        ) : (
+          <span className="text-fg-4">—</span>
+        )}
+      </TD>
+      <TD className="tnum">
+        {u.lastCrawl ? (
+          <Tooltip content={`Googlebot: ${formatDate(u.lastCrawl)}`}>
+            <span>{timeAgo(u.lastCrawl)}</span>
+          </Tooltip>
+        ) : (
+          <span className="text-fg-4">{u.status === 'unknown' ? '—' : 'Never'}</span>
+        )}
+      </TD>
+      <TD className="tnum">{u.lastChecked ? timeAgo(u.lastChecked) : <span className="text-fg-4">Queued</span>}</TD>
+      <TD className="w-10" onClick={(e) => e.stopPropagation()}>
+        <Dropdown
+          align="right"
+          width={200}
+          trigger={({ toggle }) => (
+            <button onClick={toggle} aria-label="Row actions" className="rounded-md p-1 text-fg-4 opacity-60 transition group-hover:opacity-100 hover:bg-surface-3 hover:text-fg">
+              <MoreHorizontal className="size-4" />
+            </button>
+          )}
+        >
+          {(close) => (
+            <>
+              <MenuItem icon={<FileSearch />} onClick={onOpen}>
+                Inspect URL
+              </MenuItem>
+              <MenuItem
+                icon={<RefreshCw />}
+                onClick={() => {
+                  onRecheck()
+                  close()
+                }}
+              >
+                Re-check now
+              </MenuItem>
+              <MenuItem icon={<ExternalLink />} onClick={() => (window.open(u.url, '_blank', 'noopener'), close())}>
+                Open live page
+              </MenuItem>
+            </>
+          )}
+        </Dropdown>
+      </TD>
+    </TR>
   )
 }

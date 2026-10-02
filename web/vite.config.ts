@@ -8,4 +8,8 @@ export default defineConfig({
   resolve: {
     alias: { '@': path.resolve(__dirname, 'src') },
   },
+  server: {
+    // Same-origin API in development, so session cookies just work
+    proxy: { '/api': { target: process.env.API_PROXY ?? 'http://localhost:8787', changeOrigin: false } },
+  },
 })

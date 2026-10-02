@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from '@/lib/router'
 import { ArrowDown, ArrowUp, Minus, Plus, KeyRound, Trophy, Target, TrendingUp } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { useSimulatedLoad } from '@/hooks/useSimulatedLoad'

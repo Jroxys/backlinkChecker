@@ -1,91 +1,75 @@
-import { useMemo, useState } from 'react'
-import { FileSearch, Map, Send, Upload, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react'
-import type { IndexStatus } from '@/types'
+import { useState } from 'react'
+import { FileSearch, Map, Plus, CheckCircle2, AlertTriangle, XCircle, Clock3, ExternalLink } from 'lucide-react'
+import type { IndexStatus } from '@/api/types'
+import { useAction, useAudit, useSitemaps, useUrls } from '@/api/hooks'
 import { cn } from '@/lib/cn'
-import { useSimulatedLoad } from '@/hooks/useSimulatedLoad'
+import { useProject } from '@/lib/project'
+import { statusMeta } from '@/lib/status'
+import { useNavigate } from '@/lib/router'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { Input, Label, ProgressBar } from '@/components/ui/Controls'
 import { Badge } from '@/components/ui/Badge'
-import { useToast } from '@/components/ui/Toast'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { IndexingChart } from '@/components/domain/IndexingChart'
 import { UrlTable } from '@/components/domain/UrlTable'
-import { urls, statusMeta } from '@/data/urls'
 import { formatNumber, timeAgo } from '@/utils/format'
 
-const tiles: { status: IndexStatus; value: number; delta: string; deltaGood: boolean }[] = [
-  { status: 'indexed', value: 1284, delta: '+142 this month', deltaGood: true },
-  { status: 'crawled', value: 142, delta: '−9 this month', deltaGood: true },
-  { status: 'discovered', value: 87, delta: '+12 this month', deltaGood: false },
-  { status: 'blocked', value: 0, delta: '', deltaGood: true },
-  { status: 'error', value: 12, delta: '−3 this month', deltaGood: true },
-]
-
-const sitemaps = [
-  { path: '/sitemap-blog.xml', urls: 412, indexed: 388, status: 'ok' as const, read: '2026-10-02T09:00:00Z' },
-  { path: '/sitemap-docs.xml', urls: 641, indexed: 552, status: 'ok' as const, read: '2026-10-02T09:00:00Z' },
-  { path: '/sitemap-pages.xml', urls: 96, indexed: 81, status: 'warning' as const, read: '2026-10-02T09:00:00Z', note: '3 non-indexable URLs listed' },
-  { path: '/sitemap-products.xml', urls: 376, indexed: 263, status: 'ok' as const, read: '2026-10-02T09:00:00Z' },
-]
-
-const reasons = [
-  { reason: 'Crawled – currently not indexed', count: 142, tip: 'Thin or near-duplicate content. Consolidate or improve.' },
-  { reason: 'Discovered – currently not indexed', count: 87, tip: 'Low internal link depth. Link from hub pages.' },
-  { reason: 'Alternate page with proper canonical', count: 64, tip: 'Expected. No action needed.' },
-  { reason: 'Excluded by noindex tag', count: 31, tip: 'Verify these are intentional.' },
-  { reason: 'Not found (404)', count: 9, tip: 'Remove from sitemaps or redirect.' },
-  { reason: 'Server error (5xx)', count: 3, tip: 'Investigate immediately.' },
-]
+const tileOrder: IndexStatus[] = ['indexed', 'crawled', 'discovered', 'blocked', 'error']
 
 export function Indexing() {
-  const loading = useSimulatedLoad(600)
+  const { project } = useProject()
   const [filter, setFilter] = useState<IndexStatus | null>(null)
-  const [inspect, setInspect] = useState(false)
-  const [inspectUrl, setInspectUrl] = useState('https://northwindlabs.com/blog/')
-  const toast = useToast()
-  const counts = useMemo(() => {
-    const c: Partial<Record<IndexStatus, number>> = {}
-    urls.forEach((u) => (c[u.status] = (c[u.status] ?? 0) + 1))
-    return c
-  }, [])
-  const maxReason = Math.max(...reasons.map((r) => r.count))
+  const [addUrls, setAddUrls] = useState(false)
+  const [addSitemap, setAddSitemap] = useState(false)
+  const counts = useUrls(project?.id, { page: 1, pageSize: 1 }).data?.counts
+  const audit = useAudit(project?.id)
+  const sitemaps = useSitemaps(project?.id)
+  const reasons = (audit.data?.checks ?? []).filter((c) => (c.category === 'indexing' || c.category === 'technical') && c.affected > 0).sort((a, b) => b.affected - a.affected)
+  const maxReason = Math.max(1, ...reasons.map((r) => r.affected))
+  const notConnected = !project?.gscProperty
 
   return (
     <>
       <PageHeader
         title="Indexing"
-        description="Live Google index coverage for northwindlabs.com, checked every 6 hours via the URL Inspection API."
+        description={
+          project
+            ? `Index coverage for ${project.domain}. ${notConnected ? 'Indexability is checked by our crawler; connect Search Console to add Google’s own verdict.' : 'Google’s verdict comes from the URL Inspection API, checked daily.'}`
+            : ''
+        }
         actions={
           <>
-            <Button leftIcon={<Upload />} onClick={() => toast({ title: 'Sitemap submitted', description: 'sitemap-blog.xml will be re-read within the hour.' })}>
-              Submit sitemap
+            <Button leftIcon={<Map />} onClick={() => setAddSitemap(true)}>
+              Add sitemap
             </Button>
-            <Button variant="primary" leftIcon={<FileSearch />} onClick={() => setInspect(true)}>
-              Inspect URL
+            <Button variant="primary" leftIcon={<FileSearch />} onClick={() => setAddUrls(true)}>
+              Monitor URLs
             </Button>
           </>
         }
       />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-        {tiles.map((t) => {
-          const active = filter === t.status
-          const m = statusMeta[t.status]
+        {tileOrder.map((st) => {
+          const active = filter === st
+          const n = counts?.[st] ?? 0
           return (
             <button
-              key={t.status}
-              onClick={() => setFilter(active ? null : t.status)}
+              key={st}
+              onClick={() => setFilter(active ? null : st)}
               className={cn(
                 'group rounded-xl border bg-surface p-4 text-left shadow-xs transition-all duration-200',
                 active ? 'border-primary ring-3 ring-[var(--ring)]' : 'border-line hover:border-line-strong hover:shadow-card',
               )}
             >
-              <div className="text-[12px] font-medium text-fg-3">{m.label}</div>
-              <div className="tnum mt-2 text-[24px] leading-none font-semibold text-fg">{formatNumber(t.value)}</div>
+              <div className="text-[12px] font-medium text-fg-3">{statusMeta[st].label}</div>
+              {counts ? <div className="tnum mt-2 text-[24px] leading-none font-semibold text-fg">{formatNumber(n)}</div> : <Skeleton className="mt-2 h-6 w-16" />}
               <div className="mt-2.5 flex items-center justify-between text-[11.5px]">
-                <span className={t.delta ? (t.deltaGood ? 'text-success-ink' : 'text-error-ink') : 'text-fg-4'}>{t.delta || 'No change'}</span>
+                <span className="text-fg-4">{counts?.unknown ? `${formatNumber(counts.unknown)} not yet inspected` : 'URLs'}</span>
                 <span className="text-fg-4 opacity-0 transition-opacity group-hover:opacity-100">{active ? 'Clear' : 'Filter'}</span>
               </div>
             </button>
@@ -94,110 +78,201 @@ export function Indexing() {
       </div>
 
       <Card className="mt-4">
-        <IndexingChart loading={loading} height={320} />
+        <IndexingChart projectId={project?.id} height={320} />
       </Card>
 
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader title="Why pages aren’t indexed" description="Grouped by Google’s exclusion reason" />
-          <div className="space-y-3.5 p-5">
-            {reasons.map((r) => (
-              <div key={r.reason}>
-                <div className="flex items-baseline justify-between gap-3 text-[13px]">
-                  <span className="font-medium text-fg">{r.reason}</span>
-                  <span className="tnum font-semibold text-fg">{r.count}</span>
-                </div>
-                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-3">
-                  <div className="h-full rounded-full bg-primary/80" style={{ width: `${(r.count / maxReason) * 100}%` }} />
-                </div>
-                <p className="mt-1 text-[12px] text-fg-4">{r.tip}</p>
-              </div>
-            ))}
-          </div>
-        </Card>
-        <Card>
-          <CardHeader
-            title="Sitemaps"
-            description="4 sitemaps · 1,525 submitted URLs"
-            icon={<Map />}
-            actions={<Badge tone="success" dot>Read 14m ago</Badge>}
-          />
-          <div className="mt-3 divide-y divide-line-soft border-t border-line-soft">
-            {sitemaps.map((s) => {
-              const pct = (s.indexed / s.urls) * 100
-              return (
-                <div key={s.path} className="px-5 py-3.5">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex min-w-0 items-center gap-2">
-                      {s.status === 'ok' ? (
-                        <CheckCircle2 className="size-4 shrink-0 text-success" />
-                      ) : (
-                        <AlertTriangle className="size-4 shrink-0 text-warning" />
-                      )}
-                      <span className="truncate font-mono text-[12.5px] text-fg">{s.path}</span>
-                    </div>
-                    <span className="tnum shrink-0 text-[12.5px] text-fg-3">
-                      <span className="font-semibold text-fg">{formatNumber(s.indexed)}</span> / {formatNumber(s.urls)} indexed
+          <CardHeader title="Why pages aren’t indexable" description="From our crawler and Search Console, grouped by cause" />
+          {audit.isLoading ? (
+            <div className="space-y-4 p-5">
+              {[0, 1, 2].map((i) => (
+                <Skeleton key={i} className="h-8 w-full" />
+              ))}
+            </div>
+          ) : reasons.length === 0 ? (
+            <EmptyState className="py-10" icon={<CheckCircle2 />} title="No indexing blockers found" description="Every checked URL is reachable, indexable and consistent with its canonical. We’ll alert you if that changes." />
+          ) : (
+            <div className="space-y-4 p-5">
+              {reasons.slice(0, 7).map((r) => (
+                <div key={r.id}>
+                  <div className="flex items-baseline justify-between gap-3 text-[13px]">
+                    <span className="flex items-center gap-2 font-medium text-fg">
+                      {r.severity === 'error' ? <XCircle className="size-3.5 text-error" /> : r.severity === 'warning' ? <AlertTriangle className="size-3.5 text-warning" /> : <Clock3 className="size-3.5 text-fg-4" />}
+                      {r.title}
                     </span>
+                    <span className="tnum font-semibold text-fg">{formatNumber(r.affected)}</span>
                   </div>
-                  <ProgressBar value={pct} className="mt-2.5" />
-                  <div className="mt-1.5 flex justify-between text-[11.5px] text-fg-4">
-                    <span>{s.note ?? `Last read ${timeAgo(s.read)}`}</span>
-                    <span className="tnum">{pct.toFixed(1)}%</span>
+                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-3">
+                    <div className="h-full rounded-full bg-primary/80" style={{ width: `${(r.affected / maxReason) * 100}%` }} />
                   </div>
+                  <p className="mt-1 text-[12px] text-fg-4">{r.fix}</p>
                 </div>
-              )
-            })}
-          </div>
+              ))}
+            </div>
+          )}
         </Card>
+        <SitemapsCard projectId={project?.id} data={sitemaps.data} loading={sitemaps.isLoading} onAdd={() => setAddSitemap(true)} />
       </div>
 
       <Card className="mt-4 overflow-hidden">
-        <CardHeader
-          title="URL inspection"
-          description={`${urls.length} priority URLs monitored · ${counts.indexed ?? 0} indexed`}
-          actions={
-            counts.error ? (
-              <Badge tone="error" icon={<XCircle />}>
-                {counts.error} errors need attention
-              </Badge>
-            ) : undefined
-          }
-        />
+        <CardHeader title="Monitored URLs" description="Click a URL for its full inspection and history" />
         <div className="mt-1">
-          <UrlTable key={filter ?? 'all'} data={urls} loading={loading} initialStatus={filter ? [filter] : undefined} />
+          <UrlTable key={filter ?? 'all'} projectId={project?.id} initialStatus={filter ? [filter] : undefined} onAddUrls={() => setAddUrls(true)} />
         </div>
       </Card>
 
-      <Modal
-        open={inspect}
-        onClose={() => setInspect(false)}
-        title="Inspect a URL"
-        description="Runs a live URL Inspection API check and adds the URL to monitoring."
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setInspect(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="primary"
-              leftIcon={<Send />}
-              onClick={() => {
-                setInspect(false)
-                toast({ title: 'Inspection started', description: inspectUrl, tone: 'info' })
-              }}
-            >
-              Inspect now
-            </Button>
-          </>
-        }
-      >
-        <Label hint="Must belong to a verified property">URL</Label>
-        <Input value={inspectUrl} onChange={(e) => setInspectUrl(e.target.value)} autoFocus />
-        <div className="mt-4 rounded-lg border border-line bg-surface-2 p-3 text-[12.5px] text-fg-3">
-          You have <span className="tnum font-medium text-fg">1,588</span> live inspections left today (2,000 / day per property).
-        </div>
-      </Modal>
+      {project && <AddUrlsModal open={addUrls} onClose={() => setAddUrls(false)} projectId={project.id} domain={project.domain} />}
+      {project && <AddSitemapModal open={addSitemap} onClose={() => setAddSitemap(false)} projectId={project.id} domain={project.domain} />}
     </>
+  )
+}
+
+function SitemapsCard({ data, loading, onAdd }: { projectId?: string; data?: { sitemaps: { id: string; url: string; status: string; url_count: number; last_error: string | null; last_fetched_at: string | null }[]; coverage: { total: number; indexed: number } | null }; loading: boolean; onAdd: () => void }) {
+  const list = data?.sitemaps ?? []
+  const total = list.reduce((a, s) => a + s.url_count, 0)
+  const cov = data?.coverage
+  return (
+    <Card>
+      <CardHeader
+        title="Sitemaps"
+        description={list.length ? `${list.length} sitemap${list.length > 1 ? 's' : ''} · ${formatNumber(total)} URLs listed` : 'Read daily; new URLs are monitored automatically'}
+        icon={<Map />}
+        actions={cov && cov.total ? <Badge tone="primary">{Math.round(((cov.indexed ?? 0) / cov.total) * 100)}% indexed</Badge> : undefined}
+      />
+      {loading ? (
+        <div className="space-y-3 p-5">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+      ) : list.length === 0 ? (
+        <EmptyState className="py-10" icon={<Map />} title="No sitemap found yet" description="We look in robots.txt and at /sitemap.xml. If yours lives elsewhere, add it and we’ll read it right away." action={<Button size="sm" leftIcon={<Plus />} onClick={onAdd}>Add sitemap</Button>} />
+      ) : (
+        <div className="mt-3 divide-y divide-line-soft border-t border-line-soft">
+          {list.map((s) => {
+            let path = s.url
+            try {
+              path = new URL(s.url).pathname
+            } catch {
+              /* keep */
+            }
+            return (
+              <div key={s.id} className="px-5 py-3.5">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-2">
+                    {s.status === 'ok' ? <CheckCircle2 className="size-4 shrink-0 text-success" /> : s.status === 'error' ? <XCircle className="size-4 shrink-0 text-error" /> : <Clock3 className="size-4 shrink-0 text-fg-4" />}
+                    <a href={s.url} target="_blank" rel="noreferrer" className="truncate font-mono text-[12.5px] text-fg hover:text-primary-ink">
+                      {path}
+                    </a>
+                  </div>
+                  <span className="tnum shrink-0 text-[12.5px] text-fg-3">{s.status === 'pending' ? 'Reading…' : `${formatNumber(s.url_count)} URLs`}</span>
+                </div>
+                {s.status === 'error' ? (
+                  <p className="mt-1.5 text-[12px] text-error-ink">{s.last_error}</p>
+                ) : (
+                  <p className="mt-1 text-[11.5px] text-fg-4">{s.last_fetched_at ? `Read ${timeAgo(s.last_fetched_at)}` : 'Queued'}</p>
+                )}
+              </div>
+            )
+          })}
+          {cov && cov.total > 0 && (
+            <div className="px-5 py-3.5">
+              <div className="mb-1.5 flex justify-between text-[12px] text-fg-3">
+                <span>Sitemap URLs indexed by Google</span>
+                <span className="tnum font-medium text-fg">
+                  {formatNumber(cov.indexed ?? 0)} / {formatNumber(cov.total)}
+                </span>
+              </div>
+              <ProgressBar value={((cov.indexed ?? 0) / cov.total) * 100} />
+            </div>
+          )}
+        </div>
+      )}
+    </Card>
+  )
+}
+
+function AddUrlsModal({ open, onClose, projectId, domain }: { open: boolean; onClose: () => void; projectId: string; domain: string }) {
+  const [text, setText] = useState('')
+  const nav = useNavigate()
+  const add = useAction((s) => s.addUrls, {
+    invalidate: ['urls', 'projects'],
+    success: (r) => ({ title: `${r.created.length} URL${r.created.length === 1 ? '' : 's'} added`, description: r.skipped.length ? `${r.skipped.length} skipped (duplicates, other domains or plan limit).` : 'First checks run within a minute.' }),
+  })
+  const urls = text
+    .split(/\s+/)
+    .map((x) => x.trim())
+    .filter(Boolean)
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Monitor URLs"
+      description={`Paste URLs on ${domain}, one per line. Sitemap URLs are added automatically.`}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            disabled={!urls.length}
+            loading={add.isPending}
+            onClick={async () => {
+              const r = await add.mutateAsync([projectId, urls]).catch(() => null)
+              if (r) {
+                setText('')
+                onClose()
+                if (r.created.length === 1) nav(`/app/indexing/${r.created[0]}`)
+              }
+            }}
+          >
+            Add {urls.length || ''} URL{urls.length === 1 ? '' : 's'}
+          </Button>
+        </>
+      }
+    >
+      <textarea
+        autoFocus
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        rows={8}
+        placeholder={`https://${domain}/pricing\nhttps://${domain}/blog/launch-post`}
+        className="w-full resize-none rounded-lg border border-line bg-surface p-3 font-mono text-[12.5px] text-fg shadow-xs placeholder:text-fg-4 focus:border-primary focus:ring-3 focus:ring-[var(--ring)] focus:outline-none"
+      />
+      <p className="mt-2 text-[12px] text-fg-4">
+        Want Google to recrawl a page? Use “Request indexing” in{' '}
+        <a href="https://search.google.com/search-console" target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 text-primary-ink hover:underline">
+          Search Console <ExternalLink className="size-3" />
+        </a>{' '}
+        — Google offers no API for it, and we won’t pretend otherwise.
+      </p>
+    </Modal>
+  )
+}
+
+function AddSitemapModal({ open, onClose, projectId, domain }: { open: boolean; onClose: () => void; projectId: string; domain: string }) {
+  const [url, setUrl] = useState(`https://${domain}/sitemap.xml`)
+  const add = useAction((s) => s.addSitemap, { invalidate: ['sitemaps'], success: () => ({ title: 'Sitemap added', description: 'Reading it now — new URLs will appear in a minute.' }) })
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Add a sitemap"
+      description="We read it now and then daily. New URLs it lists are monitored automatically."
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button variant="primary" loading={add.isPending} onClick={() => add.mutateAsync([projectId, url]).then(onClose, () => undefined)}>
+            Add sitemap
+          </Button>
+        </>
+      }
+    >
+      <Label>Sitemap URL</Label>
+      <Input value={url} onChange={(e) => setUrl(e.target.value)} autoFocus />
+    </Modal>
   )
 }

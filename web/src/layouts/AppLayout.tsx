@@ -1,5 +1,8 @@
 import { Suspense, useEffect, useState } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
+import { Sparkles, ArrowRight } from 'lucide-react'
+import { useSource } from '@/api/source'
+import { useProject } from '@/lib/project'
 import { cn } from '@/lib/cn'
 import { Header } from '@/components/layout/Header'
 import { Sidebar } from '@/components/layout/Sidebar'
@@ -17,6 +20,8 @@ export function AppLayout() {
   const [drawer, setDrawer] = useState(false)
   const [palette, setPalette] = useState(false)
   const { pathname } = useLocation()
+  const source = useSource()
+  const { projects, loading } = useProject()
 
   useEffect(() => {
     try {
@@ -43,8 +48,21 @@ export function AppLayout() {
     window.scrollTo({ top: 0 })
   }, [pathname])
 
+  // A live account without projects goes straight to onboarding
+  if (source.mode === 'live' && !loading && projects.length === 0 && !pathname.startsWith('/app/onboarding') && !pathname.startsWith('/app/settings'))
+    return <Navigate to="/app/onboarding" replace />
+
   return (
     <div className="min-h-screen bg-bg">
+      {source.mode === 'demo' && (
+        <div className="relative z-50 flex items-center justify-center gap-3 bg-[#0B0F19] px-4 py-2 text-[12.5px] text-white/80">
+          <Sparkles className="size-3.5 shrink-0 text-[#A5B4FC]" />
+          <span className="truncate">You’re exploring a demo with sample data.</span>
+          <a href="/signup" className="inline-flex shrink-0 items-center gap-1 font-medium text-white hover:underline">
+            Monitor your own site free <ArrowRight className="size-3" />
+          </a>
+        </div>
+      )}
       <Header collapsed={collapsed} onMenu={() => setDrawer(true)} onSearch={() => setPalette(true)} />
       <div className="flex">
         <aside

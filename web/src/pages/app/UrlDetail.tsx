@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
+import { Link } from '@/lib/router'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import {
   ArrowLeft,

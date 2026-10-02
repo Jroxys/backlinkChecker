@@ -6,6 +6,7 @@ import { getPlan } from '../plans.js'
 import { enqueue } from '../jobs/queue.js'
 import { addUrls } from '../services/urls.js'
 import { projectSnapshot } from '../services/stats.js'
+import { runAudit } from '../services/audit.js'
 
 export const projectRoutes = router()
 projectRoutes.use('*', requireUser)
@@ -118,4 +119,10 @@ projectRoutes.post('/:id/sitemaps', async (c) => {
   const row = c.var.ctx.db.get<{ id: string }>('SELECT id FROM sitemaps WHERE project_id = ? AND url = ?', [p.id, url])!
   enqueue(c.var.ctx.db, 'sitemaps.sync', { sitemapId: row.id }, { dedupeKey: `sitemap:${row.id}` })
   return c.json({ sitemap: row }, 201)
+})
+
+/** Rule-based technical audit over everything we've crawled for this project. */
+projectRoutes.get('/:id/audit', (c) => {
+  const p = ownedProject(c, c.req.param('id'))
+  return c.json(runAudit(c.var.ctx.db, p.id, c.var.ctx.now().toISOString()))
 })

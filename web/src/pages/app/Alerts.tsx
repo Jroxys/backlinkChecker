@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from '@/lib/router'
 import { ArrowRight, BellOff, CheckCheck, Mail, MessageSquare, Settings2, Inbox } from 'lucide-react'
 import type { Alert } from '@/types'
 import { cn } from '@/lib/cn'

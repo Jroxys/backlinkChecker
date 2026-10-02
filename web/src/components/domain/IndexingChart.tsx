@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react'
 import { Area, AreaChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useChartColors } from '@/lib/chartColors'
-import { indexSeries, lastDays, weekly, type IndexPoint } from '@/data/series'
+import { useHistory } from '@/api/hooks'
+import type { HistoryPoint } from '@/api/types'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { LineChart as LineIcon } from 'lucide-react'
 import { ChartTooltip, Legend, axisProps, niceDomain } from '@/components/charts/ChartParts'
 import { Segmented } from '@/components/ui/Tabs'
 import { ChartSkeleton } from '@/components/ui/Skeleton'
@@ -15,22 +18,29 @@ const series = [
   { key: 'indexed', label: 'Indexed', color: 's1' },
   { key: 'crawled', label: 'Crawled', color: 's2' },
   { key: 'discovered', label: 'Discovered', color: 's3' },
-  { key: 'notIndexed', label: 'Not Indexed', color: 's4' },
+  { key: 'not_indexed', label: 'Not Indexed', color: 's4' },
 ] as const
 
-export function IndexingChart({ loading, height = 300 }: { loading?: boolean; height?: number }) {
+type Key = 'indexed' | 'crawled' | 'discovered' | 'not_indexed'
+
+export function IndexingChart({ projectId, height = 300 }: { projectId: string | undefined; height?: number }) {
   const [range, setRange] = useState<Range>('30D')
   const [hidden, setHidden] = useState<string[]>([])
   const c = useChartColors()
+  const q = useHistory(projectId, days[range])
+  const loading = q.isLoading
 
   const data = useMemo(() => {
-    const xs = lastDays(indexSeries, days[range])
-    return range === '1Y' ? weekly(xs, (ch) => ch[ch.length - 1] as IndexPoint) : xs
-  }, [range])
+    const xs = q.data ?? []
+    if (range !== '1Y') return xs
+    const out: HistoryPoint[] = []
+    for (let i = xs.length % 7; i < xs.length; i += 7) out.push(xs[Math.min(xs.length - 1, i + 6)])
+    return out
+  }, [q.data, range])
 
   const first = data[0]
   const last = data[data.length - 1]
-  const pct = (k: keyof Omit<IndexPoint, 'date'>) => ((last[k] - first[k]) / first[k]) * 100
+  const pct = (k: Key) => (first && last && first[k] ? ((last[k] - first[k]) / first[k]) * 100 : 0)
 
   return (
     <div>
@@ -61,7 +71,7 @@ export function IndexingChart({ loading, height = 300 }: { loading?: boolean; he
                 <span className={off ? 'line-through' : ''}>{s.label}</span>
               </div>
               <div className="mt-1 flex items-baseline gap-2">
-                <span className="tnum text-[18px] font-semibold text-fg">{formatNumber(last[s.key])}</span>
+                <span className="tnum text-[18px] font-semibold text-fg">{last ? formatNumber(last[s.key]) : '—'}</span>
                 <Delta value={pct(s.key)} invert={s.key !== 'indexed'} className="!px-1 !py-0 !text-[11px]" />
               </div>
             </button>
@@ -72,6 +82,13 @@ export function IndexingChart({ loading, height = 300 }: { loading?: boolean; he
       <div className="px-2 pt-4 pb-3 sm:px-3">
         {loading ? (
           <ChartSkeleton height={height} />
+        ) : data.length < 2 ? (
+          <EmptyState
+            className="py-12"
+            icon={<LineIcon />}
+            title="Your trend line starts tomorrow"
+            description="We take a snapshot of index coverage every day. After the second snapshot you’ll see how indexing moves over time."
+          />
         ) : (
           <>
             <ResponsiveContainer width="100%" height={Math.round(height * 0.62)}>

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from '@/lib/router'
 import { ArrowUpRight, Check, Globe, MoreHorizontal, Plus, RefreshCw, Settings2, Trash2, Copy, ShieldCheck } from 'lucide-react'
 import type { Project } from '@/types'
 import { cn } from '@/lib/cn'

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link } from '@/lib/router'
 import { ArrowLeft, Compass } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'

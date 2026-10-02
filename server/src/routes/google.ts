@@ -11,16 +11,19 @@ googleRoutes.get('/connect', requireUser, (c) => {
   const { google, config, db } = c.var.ctx
   if (!google.configured) throw new ApiError(503, 'google_not_configured', 'Google sign-in is not configured on this server (GOOGLE_CLIENT_ID/SECRET)')
   const state = randomBytes(24).toString('base64url')
-  db.run('INSERT INTO oauth_states (state, user_id, created_at) VALUES (?, ?, ?)', [state, c.var.user.id, now()])
+  // Only same-app paths: never an absolute URL (open-redirect guard)
+  const ret = c.req.query('return') ?? ''
+  const returnTo = /^\/app(\/[\w\-/]*)?$/.test(ret) ? ret : null
+  db.run('INSERT INTO oauth_states (state, user_id, created_at, return_to) VALUES (?, ?, ?, ?)', [state, c.var.user.id, now(), returnTo])
   return c.redirect(google.authUrl(state, redirectUri(config.apiUrl)))
 })
 
 /** OAuth callback. The state row ties the response to the user who started the flow (CSRF protection). */
 googleRoutes.get('/callback', async (c) => {
   const { google, config, db } = c.var.ctx
-  const back = (q: string) => c.redirect(`${config.appUrl}/app/settings?tab=integrations&${q}`)
   const state = c.req.query('state') ?? ''
-  const row = db.get<{ user_id: string; created_at: string }>('SELECT user_id, created_at FROM oauth_states WHERE state = ?', [state])
+  const row = db.get<{ user_id: string; created_at: string; return_to: string | null }>('SELECT user_id, created_at, return_to FROM oauth_states WHERE state = ?', [state])
+  const back = (q: string) => c.redirect(`${config.appUrl}${row?.return_to ?? '/app/settings'}?tab=integrations&${q}`)
   db.run('DELETE FROM oauth_states WHERE state = ?', [state])
   if (!row || Date.now() - new Date(row.created_at).getTime() > 15 * 60_000) return back('google=expired')
   if (c.req.query('error')) return back(`google=denied`)

@@ -1,8 +1,8 @@
-import { Ban, CheckCircle2, CircleDashed, Eye, XCircle } from 'lucide-react'
-import type { IndexStatus, LinkStatus, LinkType } from '@/types'
+import { Ban, CheckCircle2, CircleDashed, Eye, XCircle, HelpCircle } from 'lucide-react'
+import type { IndexStatus, LinkRel, BacklinkStatus } from '@/api/types'
 import { Badge } from '@/components/ui/Badge'
 import { Tooltip } from '@/components/ui/Tooltip'
-import { statusMeta } from '@/data/urls'
+import { statusMeta } from '@/lib/status'
 
 const statusIcon = {
   indexed: <CheckCircle2 />,
@@ -10,6 +10,7 @@ const statusIcon = {
   discovered: <CircleDashed />,
   blocked: <Ban />,
   error: <XCircle />,
+  unknown: <HelpCircle />,
 }
 
 export function IndexStatusBadge({ status, withTip = true }: { status: IndexStatus; withTip?: boolean }) {
@@ -22,7 +23,8 @@ export function IndexStatusBadge({ status, withTip = true }: { status: IndexStat
   return withTip ? <Tooltip content={m.help}>{b}</Tooltip> : b
 }
 
-export function HttpBadge({ code }: { code: number }) {
+export function HttpBadge({ code }: { code: number | null }) {
+  if (code === null) return <span className="text-[12px] text-fg-4">—</span>
   const tone = code >= 500 ? 'error' : code >= 400 ? 'error' : code >= 300 ? 'warning' : 'neutral'
   return (
     <span
@@ -40,7 +42,8 @@ export function HttpBadge({ code }: { code: number }) {
   )
 }
 
-export function LinkTypeBadge({ type }: { type: LinkType }) {
+export function LinkTypeBadge({ type }: { type: LinkRel | null }) {
+  if (!type) return <span className="text-[12px] text-fg-4">—</span>
   const label = { dofollow: 'Dofollow', nofollow: 'Nofollow', ugc: 'UGC', sponsored: 'Sponsored' }[type]
   return (
     <Badge tone={type === 'dofollow' ? 'primary' : 'outline'} size="xs">
@@ -49,8 +52,26 @@ export function LinkTypeBadge({ type }: { type: LinkType }) {
   )
 }
 
-export function LinkStatusBadge({ status }: { status: LinkStatus }) {
-  if (status === 'new')
+export function LinkStatusBadge({ status, isNew }: { status: BacklinkStatus | 'new'; isNew?: boolean }) {
+  if (status === 'pending')
+    return (
+      <Badge tone="outline" size="xs">
+        Verifying
+      </Badge>
+    )
+  if (status === 'broken')
+    return (
+      <Badge tone="error" dot size="xs">
+        Page down
+      </Badge>
+    )
+  if (status === 'blocked')
+    return (
+      <Badge tone="outline" size="xs">
+        Can’t verify
+      </Badge>
+    )
+  if (status === 'new' || isNew)
     return (
       <Badge tone="success" dot size="xs">
         New
@@ -69,7 +90,8 @@ export function LinkStatusBadge({ status }: { status: LinkStatus }) {
   )
 }
 
-export function AuthorityPill({ value }: { value: number }) {
+export function AuthorityPill({ value }: { value: number | null }) {
+  if (value === null) return <span className="text-[12px] text-fg-4">—</span>
   const w = Math.max(6, value)
   return (
     <span className="inline-flex items-center gap-2">

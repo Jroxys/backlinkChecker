@@ -1,6 +1,8 @@
 import { lazy, Suspense } from 'react'
 import { Route, Routes } from 'react-router-dom'
-import { AppLayout } from './layouts/AppLayout'
+import { Shell } from './layouts/Shell'
+import { liveSource } from './api/live'
+import { demoSource } from './api/demo'
 import { PageFallback } from './components/ui/Skeleton'
 
 const Landing = lazy(() => import('./pages/marketing/Landing').then((m) => ({ default: m.Landing })))
@@ -17,6 +19,9 @@ const Automations = lazy(() => import('./pages/app/Automations').then((m) => ({ 
 const Reports = lazy(() => import('./pages/app/Reports').then((m) => ({ default: m.Reports })))
 const Alerts = lazy(() => import('./pages/app/Alerts').then((m) => ({ default: m.Alerts })))
 const Settings = lazy(() => import('./pages/app/Settings').then((m) => ({ default: m.Settings })))
+const Onboarding = lazy(() => import('./pages/app/Onboarding').then((m) => ({ default: m.Onboarding })))
+const Login = lazy(() => import('./pages/auth/Login').then((m) => ({ default: m.Login })))
+const Signup = lazy(() => import('./pages/auth/Login').then((m) => ({ default: m.Signup })))
 const NotFound = lazy(() => import('./pages/NotFound').then((m) => ({ default: m.NotFound })))
 
 export function App() {
@@ -24,24 +29,39 @@ export function App() {
     <Suspense fallback={<PageFallback />}>
       <Routes>
         <Route path="/" element={<Landing />} />
-        <Route path="/app" element={<AppLayout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="projects" element={<Projects />} />
-          <Route path="indexing" element={<Indexing />} />
-          <Route path="indexing/:id" element={<UrlDetail />} />
-          <Route path="backlinks" element={<Backlinks />} />
-          <Route path="opportunities" element={<Opportunities />} />
-          <Route path="audit" element={<Audit />} />
-          <Route path="keywords" element={<Keywords />} />
-          <Route path="competitors" element={<Competitors />} />
-          <Route path="automations" element={<Automations />} />
-          <Route path="reports" element={<Reports />} />
-          <Route path="alerts" element={<Alerts />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="*" element={<NotFound inApp />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/app" element={<Shell source={liveSource} />}>
+          {appRoutes()}
+          <Route path="onboarding" element={<Onboarding />} />
+        </Route>
+        <Route path="/demo" element={<Shell source={demoSource} />}>
+          {appRoutes()}
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
+  )
+}
+
+/** The same pages serve the live app and the demo. */
+function appRoutes() {
+  return (
+    <>
+      <Route index element={<Dashboard />} />
+      <Route path="projects" element={<Projects />} />
+      <Route path="indexing" element={<Indexing />} />
+      <Route path="indexing/:id" element={<UrlDetail />} />
+      <Route path="backlinks" element={<Backlinks />} />
+      <Route path="opportunities" element={<Opportunities />} />
+      <Route path="audit" element={<Audit />} />
+      <Route path="keywords" element={<Keywords />} />
+      <Route path="competitors" element={<Competitors />} />
+      <Route path="automations" element={<Automations />} />
+      <Route path="reports" element={<Reports />} />
+      <Route path="alerts" element={<Alerts />} />
+      <Route path="settings" element={<Settings />} />
+      <Route path="*" element={<NotFound inApp />} />
+    </>
   )
 }

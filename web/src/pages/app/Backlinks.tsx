@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from '@/lib/router'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { Download, ExternalLink, Globe2, Link2, Plus, Minus, Play, Sparkles, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/cn'

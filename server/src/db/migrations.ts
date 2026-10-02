@@ -208,4 +208,9 @@ export const migrations: { id: number; name: string; sql: string }[] = [
       );
     `,
   },
+  {
+    id: 3,
+    name: 'oauth_return_to',
+    sql: `ALTER TABLE oauth_states ADD COLUMN return_to TEXT;`,
+  },
 ]

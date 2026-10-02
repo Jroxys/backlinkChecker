@@ -1,4 +1,5 @@
-import { NavLink, useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
+import { NavLink, useAppPath } from '@/lib/router'
 import { PanelLeftClose, PanelLeftOpen, ArrowUpRight, X } from 'lucide-react'
 import { Logo } from '@/components/ui/Logo'
 import { cn } from '@/lib/cn'
@@ -7,7 +8,7 @@ import { ProgressBar } from '@/components/ui/Controls'
 import { navGroups, settingsItem, type NavItem } from './nav'
 
 function Item({ item, collapsed, onNavigate }: { item: NavItem; collapsed: boolean; onNavigate?: () => void }) {
-  const { pathname } = useLocation()
+  const pathname = useAppPath(useLocation().pathname)
   const active = item.to === '/app' ? pathname === '/app' : pathname.startsWith(item.to)
   const Icon = item.icon
   const link = (

@@ -33,6 +33,7 @@ export async function fixtureSite() {
     hits,
     close: () =>
       new Promise<void>((ok) => {
+        if (!server.listening) return ok()
         server.closeAllConnections()
         server.close(() => ok())
       }),
