@@ -1,0 +1,45 @@
+# Production stack for a single small VPS (e.g. Hetzner CX22):
+#   app        – Indexora (web + API + background worker)
+#   caddy      – HTTPS with automatic Let's Encrypt certificates
+#   litestream – continuous SQLite backup to S3-compatible storage (R2, B2, S3)
+services:
+  app:
+    build: ..
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      COOKIE_SECURE: "true"
+    volumes:
+      - data:/data
+    expose:
+      - "8787"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on:
+      - app
+
+  litestream:
+    image: litestream/litestream:0.3
+    restart: unless-stopped
+    command: replicate
+    env_file: .env
+    volumes:
+      - data:/data
+      - ./litestream.yml:/etc/litestream.yml:ro
+    depends_on:
+      - app
+
+volumes:
+  data:
+  caddy_data:
