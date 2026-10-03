@@ -2,8 +2,10 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Check } from 'lucide-react'
 import { Logo } from '@/components/ui/Logo'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
-export function AuthLayout({ title, subtitle, children, footer }: { title: string; subtitle: string; children: ReactNode; footer: ReactNode }) {
+export function AuthLayout({ title, subtitle, children, footer }: { title: string; subtitle: ReactNode; children: ReactNode; footer: ReactNode }) {
+  usePageTitle(`${title} — Indexora`)
   return (
     <div className="grid min-h-screen grid-cols-1 bg-bg lg:grid-cols-[minmax(0,1fr)_520px]">
       <div className="flex flex-col px-6 py-8 sm:px-10">

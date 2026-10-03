@@ -338,8 +338,8 @@ function DangerZone() {
           </>
         }
       >
-        <Label>Confirm with your password</Label>
-        <Input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <Label htmlFor="set-1">Confirm with your password</Label>
+        <Input id="set-1" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
       </Modal>
     </Card>
   )

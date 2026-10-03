@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Input, Label } from '@/components/ui/Controls'
 import { Badge } from '@/components/ui/Badge'
 import { Container, Footer, Nav } from './Landing'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 const tools = [
   { slug: 'backlink-checker', title: 'Free Backlink Checker', short: 'Does this page link to me?', icon: Link2, desc: 'Check whether a page links to your site, with the exact anchor text and whether the link is dofollow, nofollow, UGC or sponsored.' },
@@ -16,6 +17,7 @@ const tools = [
 export function Tools() {
   const { slug } = useParams()
   const tool = tools.find((t) => t.slug === slug)
+  usePageTitle(tool ? `${tool.title} — ${tool.short} | Indexora` : 'Free SEO tools — Indexora')
   return (
     <div className="min-h-screen bg-bg">
       <Nav />
@@ -104,12 +106,12 @@ function BacklinkChecker() {
       <form onSubmit={submit} className="rounded-2xl border border-line bg-surface p-5 shadow-card sm:p-6">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <Label>Page that should link to you</Label>
-            <Input required value={pageUrl} onChange={(e) => setPageUrl(e.target.value)} placeholder="https://blog.example.org/best-tools" />
+            <Label htmlFor="tool-1">Page that should link to you</Label>
+            <Input id="tool-1" required value={pageUrl} onChange={(e) => setPageUrl(e.target.value)} placeholder="https://blog.example.org/best-tools" />
           </div>
           <div>
-            <Label hint="Domain or exact URL">Your site</Label>
-            <Input required value={target} onChange={(e) => setTarget(e.target.value)} placeholder="yoursite.com" />
+            <Label htmlFor="tool-2" hint="Domain or exact URL">Your site</Label>
+            <Input id="tool-2" required value={target} onChange={(e) => setTarget(e.target.value)} placeholder="yoursite.com" />
           </div>
         </div>
         <Button type="submit" variant="primary" size="lg" className="mt-5 w-full sm:w-auto" loading={busy}>
@@ -168,8 +170,8 @@ function IndexabilityChecker() {
     <>
       <form onSubmit={submit} className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-5 shadow-card sm:flex-row sm:items-end sm:p-6">
         <div className="flex-1">
-          <Label>URL to check</Label>
-          <Input required value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://yoursite.com/important-page" />
+          <Label htmlFor="tool-3">URL to check</Label>
+          <Input id="tool-3" required value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://yoursite.com/important-page" />
         </div>
         <Button type="submit" variant="primary" size="lg" loading={busy}>
           Check URL

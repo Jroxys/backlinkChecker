@@ -3,6 +3,9 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { Sparkles, ArrowRight } from 'lucide-react'
 import { useSource } from '@/api/source'
 import { useProject } from '@/lib/project'
+import { usePageTitle } from '@/hooks/usePageTitle'
+import { navGroups, settingsItem } from '@/components/layout/nav'
+import { useAppPath } from '@/lib/router'
 import { cn } from '@/lib/cn'
 import { Header } from '@/components/layout/Header'
 import { Sidebar } from '@/components/layout/Sidebar'
@@ -22,6 +25,11 @@ export function AppLayout() {
   const { pathname } = useLocation()
   const source = useSource()
   const { projects, loading } = useProject()
+  const appPath = useAppPath(pathname)
+  const section = [...navGroups.flatMap((g) => g.items), settingsItem]
+    .filter((i) => (i.to === '/app' ? appPath === '/app' : appPath.startsWith(i.to)))
+    .sort((a, b) => b.to.length - a.to.length)[0]
+  usePageTitle(`${appPath.startsWith('/app/onboarding') ? 'Get started' : section?.label ?? 'Indexora'}${source.mode === 'demo' ? ' · Demo' : ''} · Indexora`)
 
   useEffect(() => {
     try {

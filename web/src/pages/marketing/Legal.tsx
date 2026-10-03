@@ -1,10 +1,12 @@
 import { Container, Footer, Nav } from './Landing'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 /**
  * Starting-point legal pages. They describe what the software actually does, but they
  * are NOT legal advice — have them reviewed before taking payments.
  */
 export function Legal({ page }: { page: 'privacy' | 'terms' }) {
+  usePageTitle(page === 'privacy' ? 'Privacy Policy — Indexora' : 'Terms of Service — Indexora')
   return (
     <div className="min-h-screen bg-bg">
       <Nav />

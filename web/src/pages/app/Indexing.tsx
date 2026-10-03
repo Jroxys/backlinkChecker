@@ -271,8 +271,8 @@ function AddSitemapModal({ open, onClose, projectId, domain }: { open: boolean; 
         </>
       }
     >
-      <Label>Sitemap URL</Label>
-      <Input value={url} onChange={(e) => setUrl(e.target.value)} autoFocus />
+      <Label htmlFor="idx-1">Sitemap URL</Label>
+      <Input id="idx-1" value={url} onChange={(e) => setUrl(e.target.value)} autoFocus />
     </Modal>
   )
 }

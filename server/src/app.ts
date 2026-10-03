@@ -15,6 +15,7 @@ import { googleRoutes } from './routes/google.js'
 import { competitorRoutes } from './routes/competitors.js'
 import { billingRoutes } from './routes/billing.js'
 import { toolRoutes } from './routes/tools.js'
+import { injectHead, robotsTxt, sitemapXml } from './seo.js'
 
 export function createApp(ctx: Ctx) {
   const app = new Hono<Env>()
@@ -65,9 +66,12 @@ export function createApp(ctx: Ctx) {
       await next()
       c.header('cache-control', 'public, max-age=31536000, immutable')
     })
-    app.use('*', serveStatic({ root: dist }))
+    app.get('/robots.txt', (c) => c.text(robotsTxt(ctx.config.appUrl)))
+    app.get('/sitemap.xml', (c) => c.body(sitemapXml(ctx.config.appUrl), 200, { 'content-type': 'application/xml; charset=utf-8' }))
+    // Static files, but never index.html directly: it must go through head injection below
+    app.use('*', async (c, next) => (c.req.path === '/' || c.req.path === '/index.html' ? next() : serveStatic({ root: dist })(c, next)))
     // SPA fallback: any non-API GET renders the app shell
-    app.get('*', (c) => (c.req.path.startsWith('/api/') ? c.json({ error: { code: 'not_found', message: 'No such endpoint' } }, 404) : c.html(indexHtml())))
+    app.get('*', (c) => (c.req.path.startsWith('/api/') ? c.json({ error: { code: 'not_found', message: 'No such endpoint' } }, 404) : c.html(injectHead(indexHtml(), c.req.path, ctx.config.appUrl))))
   }
 
   app.notFound((c) => c.json({ error: { code: 'not_found', message: 'No such endpoint' } }, 404))

@@ -90,10 +90,12 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
   )
 })
 
-export function Label({ children, hint }: { children: React.ReactNode; hint?: string }) {
+export function Label({ children, hint, htmlFor }: { children: React.ReactNode; hint?: string; htmlFor?: string }) {
   return (
     <div className="mb-1.5 flex items-baseline justify-between">
-      <span className="text-[12.5px] font-medium text-fg-2">{children}</span>
+      <label htmlFor={htmlFor} className="text-[12.5px] font-medium text-fg-2">
+        {children}
+      </label>
       {hint && <span className="text-[11.5px] text-fg-4">{hint}</span>}
     </div>
   )

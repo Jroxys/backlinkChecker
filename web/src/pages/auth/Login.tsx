@@ -57,18 +57,20 @@ export function Login() {
       <form onSubmit={submit} className="space-y-4">
         <FormError message={error} />
         <div>
-          <Label>Email</Label>
-          <Input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoFocus />
+          <Label htmlFor="auth-1">Email</Label>
+          <Input id="auth-1" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoFocus />
         </div>
         {params.get('reset') && <div className="rounded-lg border border-success/25 bg-success-soft px-3 py-2.5 text-[13px] text-success-ink">Password updated. Sign in with your new password.</div>}
         <div>
           <div className="mb-1.5 flex items-baseline justify-between">
-            <span className="text-[12.5px] font-medium text-fg-2">Password</span>
+            <label htmlFor="auth-pw" className="text-[12.5px] font-medium text-fg-2">
+              Password
+            </label>
             <Link to="/forgot-password" className="text-[12px] font-medium text-primary-ink hover:underline">
               Forgot password?
             </Link>
           </div>
-          <Input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+          <Input id="auth-pw" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
         </div>
         <Button type="submit" variant="primary" size="lg" className="w-full" loading={busy}>
           Sign in
@@ -124,16 +126,16 @@ export function Signup() {
       <form onSubmit={submit} className="space-y-4">
         <FormError message={error} />
         <div>
-          <Label>Name</Label>
-          <Input autoComplete="name" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} autoFocus />
+          <Label htmlFor="auth-2">Name</Label>
+          <Input id="auth-2" autoComplete="name" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} autoFocus />
         </div>
         <div>
-          <Label>Work email</Label>
-          <Input type="email" autoComplete="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          <Label htmlFor="auth-3">Work email</Label>
+          <Input id="auth-3" type="email" autoComplete="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
         </div>
         <div>
-          <Label hint="At least 10 characters">Password</Label>
-          <Input type="password" autoComplete="new-password" required minLength={10} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+          <Label htmlFor="auth-4" hint="At least 10 characters">Password</Label>
+          <Input id="auth-4" type="password" autoComplete="new-password" required minLength={10} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
         </div>
         <Button type="submit" variant="primary" size="lg" className="w-full" loading={busy}>
           Create account
@@ -178,8 +180,8 @@ export function ForgotPassword() {
         <form onSubmit={submit} className="space-y-4">
           <FormError message={error} />
           <div>
-            <Label>Email</Label>
-            <Input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoFocus />
+            <Label htmlFor="auth-5">Email</Label>
+            <Input id="auth-5" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoFocus />
           </div>
           <Button type="submit" variant="primary" size="lg" className="w-full" loading={busy}>
             Send reset link
@@ -214,8 +216,8 @@ export function ResetPassword() {
       <form onSubmit={submit} className="space-y-4">
         <FormError message={error} />
         <div>
-          <Label hint="At least 10 characters">New password</Label>
-          <Input type="password" autoComplete="new-password" minLength={10} required value={password} onChange={(e) => setPassword(e.target.value)} autoFocus />
+          <Label htmlFor="auth-6" hint="At least 10 characters">New password</Label>
+          <Input id="auth-6" type="password" autoComplete="new-password" minLength={10} required value={password} onChange={(e) => setPassword(e.target.value)} autoFocus />
         </div>
         <Button type="submit" variant="primary" size="lg" className="w-full" loading={busy}>
           Set new password

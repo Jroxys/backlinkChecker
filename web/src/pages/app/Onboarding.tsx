@@ -109,10 +109,10 @@ function StepSite({ onCreated }: { onCreated: (p: Project) => void }) {
       }}
     >
       <StepTitle icon={<Globe />} title="Which website should we monitor?" text="We’ll find its sitemaps automatically and start checking every listed URL." />
-      <Label>Domain</Label>
+      <Label htmlFor="onb-1">Domain</Label>
       <div className="relative">
         <Globe className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-fg-4" />
-        <Input autoFocus value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="example.com" className="pl-9" />
+        <Input id="onb-1" autoFocus value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="example.com" className="pl-9" />
       </div>
       <div className="mt-6 flex justify-end">
         <Button type="submit" variant="primary" disabled={!/\w+\.\w+/.test(domain)} loading={busy} rightIcon={<ArrowRight />}>

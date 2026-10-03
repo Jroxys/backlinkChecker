@@ -34,6 +34,7 @@ import { HeroPreview } from '@/components/marketing/HeroPreview'
 import { LinkStatusBadge, LinkTypeBadge, AuthorityPill } from '@/components/domain/StatusBadge'
 import { indexSeries, lastDays } from '@/data/series'
 import { formatShortDate } from '@/utils/format'
+import { usePageTitle } from '@/hooks/usePageTitle'
 
 export function Container({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={cn('mx-auto w-full max-w-[1200px] px-4 sm:px-6', className)}>{children}</div>
@@ -53,6 +54,7 @@ function SectionHeading({ eyebrow, title, description, center }: { eyebrow: stri
 }
 
 export function Landing() {
+  usePageTitle('Indexora — Know exactly what Google sees')
   return (
     <div className="min-h-screen bg-bg">
       <Nav />

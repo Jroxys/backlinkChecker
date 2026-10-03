@@ -280,8 +280,8 @@ function OutreachModal({ o, name, domain, onClose }: { o: Opportunity | null; na
     >
       <div className="space-y-4">
         <div>
-          <Label>Subject</Label>
-          <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
+          <Label htmlFor="opp-1">Subject</Label>
+          <Input id="opp-1" value={subject} onChange={(e) => setSubject(e.target.value)} />
         </div>
         <div>
           <Label hint="Personalised from the opportunity">Message</Label>
