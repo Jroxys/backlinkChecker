@@ -43,6 +43,7 @@ export const liveSource: DataSource = {
   checkout: (plan, cycle) => api.post('/api/billing/checkout', { plan, cycle }),
   logout: async () => void (await api.post('/api/auth/logout')),
   deleteAccount: async (password) => void (await request('DELETE', '/api/auth/account', { password })),
+  saveBranding: async (b) => void (await api.put('/api/auth/branding', b)),
   apiKeys: async () => (await api.get<{ keys: ApiKey[] }>('/api/keys')).keys,
   createApiKey: (name) => api.post('/api/keys', { name }),
   deleteApiKey: async (id) => void (await api.del(`/api/keys/${id}`)),

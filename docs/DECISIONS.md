@@ -114,3 +114,6 @@ Her kararda önce seçenekleri, sonra kendi itirazlarımı yazıyorum. Yeni kara
   - Anahtar başına dakikada 120 istek.
   - Anahtar hesabı, faturayı, Google bağlantısını ve diğer anahtarları yönetemez. Sızan bir anahtar en kötü ihtimalle izleme verisine dokunur, hesabı ele geçiremez.
   - Plan düşürülünce anahtar 402 döner, silinmez; tekrar yükseltince aynen çalışır.
+- **White-label:** Agency planında marka adı, https logo URL'si ve vurgu rengi raporlara uygulanıyor; Indexora adı ve logosu kaldırılıyor.
+  - Logo bağlantısını sunucu hiç indirmiyor (SSRF riski yok); yalnızca kullanıcının tarayıcısı `no-referrer` ile yüklüyor.
+  - `javascript:` gibi şemalar doğrulamada reddediliyor.

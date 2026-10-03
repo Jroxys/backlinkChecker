@@ -37,6 +37,13 @@ export interface Me {
   plan: Plan
   usage: { projects: number; urls: number; backlinks: number }
   google: { connected: boolean; email: string | null; configured: boolean }
+  branding?: Branding
+}
+
+export interface Branding {
+  name: string | null
+  logoUrl: string | null
+  color: string | null
 }
 
 export interface ProjectStats {

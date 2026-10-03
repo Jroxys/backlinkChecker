@@ -300,4 +300,14 @@ export const migrations: { id: number; name: string; sql: string }[] = [
       CREATE INDEX api_keys_user ON api_keys(user_id);
     `,
   },
+  {
+    id: 10,
+    name: 'branding',
+    sql: `
+      -- White-label report branding (Agency).
+      ALTER TABLE users ADD COLUMN brand_name TEXT;
+      ALTER TABLE users ADD COLUMN brand_logo_url TEXT;
+      ALTER TABLE users ADD COLUMN brand_color TEXT;
+    `,
+  },
 ]

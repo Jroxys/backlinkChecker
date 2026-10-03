@@ -88,7 +88,7 @@ function General() {
           <p className="text-[12.5px] text-fg-4">Need to change your email? Write to support and we’ll do it within a day.</p>
         </div>
       </Card>
-      <DangerZone />
+      {me && <Branding />}
       <Card>
         <CardHeader title="Appearance" />
         <div className="grid grid-cols-3 gap-3 p-5">
@@ -116,6 +116,7 @@ function General() {
           </button>
         </div>
       </Card>
+      <DangerZone />
     </>
   )
 }
@@ -440,6 +441,61 @@ function ApiKeys() {
         {null}
       </Modal>
     </>
+  )
+}
+
+function Branding() {
+  const me = useMe().data
+  const allowed = !!me?.plan.features.whiteLabel
+  const [name, setName] = useState(me?.branding?.name ?? '')
+  const [logoUrl, setLogoUrl] = useState(me?.branding?.logoUrl ?? '')
+  const [color, setColor] = useState(me?.branding?.color ?? '#6366F1')
+  const save = useAction((s) => s.saveBranding, { invalidate: ['me'], success: () => ({ title: 'Branding saved', description: 'Your reports now carry your brand.' }) })
+  return (
+    <Card>
+      <CardHeader title="Report branding" description="Put your agency’s name, logo and color on client reports instead of Indexora’s." actions={!allowed && <Badge tone="primary">Agency</Badge>} />
+      {allowed ? (
+        <form
+          className="grid gap-4 p-5 sm:grid-cols-2"
+          onSubmit={(e) => {
+            e.preventDefault()
+            save.mutate([{ name: name.trim() || null, logoUrl: logoUrl.trim() || null, color }])
+          }}
+        >
+          <div>
+            <Label htmlFor="brand-name">Brand name</Label>
+            <Input id="brand-name" maxLength={60} placeholder="Northwind SEO" value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div>
+            <Label htmlFor="brand-color">Accent color</Label>
+            <div className="flex gap-2">
+              <input aria-label="Pick accent color" type="color" value={color} onChange={(e) => setColor(e.target.value.toUpperCase())} className="h-9 w-11 shrink-0 cursor-pointer rounded-lg border border-line bg-surface p-1" />
+              <Input id="brand-color" value={color} pattern="#[0-9a-fA-F]{6}" onChange={(e) => setColor(e.target.value)} />
+            </div>
+          </div>
+          <div className="sm:col-span-2">
+            <Label htmlFor="brand-logo">Logo URL</Label>
+            <Input id="brand-logo" type="url" placeholder="https://youragency.com/logo.svg" value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} />
+            <p className="mt-1.5 text-[12px] text-fg-4">An https link to a PNG or SVG, ideally about 40px tall. Leave empty to show the brand name only.</p>
+          </div>
+          <div className="flex items-center justify-between gap-3 sm:col-span-2">
+            <Link to="/app/reports" className="text-[12.5px] font-medium text-primary-ink hover:underline">
+              Preview a report
+            </Link>
+            <Button type="submit" variant="primary" loading={save.isPending}>
+              Save branding
+            </Button>
+          </div>
+        </form>
+      ) : (
+        <div className="p-5 pt-4 text-[13px] text-fg-2">
+          White-label reports are part of the Agency plan.{' '}
+          <Link to="/app/settings?tab=billing" className="font-medium text-primary-ink hover:underline">
+            Compare plans
+          </Link>
+        </div>
+      )}
+    </Card>
   )
 }
 

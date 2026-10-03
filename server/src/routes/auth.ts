@@ -7,6 +7,7 @@ import { addHours, id, now } from '../lib/ids.js'
 import { getPlan } from '../plans.js'
 import { usageFor } from '../services/usage.js'
 import { track } from '../services/events.js'
+import type { Db } from '../db/index.js'
 
 // One limiter per app context (tests create many contexts; prod has one).
 const limiters = new WeakMap<object, RateLimiter>()
@@ -71,7 +72,28 @@ authRoutes.get('/me', requireUser, (c) => {
     plan,
     usage: usageFor(c.var.ctx.db, u.id),
     google: { connected: Boolean(google), email: google?.email ?? null, configured: c.var.ctx.google.configured },
+    branding: brandingFor(c.var.ctx.db, u.id),
   })
+})
+
+function brandingFor(db: Db, userId: string) {
+  const b = db.get<{ brand_name: string | null; brand_logo_url: string | null; brand_color: string | null }>('SELECT brand_name, brand_logo_url, brand_color FROM users WHERE id = ?', [userId])
+  return { name: b?.brand_name ?? null, logoUrl: b?.brand_logo_url ?? null, color: b?.brand_color ?? null }
+}
+
+/** White-label branding for client reports. The logo is only ever loaded by the user's own browser. */
+authRoutes.put('/branding', requireUser, async (c) => {
+  const input = await body(
+    c,
+    z.object({
+      name: z.string().trim().max(60).nullable(),
+      logoUrl: z.string().trim().max(500).refine((v) => /^https:\/\/[^\s"'<>]+$/.test(v), 'Logo must be an https:// URL').nullable(),
+      color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Use a hex color like #0F766E').nullable(),
+    }),
+  )
+  if (!getPlan(c.var.user.plan).features.whiteLabel) throw new ApiError(402, 'plan_feature', 'White-label reports are part of the Agency plan')
+  c.var.ctx.db.run('UPDATE users SET brand_name = ?, brand_logo_url = ?, brand_color = ? WHERE id = ?', [input.name || null, input.logoUrl || null, input.color, c.var.user.id])
+  return c.json({ branding: brandingFor(c.var.ctx.db, c.var.user.id) })
 })
 
 /** Always answers 200 so the endpoint can't be used to discover which emails have accounts. */

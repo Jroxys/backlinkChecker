@@ -55,3 +55,16 @@ test('API keys stop working after a downgrade and reject garbage', async () => {
   assert.equal((await bot.call('GET', '/api/projects', undefined, { authorization: `Bearer ${token}` })).status, 402)
   assert.equal((await bot.call('GET', '/api/projects', undefined, { authorization: 'Bearer ix_nope' })).status, 401)
 })
+
+test('white-label branding: Agency only, https logos only, returned by /me', async () => {
+  const { ctx, api } = await proUser()
+  const brand = { name: 'Northwind SEO', logoUrl: 'https://northwind.example/logo.svg', color: '#0F766E' }
+  assert.equal((await api.put('/api/auth/branding', brand)).status, 402)
+  ctx.db.run("UPDATE users SET plan = 'agency'")
+  assert.equal((await api.put('/api/auth/branding', { ...brand, logoUrl: 'javascript:alert(1)' })).status, 422)
+  assert.equal((await api.put('/api/auth/branding', { ...brand, color: 'red' })).status, 422)
+  assert.equal((await api.put('/api/auth/branding', brand)).status, 200)
+  assert.deepEqual((await api.get('/api/auth/me')).json.branding, brand)
+  assert.equal((await api.put('/api/auth/branding', { name: null, logoUrl: null, color: null })).status, 200)
+  assert.deepEqual((await api.get('/api/auth/me')).json.branding, { name: null, logoUrl: null, color: null })
+})

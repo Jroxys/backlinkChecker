@@ -290,6 +290,7 @@ export const demoSource: DataSource = {
     }),
   apiKeys: async () => [{ id: 'k1', name: 'Looker Studio sync', prefix: 'ix_8fK2pQ1', createdAt: '2026-08-12T10:00:00Z', lastUsedAt: '2026-10-02T06:14:00Z' }],
   createApiKey: demoOnly,
+  saveBranding: demoOnly,
   deleteApiKey: demoOnly,
   addCompetitor: demoOnly,
   deleteCompetitor: demoOnly,

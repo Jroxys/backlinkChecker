@@ -25,6 +25,8 @@ function ReportLive() {
   const audit = useAudit(project?.id).data
   const kw = useKeywords(project?.id).data
   const s = project?.stats
+  const brand = me?.plan.features.whiteLabel ? me.branding : undefined
+  const accent = brand?.color ?? '#6366F1'
   if (!project || !s) return null
   const gsc = s.unknown < s.urls
   const first = history[0]
@@ -51,8 +53,8 @@ function ReportLive() {
       <article className="mx-auto max-w-[820px] rounded-xl border border-[#E2E8F0] bg-white p-8 text-[#0B0F19] shadow-card print:max-w-none print:border-0 print:p-0 print:shadow-none sm:p-12">
         <header className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <LogoMark size={22} />
-            <span className="text-[13px] font-semibold tracking-tight">{me?.plan.features.whiteLabel ? me.user.name : 'Indexora'}</span>
+            {brand?.logoUrl ? <img src={brand.logoUrl} alt={brand.name ?? ''} className="h-7 max-w-[180px] object-contain" referrerPolicy="no-referrer" /> : !brand && <LogoMark size={22} />}
+            {!brand?.logoUrl && <span className="text-[13px] font-semibold tracking-tight">{brand ? brand.name || me?.user.name : 'Indexora'}</span>}
           </div>
           <span className="text-[12px] text-[#64748B]">
             {formatDate(periodStart)} – {formatDate(periodEnd)}
@@ -62,7 +64,7 @@ function ReportLive() {
         <p className="text-[14px] text-[#64748B]">{project.domain}</p>
         <div className="mt-6 h-px bg-[#E2E8F0]" />
 
-        <Section icon={<FileBarChart2 className="size-4" />} title="Summary">
+        <Section accent={accent} icon={<FileBarChart2 className="size-4" />} title="Summary">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
               gsc
@@ -77,7 +79,7 @@ function ReportLive() {
                 <div className="tnum mt-1 text-[22px] font-semibold">{formatNumber(value as number)}</div>
                 <div className="mt-1 flex items-end justify-between">
                   <span className={`tnum text-[11px] font-medium ${delta === null ? 'text-[#94A3B8]' : (delta as number) >= 0 ? 'text-[#047857]' : 'text-[#B91C1C]'}`}>{delta === null ? '' : fmtPct(delta as number)}</span>
-                  {(trend as number[]).length > 1 && <Sparkline data={trend as number[]} width={56} height={18} color="#6366F1" fill={false} />}
+                  {(trend as number[]).length > 1 && <Sparkline data={trend as number[]} width={56} height={18} color={accent} fill={false} />}
                 </div>
               </div>
             ))}
@@ -88,7 +90,7 @@ function ReportLive() {
           </p>
         </Section>
 
-        <Section icon={<ShieldCheck className="size-4" />} title="Top issues to fix">
+        <Section accent={accent} icon={<ShieldCheck className="size-4" />} title="Top issues to fix">
           {topIssues.length === 0 ? (
             <p className="text-[13.5px] text-[#334155]">No open issues. Every monitored URL is reachable and indexable.</p>
           ) : (
@@ -108,7 +110,7 @@ function ReportLive() {
           )}
         </Section>
 
-        <Section icon={<Link2 className="size-4" />} title="Backlinks">
+        <Section accent={accent} icon={<Link2 className="size-4" />} title="Backlinks">
           <div className="grid grid-cols-3 gap-3 text-[13px]">
             <Stat label="Verified live" value={s.backlinks} />
             <Stat label="New (30 days)" value={s.gained30d} good />
@@ -117,7 +119,7 @@ function ReportLive() {
         </Section>
 
         {topQueries.length > 0 && (
-          <Section icon={<KeyRound className="size-4" />} title="Top search queries">
+          <Section accent={accent} icon={<KeyRound className="size-4" />} title="Top search queries">
             <table className="w-full text-[12.5px]">
               <thead>
                 <tr className="border-b border-[#E2E8F0] text-left text-[#64748B]">
@@ -144,7 +146,7 @@ function ReportLive() {
         <footer className="mt-10 flex items-center justify-between border-t border-[#E2E8F0] pt-4 text-[11px] text-[#94A3B8]">
           <span>Generated {formatDate(new Date())}</span>
           <span className="inline-flex items-center gap-1">
-            <CheckCircle2 className="size-3" /> Data: Google Search Console & Indexora crawler
+            <CheckCircle2 className="size-3" /> Data: Google Search Console{brand ? ' & site crawl' : ' & Indexora crawler'}
           </span>
         </footer>
       </article>
@@ -152,10 +154,10 @@ function ReportLive() {
   )
 }
 
-function Section({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
+function Section({ icon, title, children, accent }: { icon: React.ReactNode; title: string; children: React.ReactNode; accent: string }) {
   return (
     <section className="mt-8 break-inside-avoid">
-      <h2 className="mb-3 flex items-center gap-2 text-[11px] font-semibold tracking-wide text-[#4F46E5] uppercase">
+      <h2 className="mb-3 flex items-center gap-2 text-[11px] font-semibold tracking-wide uppercase" style={{ color: accent }}>
         {icon}
         {title}
       </h2>

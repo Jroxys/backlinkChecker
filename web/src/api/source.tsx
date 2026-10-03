@@ -1,6 +1,7 @@
 import { createContext, useContext, type ReactNode } from 'react'
 import type {
   ApiKey,
+  Branding,
   AddResult,
   Alert,
   AuditResult,
@@ -100,6 +101,7 @@ export interface DataSource {
   checkout(plan: 'starter' | 'pro' | 'agency', cycle: 'monthly' | 'yearly'): Promise<{ url: string; founding: boolean }>
   logout(): Promise<void>
   deleteAccount(password: string): Promise<void>
+  saveBranding(b: Branding): Promise<void>
   apiKeys(): Promise<ApiKey[]>
   createApiKey(name: string): Promise<{ key: ApiKey; token: string }>
   deleteApiKey(id: string): Promise<void>
