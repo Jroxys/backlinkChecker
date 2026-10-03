@@ -4,7 +4,7 @@ import { Sparkles, ArrowRight } from 'lucide-react'
 import { useSource } from '@/api/source'
 import { useProject } from '@/lib/project'
 import { usePageTitle } from '@/hooks/usePageTitle'
-import { navGroups, settingsItem } from '@/components/layout/nav'
+import { navGroups, settingsItem, adminItem } from '@/components/layout/nav'
 import { useAppPath } from '@/lib/router'
 import { cn } from '@/lib/cn'
 import { Header } from '@/components/layout/Header'
@@ -26,7 +26,7 @@ export function AppLayout() {
   const source = useSource()
   const { projects, loading } = useProject()
   const appPath = useAppPath(pathname)
-  const section = [...navGroups.flatMap((g) => g.items), settingsItem]
+  const section = [...navGroups.flatMap((g) => g.items), settingsItem, adminItem]
     .filter((i) => (i.to === '/app' ? appPath === '/app' : appPath.startsWith(i.to)))
     .sort((a, b) => b.to.length - a.to.length)[0]
   usePageTitle(`${appPath.startsWith('/app/onboarding') ? 'Get started' : section?.label ?? 'Indexora'}${source.mode === 'demo' ? ' · Demo' : ''} · Indexora`)
@@ -57,7 +57,7 @@ export function AppLayout() {
   }, [pathname])
 
   // A live account without projects goes straight to onboarding
-  if (source.mode === 'live' && !loading && projects.length === 0 && !pathname.startsWith('/app/onboarding') && !pathname.startsWith('/app/settings'))
+  if (source.mode === 'live' && !loading && projects.length === 0 && !pathname.startsWith('/app/onboarding') && !pathname.startsWith('/app/settings') && !pathname.startsWith('/app/admin'))
     return <Navigate to="/app/onboarding" replace />
 
   return (

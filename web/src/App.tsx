@@ -19,6 +19,7 @@ const Automations = lazy(() => import('./pages/app/Automations').then((m) => ({ 
 const Reports = lazy(() => import('./pages/app/Reports').then((m) => ({ default: m.Reports })))
 const Alerts = lazy(() => import('./pages/app/Alerts').then((m) => ({ default: m.Alerts })))
 const Settings = lazy(() => import('./pages/app/Settings').then((m) => ({ default: m.Settings })))
+const Admin = lazy(() => import('./pages/app/Admin').then((m) => ({ default: m.Admin })))
 const Onboarding = lazy(() => import('./pages/app/Onboarding').then((m) => ({ default: m.Onboarding })))
 const Login = lazy(() => import('./pages/auth/Login').then((m) => ({ default: m.Login })))
 const Signup = lazy(() => import('./pages/auth/Login').then((m) => ({ default: m.Signup })))
@@ -71,6 +72,7 @@ function appRoutes() {
       <Route path="reports" element={<Reports />} />
       <Route path="alerts" element={<Alerts />} />
       <Route path="settings" element={<Settings />} />
+      <Route path="admin" element={<Admin />} />
       <Route path="*" element={<NotFound inApp />} />
     </>
   )

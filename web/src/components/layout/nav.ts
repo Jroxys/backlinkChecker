@@ -11,6 +11,7 @@ import {
   Settings,
   Workflow,
   Sparkles,
+  Gauge,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -50,3 +51,5 @@ export const navGroups: { label?: string; items: NavItem[] }[] = [
 ]
 
 export const settingsItem: NavItem = { to: '/app/settings', label: 'Settings', icon: Settings }
+
+export const adminItem: NavItem = { to: '/app/admin', label: 'Founder metrics', icon: Gauge }

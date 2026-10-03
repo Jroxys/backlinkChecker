@@ -25,7 +25,7 @@ export interface Plan {
 }
 
 export interface Me {
-  user: { id: string; email: string; name: string; plan: PlanId; founding: boolean; createdAt: string }
+  user: { id: string; email: string; name: string; plan: PlanId; founding: boolean; createdAt: string; isAdmin?: boolean }
   plan: Plan
   usage: { projects: number; urls: number; backlinks: number }
   google: { connected: boolean; email: string | null; configured: boolean }

@@ -5,7 +5,8 @@ import { Logo } from '@/components/ui/Logo'
 import { cn } from '@/lib/cn'
 import { Tooltip } from '@/components/ui/Tooltip'
 import { ProgressBar } from '@/components/ui/Controls'
-import { navGroups, settingsItem, type NavItem } from './nav'
+import { navGroups, settingsItem, adminItem, type NavItem } from './nav'
+import { useSource } from '@/api/source'
 import { useAlerts, useMe, useOpportunities } from '@/api/hooks'
 import { useProject } from '@/lib/project'
 import { Link } from '@/lib/router'
@@ -62,6 +63,7 @@ export function Sidebar({
   mobile?: boolean
 }) {
   const me = useMe().data
+  const source = useSource()
   const { project } = useProject()
   const unread = useAlerts().data?.unread ?? 0
   const opps = useOpportunities(project?.id).data?.opportunities.length ?? 0
@@ -120,6 +122,7 @@ export function Sidebar({
       )}
 
       <div className={cn('space-y-0.5 border-t border-line py-2', collapsed ? 'px-[14px]' : 'px-3')}>
+        {source.mode === 'live' && me?.user.isAdmin && <Item item={adminItem} collapsed={collapsed} onNavigate={onNavigate} />}
         <Item item={settingsItem} collapsed={collapsed} onNavigate={onNavigate} />
         {!mobile && onToggle && (
           <Tooltip content={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} side="right" className="w-full">
