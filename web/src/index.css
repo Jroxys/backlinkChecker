@@ -19,8 +19,9 @@
 
   --fg: #0b0f19;
   --fg-2: #475569;
-  --fg-3: #64748b;
-  --fg-4: #94a3b8;
+  --fg-3: #586679;
+  /* tertiary text; still ≥ 4.5:1 on bg/surface (WCAG AA) */
+  --fg-4: #64748b;
 
   --primary: #6366f1;
   --primary-strong: #4f46e5;
@@ -60,8 +61,8 @@
 
   --fg: #f1f5f9;
   --fg-2: #a3b0c2;
-  --fg-3: #7b889c;
-  --fg-4: #566174;
+  --fg-3: #929eb1;
+  --fg-4: #7f8a9e;
 
   --primary: #6366f1;
   --primary-strong: #818cf8;
