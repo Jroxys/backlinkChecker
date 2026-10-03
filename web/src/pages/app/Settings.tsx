@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Check, Moon, Sun, Monitor, ShieldCheck, ExternalLink, Sparkles, MessageSquare } from 'lucide-react'
+import { Copy, KeyRound, Trash2, Check, Moon, Sun, Monitor, ShieldCheck, ExternalLink, Sparkles, MessageSquare } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { useTheme } from '@/lib/theme'
 import { Link } from '@/lib/router'
 import { useProject } from '@/lib/project'
-import { useAction, useMe, usePlans } from '@/api/hooks'
+import { useAction, useApiKeys, useMe, usePlans } from '@/api/hooks'
 import { useSource } from '@/api/source'
 import { ApiError } from '@/api/client'
 import type { PlanId } from '@/api/types'
@@ -21,12 +21,12 @@ import { Select } from '@/components/ui/Dropdown'
 import { useToast } from '@/components/ui/Toast'
 import { formatDate, formatNumber } from '@/utils/format'
 
-type Tab = 'general' | 'integrations' | 'billing'
+type Tab = 'general' | 'integrations' | 'api' | 'billing'
 
 export function Settings() {
   const [params, setParams] = useSearchParams()
   const initial = (params.get('tab') as Tab) || 'general'
-  const [tab, setTab] = useState<Tab>(['general', 'integrations', 'billing'].includes(initial) ? initial : 'general')
+  const [tab, setTab] = useState<Tab>(['general', 'integrations', 'api', 'billing'].includes(initial) ? initial : 'general')
   const toast = useToast()
 
   useEffect(() => {
@@ -49,12 +49,14 @@ export function Settings() {
         items={[
           { value: 'general', label: 'General' },
           { value: 'integrations', label: 'Integrations' },
+          { value: 'api', label: 'API' },
           { value: 'billing', label: 'Plan & billing' },
         ]}
       />
       <div key={tab} className="max-w-3xl animate-rise space-y-4">
         {tab === 'general' && <General />}
         {tab === 'integrations' && <Integrations />}
+        {tab === 'api' && <ApiKeys />}
         {tab === 'billing' && <Billing />}
       </div>
     </>
@@ -302,6 +304,141 @@ function Billing() {
           })}
       </div>
       <p className="text-[12px] text-fg-4">Payments are handled by Lemon Squeezy, our merchant of record — they add VAT/sales tax where required and issue your invoices.</p>
+    </>
+  )
+}
+
+function ApiKeys() {
+  const me = useMe().data
+  const allowed = !!me?.plan.features.api
+  const keys = useApiKeys(allowed)
+  const toast = useToast()
+  const [name, setName] = useState('')
+  const [created, setCreated] = useState<string | null>(null)
+  const [revoking, setRevoking] = useState<{ id: string; name: string } | null>(null)
+  const create = useAction((s) => s.createApiKey, { invalidate: ['apiKeys'] })
+  const revoke = useAction((s) => s.deleteApiKey, { invalidate: ['apiKeys'], success: () => ({ title: 'API key revoked' }) })
+  const origin = typeof window === 'undefined' ? 'https://indexora.app' : window.location.origin
+  const copy = (text: string) => {
+    navigator.clipboard?.writeText(text).catch(() => {})
+    toast({ title: 'Copied to clipboard' })
+  }
+
+  if (me && !allowed)
+    return (
+      <Card>
+        <CardHeader icon={<KeyRound />} title="API access" description="Pull your index status, backlinks and alerts into your own dashboards, scripts or client reporting." />
+        <div className="p-5 pt-4">
+          <p className="text-[13px] text-fg-2">API keys are included from the Pro plan.</p>
+          <Link to="/app/settings?tab=billing" className="mt-3 inline-flex">
+            <Button size="sm" variant="primary">
+              See plans
+            </Button>
+          </Link>
+        </div>
+      </Card>
+    )
+
+  return (
+    <>
+      <Card>
+        <CardHeader icon={<KeyRound />} title="API keys" description="Keys act as you, read and write your projects, and can’t manage your account, billing or other keys." />
+        <form
+          className="flex flex-col gap-2 p-5 pt-4 sm:flex-row"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (!name.trim()) return
+            create.mutateAsync([name.trim()]).then((r) => {
+              setCreated(r.token)
+              setName('')
+            }, () => undefined)
+          }}
+        >
+          <Input aria-label="Key name" placeholder="Key name, e.g. Looker Studio sync" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} className="sm:flex-1" />
+          <Button type="submit" variant="primary" disabled={!name.trim()} loading={create.isPending}>
+            Create key
+          </Button>
+        </form>
+        <div className="border-t border-line">
+          {keys.data?.length === 0 && <p className="px-5 py-4 text-[13px] text-fg-3">No API keys yet.</p>}
+          {keys.data?.map((k) => (
+            <div key={k.id} className="flex items-center justify-between gap-3 border-b border-line px-5 py-3 last:border-0">
+              <div className="min-w-0">
+                <div className="truncate text-[13px] font-medium text-fg">{k.name}</div>
+                <div className="mt-0.5 text-[12px] text-fg-3">
+                  <code className="font-mono">{k.prefix}…</code> · created {formatDate(k.createdAt)} · {k.lastUsedAt ? `last used ${formatDate(k.lastUsedAt)}` : 'never used'}
+                </div>
+              </div>
+              <Button size="sm" variant="ghost" leftIcon={<Trash2 />} onClick={() => setRevoking({ id: k.id, name: k.name })}>
+                Revoke
+              </Button>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card>
+        <CardHeader title="Quick start" description="Send the key as a Bearer token. Limit: 120 requests per minute per key." />
+        <div className="space-y-3 p-5 pt-4 text-[12.5px]">
+          <pre className="overflow-x-auto rounded-lg border border-line bg-surface-2 p-3 font-mono text-[12px] leading-relaxed text-fg-2">{`curl ${origin}/api/projects \\
+  -H "Authorization: Bearer ix_your_key"`}</pre>
+          <ul className="space-y-1 text-fg-3">
+            {[
+              ['GET', '/api/projects', 'projects with index and backlink totals'],
+              ['GET', '/api/projects/:id/urls?indexable=false', 'monitored URLs with indexability problems'],
+              ['GET', '/api/projects/:id/backlinks?status=lost', 'tracked backlinks'],
+              ['POST', '/api/projects/:id/backlinks', 'add backlinks: {"links":[{"sourceUrl":"…"}]}'],
+              ['GET', '/api/alerts', 'recent alerts'],
+            ].map(([m, p, d]) => (
+              <li key={p} className="flex flex-wrap gap-x-2">
+                <code className="font-mono font-semibold text-fg-2">{m}</code>
+                <code className="font-mono text-fg">{p}</code>
+                <span>— {d}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </Card>
+
+      <Modal
+        open={!!created}
+        onClose={() => setCreated(null)}
+        size="sm"
+        title="Copy your new API key"
+        description="This is the only time it will be shown. Store it somewhere safe."
+        footer={
+          <Button variant="primary" onClick={() => setCreated(null)}>
+            Done
+          </Button>
+        }
+      >
+        <div className="flex items-center gap-2">
+          <code className="min-w-0 flex-1 truncate rounded-lg border border-line bg-surface-2 px-3 py-2 font-mono text-[12.5px] text-fg">{created}</code>
+          <Button size="sm" variant="secondary" leftIcon={<Copy />} onClick={() => created && copy(created)}>
+            Copy
+          </Button>
+        </div>
+      </Modal>
+
+      <Modal
+        open={!!revoking}
+        onClose={() => setRevoking(null)}
+        size="sm"
+        title={`Revoke “${revoking?.name}”?`}
+        description="Anything using this key will stop working immediately."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setRevoking(null)}>
+              Cancel
+            </Button>
+            <Button variant="danger" loading={revoke.isPending} onClick={() => revoking && revoke.mutateAsync([revoking.id]).then(() => setRevoking(null), () => undefined)}>
+              Revoke key
+            </Button>
+          </>
+        }
+      >
+        {null}
+      </Modal>
     </>
   )
 }

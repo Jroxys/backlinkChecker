@@ -91,6 +91,11 @@ export function useCompetitors(projectId: string | undefined) {
  * Wraps a DataSource write with invalidation and error toasts.
  * `invalidate` lists query keys (without the mode prefix) to refresh on success.
  */
+export function useApiKeys(enabled = true) {
+  const s = useSource()
+  return useQuery({ queryKey: [s.mode, 'apiKeys'], queryFn: () => s.apiKeys(), enabled })
+}
+
 export function useAction<A extends unknown[], R>(
   pick: (s: ReturnType<typeof useSource>) => (...args: A) => Promise<R>,
   opts: { invalidate?: string[]; success?: (r: R) => { title: string; description?: string } | null } = {},

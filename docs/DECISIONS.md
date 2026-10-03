@@ -105,3 +105,12 @@ Her kararda önce seçenekleri, sonra kendi itirazlarımı yazıyorum. Yeni kara
   - Yalnızca ilk 14 gündeki ücretsiz kullanıcılara gider; böylece özellik yayına girdiğinde eski hesaplar e-posta yağmuruna tutulmaz.
   - E-posta tercihini kapatan kullanıcıya hiçbir şey gitmez.
   - Kayıt, gönderimden *önce* yazılır: çökme olursa e-posta bir kez eksik gider ama asla iki kez gitmez.
+
+### K25 · Satılan her özellik gerçekten var olmalı
+- Fiyat tablosunu kodla karşılaştırdım. "API" (Pro), "white-label rapor" (Agency) ve "koltuk" (Pro 3, Agency 10) vaat ediliyordu, ama hiçbiri gerçek değildi. 0 müşterili bir ürünün ilk iadesi bu yüzden gelir.
+- **API anahtarları:**
+  - `Authorization: Bearer ix_…`.
+  - Yalnızca hash saklanıyor; anahtar bir kez gösteriliyor.
+  - Anahtar başına dakikada 120 istek.
+  - Anahtar hesabı, faturayı, Google bağlantısını ve diğer anahtarları yönetemez. Sızan bir anahtar en kötü ihtimalle izleme verisine dokunur, hesabı ele geçiremez.
+  - Plan düşürülünce anahtar 402 döner, silinmez; tekrar yükseltince aynen çalışır.

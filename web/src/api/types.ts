@@ -24,6 +24,14 @@ export interface Plan {
   features: { slack: boolean; webhooks: boolean; reports: boolean; whiteLabel: boolean; api: boolean }
 }
 
+export interface ApiKey {
+  id: string
+  name: string
+  prefix: string
+  createdAt: string
+  lastUsedAt: string | null
+}
+
 export interface Me {
   user: { id: string; email: string; name: string; plan: PlanId; founding: boolean; createdAt: string; isAdmin?: boolean }
   plan: Plan

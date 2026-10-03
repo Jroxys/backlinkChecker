@@ -52,6 +52,23 @@ export function userForToken(db: Db, token: string | undefined): SessionUser | n
   return user
 }
 
+export const API_KEY_PREFIX = 'ix_'
+
+/** New API key: the plaintext is returned once, only its hash is stored. */
+export function createApiKey() {
+  const token = API_KEY_PREFIX + randomBytes(24).toString('base64url')
+  return { token, hash: sha256(token), prefix: token.slice(0, 10) }
+}
+
+export function userForApiKey(db: Db, token: string): (SessionUser & { keyId: string }) | null {
+  const row = db.get<SessionUser & { keyId: string }>(
+    `SELECT u.id, u.email, u.name, u.plan, u.founding, u.created_at, k.id AS keyId
+       FROM api_keys k JOIN users u ON u.id = k.user_id WHERE k.hash = ?`,
+    [sha256(token)],
+  )
+  return row ?? null
+}
+
 export function destroySession(db: Db, token: string | undefined) {
   if (token) db.run('DELETE FROM sessions WHERE id = ?', [sha256(token)])
 }

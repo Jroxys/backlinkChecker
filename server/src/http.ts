@@ -3,9 +3,10 @@ import { getCookie } from 'hono/cookie'
 import { HTTPException } from 'hono/http-exception'
 import type { ZodType } from 'zod'
 import type { Ctx } from './context.js'
-import { SESSION_COOKIE, userForToken, type SessionUser } from './lib/auth.js'
+import { API_KEY_PREFIX, RateLimiter, SESSION_COOKIE, userForApiKey, userForToken, type SessionUser } from './lib/auth.js'
+import { getPlan } from './plans.js'
 
-export type Env = { Variables: { user: SessionUser; ctx: Ctx } }
+export type Env = { Variables: { user: SessionUser; ctx: Ctx; auth: 'session' | 'key' } }
 export type C = Context<Env>
 
 export const router = () => new Hono<Env>()
@@ -36,10 +37,32 @@ export async function body<T>(c: C, schema: ZodType<T>): Promise<T> {
   return r.data
 }
 
+/** Areas an API key can never reach: anything that manages the account itself. */
+const sessionOnly = ['/api/auth/', '/api/billing/', '/api/google/', '/api/admin/', '/api/keys']
+const keyLimiters = new WeakMap<object, RateLimiter>()
+
 export const requireUser: MiddlewareHandler<Env> = async (c, next) => {
-  const user = userForToken(c.var.ctx.db, getCookie(c, SESSION_COOKIE))
+  const { ctx } = c.var
+  const bearer = c.req.header('authorization')?.match(/^Bearer\s+(\S+)$/i)?.[1]
+  if (bearer?.startsWith(API_KEY_PREFIX)) {
+    const user = userForApiKey(ctx.db, bearer)
+    if (!user) throw new ApiError(401, 'invalid_api_key', 'This API key is invalid or was revoked')
+    const path = c.req.path
+    const readMe = c.req.method === 'GET' && path === '/api/auth/me'
+    if (!readMe && sessionOnly.some((p) => path.startsWith(p))) throw new ApiError(403, 'session_required', 'This endpoint is not available to API keys')
+    if (!getPlan(user.plan).features.api) throw new ApiError(402, 'plan_feature', 'API access is available from the Pro plan')
+    if (!keyLimiters.has(ctx)) keyLimiters.set(ctx, new RateLimiter(120, 60_000))
+    if (!keyLimiters.get(ctx)!.take(user.keyId)) throw new ApiError(429, 'rate_limited', 'API keys are limited to 120 requests per minute')
+    ctx.db.run('UPDATE api_keys SET last_used_at = ? WHERE id = ?', [ctx.now().toISOString(), user.keyId])
+    const { keyId: _k, ...u } = user
+    c.set('user', u)
+    c.set('auth', 'key')
+    return next()
+  }
+  const user = userForToken(ctx.db, getCookie(c, SESSION_COOKIE))
   if (!user) throw new ApiError(401, 'unauthenticated', 'Sign in to continue')
   c.set('user', user)
+  c.set('auth', 'session')
   await next()
 }
 
