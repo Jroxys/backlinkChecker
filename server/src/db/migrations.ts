@@ -396,4 +396,11 @@ export const migrations: { id: number; name: string; sql: string }[] = [
       ALTER TABLE backlinks ADD COLUMN paused INTEGER NOT NULL DEFAULT 0;
     `,
   },
+  {
+    id: 17,
+    name: 'first_scan_email',
+    sql: `
+      ALTER TABLE projects ADD COLUMN first_scan_sent_at TEXT;
+    `,
+  },
 ]

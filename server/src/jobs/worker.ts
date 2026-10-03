@@ -11,6 +11,7 @@ import { sendMonthlyReports } from '../services/report.js'
 import { sweepHealth } from '../services/health.js'
 import { sweepCwv } from '../services/cwv.js'
 import { processTrials } from '../services/plan.js'
+import { sendFirstScanEmails } from '../services/firstScan.js'
 import { checkRobots } from '../services/robots.js'
 import { claim, complete, enqueue, fail, prune, recoverStale, type Job } from './queue.js'
 
@@ -58,6 +59,7 @@ export const handlers: Record<string, Handler> = {
   /** Core Web Vitals field data; CrUX updates weekly, so each project refreshes every 6 days. */
   'cwv.sweep': (ctx) => sweepCwv(ctx),
   'trials.process': (ctx) => processTrials(ctx),
+  'firstscan.sweep': (ctx) => sendFirstScanEmails(ctx),
   /** robots.txt for every project, hourly: a bad Disallow can de-index a site overnight. */
   'robots.sweep': async (ctx) => {
     const ps = ctx.db.all<{ id: string }>('SELECT id FROM projects')
@@ -87,6 +89,7 @@ const schedule: { kind: string; everyMinutes: number }[] = [
   { kind: 'health.sweep', everyMinutes: 60 },
   { kind: 'cwv.sweep', everyMinutes: 360 },
   { kind: 'trials.process', everyMinutes: 60 },
+  { kind: 'firstscan.sweep', everyMinutes: 5 },
   // Monthly report: hourly, but it only sends on days 1–3 (UTC) and once per user per month.
   { kind: 'reports.monthly', everyMinutes: 60 },
   { kind: 'maintenance', everyMinutes: 30 },

@@ -263,3 +263,15 @@ Kurucu panelinin e-postayla belirlenmesi ve e-posta doğrulamasının olmaması 
   - Menü ve altbilgi dile duyarlı; sayfalar arasında karşılıklı dil bağlantısı var.
   - Sunucu `/tr` için `<html lang="tr">`, Türkçe meta ve `hreflang` (en/tr/x-default) üretiyor.
 - **Ayrıca:** İngilizce ana sayfadaki iki abartılı ifade düzeltildi. "Gerçek zamanlı URL Inspection" ifadesi yanlıştı, kontroller günlük. "Free plan, no card" ise artık "14 gün Pro, kart yok".
+
+### K36 · "İlk tarama bitti" e-postası
+- **Aktivasyon hunisindeki en zayıf nokta:** kullanıcı siteyi ekliyor, tarama birkaç dakika sürüyor, kullanıcı o arada sekmeyi kapatıyor ve bir daha dönmüyor. Ürünün neyi yakaladığını hiç görmüyor.
+- **Karar:** her proje için tek bir özet e-postası.
+  - Ne zaman: tüm URL'ler ilk kez kontrol edilince ya da en geç 6 saat sonra.
+  - İçerik: kaç URL kontrol edildi, denetim puanı, noindex / hata / robots engeli / başka sayfaya canonical / yönlendirme sayıları ve backlink durumu.
+  - Backlink yoksa bir sonraki adım olarak içe aktarmayı öneriyor.
+  - Konu satırında bulgu sayısı yazıyor; açılma oranını en çok bu artırır.
+- **Kurallar:**
+  - Önce "gönderildi" işaretleniyor, sonra gönderiliyor: hiçbir zaman iki kez gitmez.
+  - E-postayı kapatan kullanıcıya gitmiyor.
+  - Yalnızca son 72 saatte açılan projelere gidiyor; böylece özellik yayına girdiğinde eski projelere e-posta yağmaz.
