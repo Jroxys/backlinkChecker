@@ -9,6 +9,8 @@ import { accessTokenFor, type IndexStatus } from './google.js'
 
 export interface UrlRow {
   paused: number
+  priority: number
+  priority_manual: number
   id: string
   project_id: string
   url: string
@@ -87,7 +89,9 @@ export async function checkUrl(ctx: Ctx, urlId: string): Promise<UrlChange[]> {
   const row = ctx.db.get<UrlRow>('SELECT * FROM monitored_urls WHERE id = ?', [urlId])
   if (!row) return []
   const owner = ctx.db.get<{ plan: string }>('SELECT u.plan FROM projects p JOIN users u ON u.id = p.user_id WHERE p.id = ?', [row.project_id])
-  const hours = getPlan(owner?.plan).limits.urlCheckHours
+  const limits = getPlan(owner?.plan).limits
+  // Priority pages run on the plan's fast watch interval; everything else on the daily schedule
+  const hours = row.priority ? limits.watchMinutes / 60 : limits.urlCheckHours
   const at = ctx.now().toISOString()
   const changes: UrlChange[] = []
 

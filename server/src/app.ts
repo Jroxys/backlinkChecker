@@ -20,6 +20,7 @@ import { teamRoutes } from './routes/team.js'
 import { reportRoutes } from './routes/reports.js'
 import { exportRoutes } from './routes/exports.js'
 import { blogRoutes } from './routes/blog.js'
+import { hookRoutes } from './routes/hooks.js'
 import { loadPosts, type Post } from './services/blog.js'
 import type { PageExtra } from './seo.js'
 import { adminRoutes } from './routes/admin.js'
@@ -64,6 +65,7 @@ export function createApp(ctx: Ctx) {
   app.route('/api', reportRoutes)
   app.route('/api', exportRoutes)
   app.route('/api/blog', blogRoutes)
+  app.route('/api/hooks', hookRoutes)
 
   // Serve the built web app from the same origin (cookies stay first-party, one deploy).
   const dist = ctx.config.webDist ? resolve(ctx.config.webDist) : ''

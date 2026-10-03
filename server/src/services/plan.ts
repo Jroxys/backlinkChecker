@@ -1,3 +1,4 @@
+import { selectPriorityPages } from './watch.js'
 import type { Ctx } from '../context.js'
 import { getPlan } from '../plans.js'
 import { track } from './events.js'
@@ -56,6 +57,8 @@ export function enforceLimits(ctx: Ctx, userId: string) {
       })
     })
   }
+  // Priority-page allowance changes with the plan
+  for (const pr of projects) selectPriorityPages(ctx, pr.id)
   return { paused, resumed }
 }
 

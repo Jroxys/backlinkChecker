@@ -12,6 +12,7 @@ import { sweepHealth } from '../services/health.js'
 import { sweepCwv } from '../services/cwv.js'
 import { processTrials } from '../services/plan.js'
 import { sendFirstScanEmails } from '../services/firstScan.js'
+import { refreshPriorityPages, sweepWatch } from '../services/watch.js'
 import { checkRobots } from '../services/robots.js'
 import { claim, complete, enqueue, fail, prune, recoverStale, type Job } from './queue.js'
 
@@ -66,6 +67,9 @@ export const handlers: Record<string, Handler> = {
   'cwv.sweep': (ctx) => sweepCwv(ctx),
   'trials.process': (ctx) => processTrials(ctx),
   'firstscan.sweep': (ctx) => sendFirstScanEmails(ctx),
+  /** Near real-time: uptime and robots.txt on each plan's watch interval (checked every minute). */
+  'watch.sweep': (ctx) => sweepWatch(ctx),
+  'priority.refresh': async (ctx) => refreshPriorityPages(ctx),
   /** robots.txt for every project, hourly: a bad Disallow can de-index a site overnight. */
   'robots.sweep': async (ctx) => {
     const ps = ctx.db.all<{ id: string }>('SELECT id FROM projects WHERE paused = 0')
@@ -86,11 +90,13 @@ export const handlers: Record<string, Handler> = {
 const schedule: { kind: string; everyMinutes: number }[] = [
   { kind: 'backlinks.sweep', everyMinutes: 1 },
   { kind: 'urls.sweep', everyMinutes: 1 },
-  { kind: 'alerts.deliver', everyMinutes: 5 },
+  // Every minute so a "site is down" alert isn't held back
+  { kind: 'alerts.deliver', everyMinutes: 1 },
   { kind: 'sitemaps.sweep', everyMinutes: 60 },
   { kind: 'discovery.sweep', everyMinutes: 60 },
   { kind: 'stats.snapshot', everyMinutes: 60 },
-  { kind: 'robots.sweep', everyMinutes: 60 },
+  { kind: 'watch.sweep', everyMinutes: 1 },
+  { kind: 'priority.refresh', everyMinutes: 360 },
   { kind: 'activation.sweep', everyMinutes: 60 },
   { kind: 'health.sweep', everyMinutes: 60 },
   { kind: 'cwv.sweep', everyMinutes: 360 },

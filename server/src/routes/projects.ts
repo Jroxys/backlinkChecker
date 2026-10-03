@@ -11,6 +11,7 @@ import { keywordsFor } from '../services/keywords.js'
 import { track } from '../services/events.js'
 import { healthFor } from '../services/health.js'
 import { enforceLimits } from '../services/plan.js'
+import { newDeployToken, selectPriorityPages } from '../services/watch.js'
 import { cwvFor } from '../services/cwv.js'
 
 export const projectRoutes = router()
@@ -56,6 +57,7 @@ projectRoutes.post('/', async (c) => {
   addUrls(c.var.ctx, projectId, [`https://${domain}/`])
   track(db, 'project_created', c.var.user.id)
   enqueue(db, 'sitemaps.discover', { projectId }, { dedupeKey: `discover:${projectId}` })
+  selectPriorityPages(c.var.ctx, projectId) // the home page is watched from minute one
   const p = ownedProject(c, projectId)
   return c.json({ project: present(p, projectSnapshot(db, projectId)) }, 201)
 })
@@ -140,6 +142,32 @@ projectRoutes.get('/:id/health', (c) => {
 projectRoutes.get('/:id/cwv', (c) => {
   const p = ownedProject(c, c.req.param('id'))
   return c.json(cwvFor(c.var.ctx, p.id))
+})
+
+/** Near real-time watch status: uptime, recent outages, priority pages and the deploy hook. */
+projectRoutes.get('/:id/watch', (c) => {
+  const p = ownedProject(c, c.req.param('id'))
+  const { db, config } = c.var.ctx
+  const limits = getPlan(c.var.account.plan).limits
+  const up = db.get<{ url: string; state: string; since: string | null; checked_at: string | null; response_ms: number | null; last_error: string | null }>('SELECT * FROM uptime WHERE project_id = ?', [p.id])
+  const outages = db.all<{ started_at: string; ended_at: string | null; error: string | null }>('SELECT started_at, ended_at, error FROM outages WHERE project_id = ? ORDER BY started_at DESC LIMIT 10', [p.id])
+  const priority = db.all<{ id: string; url: string; manual: number }>('SELECT id, url, priority_manual AS manual FROM monitored_urls WHERE project_id = ? AND priority = 1 ORDER BY priority_manual DESC, url', [p.id])
+  const token = db.get<{ deploy_token: string | null }>('SELECT deploy_token FROM projects WHERE id = ?', [p.id])!.deploy_token
+  return c.json({
+    watchMinutes: limits.watchMinutes,
+    uptime: up ? { url: up.url, state: up.state, since: up.since, checkedAt: up.checked_at, responseMs: up.response_ms, error: up.last_error } : null,
+    outages: outages.map((o) => ({ startedAt: o.started_at, endedAt: o.ended_at, error: o.error })),
+    priority: { limit: limits.priorityPages, pages: priority.map((u) => ({ id: u.id, url: u.url, manual: Boolean(u.manual) })) },
+    deployHook: token ? `${config.apiUrl.replace(/\/$/, '')}/api/hooks/deploy/${token}` : null,
+  })
+})
+
+/** Create or rotate the deploy hook URL (the old one stops working). */
+projectRoutes.post('/:id/deploy-hook', (c) => {
+  const p = ownedProject(c, c.req.param('id'))
+  const token = newDeployToken()
+  c.var.ctx.db.run('UPDATE projects SET deploy_token = ? WHERE id = ?', [token, p.id])
+  return c.json({ url: `${c.var.ctx.config.apiUrl.replace(/\/$/, '')}/api/hooks/deploy/${token}` })
 })
 
 /** Rule-based technical audit over everything we've crawled for this project. */

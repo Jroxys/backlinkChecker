@@ -311,3 +311,14 @@ Yeni kodu (deneme, sınırlar, blog, dışa aktarma, CWV, araçlar) yine ayrı b
   3. Kendi siteni ekle.
   4. 5 tanıdık SEO'cuya kullandır.
   5. Haftada bir blog yazısı yayınla.
+
+### K39 · "Gerçek zamanlıya yakın" izleme
+- **Neden:** rakip raporundaki zayıflık "kontroller günlük, gerçek zamanlı değil" idi. Her sayfayı her dakika taramak pahalı ve gereksiz; pahalı hatalar az sayıda yerde olur: site çöker, bir deploy ana sayfalara noindex ekler ya da robots.txt Google'ı engeller.
+- **Karar:**
+  - **İzleme aralığı plana göre:** Free 60 dk, Starter 15 dk, Pro ve Agency 5 dk.
+  - **Öncelikli sayfalar:** önce ana sayfa, sonra Search Console'da en çok tıklanan sayfalar, sonra sitemap'teki kısa yollu sayfalar. Kullanıcı ayrıca kendisi seçebilir. Plan başına sayfa sayısı: 1, 5, 20, 50. Bu sayfalar günlük yerine izleme aralığında kontrol ediliyor.
+  - **Uptime:** ilk hatada bir dakika sonra tekrar bakılıyor. Uyarı ancak iki hata üst üste gelince gidiyor; tek bir anlık kesinti alarm üretmiyor. Site geri gelince "geri döndü" bildirimi kesintinin süresiyle birlikte gidiyor ve kesintiler kayıt altına alınıyor.
+  - **robots.txt:** saatlik yerine izleme aralığında kontrol ediliyor.
+  - **Deploy hook:** kullanıcının yayın sistemi `POST /api/hooks/deploy/<token>` çağırır ve öncelikli sayfalar, robots.txt ve uptime bir dakika içinde kontrol edilir. Hatalar çoğunlukla deploy anında doğduğu için bu, sürekli taramadan daha isabetli. Dakikada en fazla 6 istek kabul ediliyor; token yenilenebiliyor.
+  - **Uyarı teslimi:** 5 dakikadan 1 dakikaya indi.
+- **Dürüstlük:** bunu "gerçek zamanlı" diye değil, "kritik sayfalar 5 dakikada bir" diye satıyoruz.

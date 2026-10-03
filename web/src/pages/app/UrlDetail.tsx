@@ -1,11 +1,11 @@
 import { useState, type ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
-import { ArrowLeft, Check, CheckCircle2, ChevronRight, Clock, Copy, ExternalLink, FileText, Link2, RefreshCw, X, AlertTriangle, Search } from 'lucide-react'
+import { ArrowLeft, Check, CheckCircle2, ChevronRight, Clock, Copy, ExternalLink, FileText, Link2, RefreshCw, X, AlertTriangle, Search, Zap } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { Link } from '@/lib/router'
 import { useProject } from '@/lib/project'
 import { statusMeta } from '@/lib/status'
-import { useAction, useUrl } from '@/api/hooks'
+import { useAction, useUrl, useMe } from '@/api/hooks'
 import { ApiError } from '@/api/client'
 import type { UrlItem } from '@/api/types'
 import { Card, CardHeader } from '@/components/ui/Card'
@@ -37,6 +37,13 @@ export function UrlDetail() {
   const recheck = useAction((s) => s.recheckUrl, {
     invalidate: ['url', 'urls', 'projects', 'audit'],
     success: (r) => ({ title: 'Re-checked', description: r.changes.length ? r.changes.map((c) => c.detail).join(' · ') : 'No changes since the last check.' }),
+  })
+
+  const me = useMe().data
+  const watchEvery = me?.plan.limits.watchMinutes ?? 60
+  const priority = useAction((s) => s.setUrlPriority, {
+    invalidate: ['url', 'urls', 'watch'],
+    success: () => null,
   })
 
   if (q.error instanceof ApiError && q.error.status === 404)
@@ -114,6 +121,14 @@ export function UrlDetail() {
           <a href={u.url} target="_blank" rel="noreferrer">
             <Button leftIcon={<ExternalLink />}>Open live</Button>
           </a>
+          <Button
+            leftIcon={<Zap className={cn(u.priority && 'fill-current text-primary')} />}
+            loading={priority.isPending}
+            onClick={() => priority.mutate([u.id, !u.priority])}
+            title={`Checked every ${watchEvery} minutes instead of daily`}
+          >
+            {u.priority ? `Watched every ${watchEvery} min` : 'Watch closely'}
+          </Button>
           <Button leftIcon={<RefreshCw />} loading={recheck.isPending} onClick={() => recheck.mutate([u.id])}>
             Re-check now
           </Button>

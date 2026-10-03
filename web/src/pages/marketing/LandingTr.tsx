@@ -110,7 +110,7 @@ function Features() {
     { icon: ScanSearch, title: 'İndeks izleme', text: 'Search Console URL Inspection ile Google’ın kararı, artı kendi kontrollerimiz: durum kodu, noindex, canonical ve Googlebot için robots.txt kuralları.' },
     { icon: Link2, title: 'Backlink doğrulama', text: 'Her link, linki veren sayfanın kendisinde her gün kontrol edilir: link duruyor mu, anchor ne, dofollow mu, sayfa indekslenebilir mi?' },
     { icon: ShieldCheck, title: 'Teknik SEO denetimi', text: 'İzlenen her URL için öncelik sıralı bulgular ve düzeltmenin ne olduğu — etkilenen sayfaların tam listesiyle.' },
-    { icon: Gauge, title: 'Site sağlığı', text: 'SSL sertifikası ve alan adı süresi, robots.txt değişiklikleri ve Chrome kullanıcılarından gelen Core Web Vitals verisi.' },
+    { icon: Gauge, title: 'Site sağlığı', text: 'Site çöktü mü, kritik sayfalar ve robots.txt 5 dakikada bir kontrol edilir. SSL ve alan adı süresi, Core Web Vitals verisi de burada.' },
     { icon: Bell, title: 'Akıllı uyarılar', text: 'E-posta, Slack veya webhook. Sadece bir şey değiştiğinde. Haftalık özet ve isteğe bağlı günlük bülten.' },
     { icon: FileBarChart2, title: 'Müşteri raporları', text: 'Tek sayfalık, anlaşılır raporlar: PDF olarak indir ya da müşterine her zaman güncel bir bağlantı gönder. Agency planında kendi markanla.' },
   ]

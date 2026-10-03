@@ -1,6 +1,7 @@
 import { createContext, useContext, type ReactNode } from 'react'
 import type {
   ApiKey,
+  WatchStatus,
   CwvResponse,
   DomainHealth,
   Team,
@@ -91,6 +92,9 @@ export interface DataSource {
   scanProject(id: string): Promise<{ queued: { urls: number; backlinks: number } }>
   addUrls(projectId: string, urls: string[]): Promise<AddResult>
   recheckUrl(id: string): Promise<{ changes: { kind: string; detail: string }[] }>
+  setUrlPriority(id: string, on: boolean): Promise<void>
+  watch(projectId: string): Promise<WatchStatus>
+  createDeployHook(projectId: string): Promise<{ url: string }>
   addSitemap(projectId: string, url: string): Promise<void>
   addBacklinks(projectId: string, links: { sourceUrl: string; targetUrl?: string }[]): Promise<AddResult>
   importBacklinks(projectId: string, text: string): Promise<AddResult & { format: string; domainOnly: number }>

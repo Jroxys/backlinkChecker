@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/Badge'
 import { useState } from 'react'
-import { Filter, MoreHorizontal, RefreshCw, X, Check, Minus, Link as LinkIcon, FileSearch, Plus, ExternalLink } from 'lucide-react'
+import { Filter, MoreHorizontal, RefreshCw, X, Check, Minus, Link as LinkIcon, FileSearch, Plus, ExternalLink, Zap } from 'lucide-react'
 import type { IndexStatus, UrlItem } from '@/api/types'
 import { useUrls, useAction } from '@/api/hooks'
 import { cn } from '@/lib/cn'
@@ -260,7 +260,14 @@ function UrlRow({ u, dense, selected, onSelect, onOpen, onRecheck }: { u: UrlIte
       </TD>
       <TD className={cn('max-w-[340px]', dense ? 'h-11' : 'h-13')}>
         <div className="min-w-0">
-          <div className="truncate font-medium text-fg group-hover:text-primary-ink">{u.path}</div>
+          <div className="flex items-center gap-1.5">
+            {u.priority && (
+              <span title="Watched closely" className="shrink-0 text-primary">
+                <Zap className="size-3.5" aria-label="Watched closely" />
+              </span>
+            )}
+            <span className="truncate font-medium text-fg group-hover:text-primary-ink">{u.path}</span>
+          </div>
           {!dense && <div className="truncate text-[12px] text-fg-4">{u.title ?? '—'}</div>}
         </div>
       </TD>

@@ -106,6 +106,11 @@ export function useCwv(projectId?: string) {
   return useQuery({ queryKey: [s.mode, 'cwv', projectId], queryFn: () => s.cwv(projectId!), enabled: !!projectId })
 }
 
+export function useWatch(projectId?: string) {
+  const s = useSource()
+  return useQuery({ queryKey: [s.mode, 'watch', projectId], queryFn: () => s.watch(projectId!), enabled: !!projectId, refetchInterval: 60_000 })
+}
+
 export function useTeam() {
   const s = useSource()
   return useQuery({ queryKey: [s.mode, 'team'], queryFn: () => s.team() })

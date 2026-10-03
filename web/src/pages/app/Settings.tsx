@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Copy, KeyRound, Trash2, Users, UserPlus, LogOut, Check, Moon, Sun, Monitor, ShieldCheck, ExternalLink, Sparkles, MessageSquare } from 'lucide-react'
+import { Rocket, Copy, KeyRound, Trash2, Users, UserPlus, LogOut, Check, Moon, Sun, Monitor, ShieldCheck, ExternalLink, Sparkles, MessageSquare } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { useTheme } from '@/lib/theme'
 import { Link } from '@/lib/router'
 import { useProject } from '@/lib/project'
-import { useAction, useApiKeys, useMe, usePlans, useTeam } from '@/api/hooks'
+import { useAction, useApiKeys, useMe, usePlans, useTeam, useWatch } from '@/api/hooks'
 import { useSource } from '@/api/source'
 import { ApiError } from '@/api/client'
 import { trialDaysLeft, type PlanId } from '@/api/types'
@@ -199,6 +199,7 @@ function Integrations() {
           )}
         </div>
       </Card>
+      {project && <DeployHookCard projectId={project.id} />}
       <Card className="flex items-center justify-between gap-4 p-5">
         <div className="flex items-start gap-3">
           <MessageSquare className="mt-0.5 size-4 text-fg-4" />
@@ -325,6 +326,43 @@ function Billing() {
       </div>
       <p className="text-[12px] text-fg-4">Payments are handled by Lemon Squeezy, our merchant of record — they add VAT/sales tax where required and issue your invoices.</p>
     </>
+  )
+}
+
+function DeployHookCard({ projectId }: { projectId: string }) {
+  const source = useSource()
+  const watch = useWatch(projectId).data
+  const toast = useToast()
+  const create = useAction((s) => s.createDeployHook, { invalidate: ['watch'], success: () => ({ title: 'Deploy hook ready' }) })
+  const url = watch?.deployHook
+  const copy = (text: string) => {
+    navigator.clipboard?.writeText(text).catch(() => {})
+    toast({ title: 'Copied to clipboard' })
+  }
+  return (
+    <Card>
+      <CardHeader icon={<Rocket />} title="Deploy hook" description="Call this URL from your deploy pipeline and we check your key pages, robots.txt and uptime within a minute — so a bad release is caught right away." />
+      <div className="space-y-3 p-5 pt-4">
+        {url ? (
+          <>
+            <pre className="overflow-x-auto rounded-lg border border-line bg-surface-2 p-3 font-mono text-[12px] leading-relaxed text-fg-2">{`curl -X POST ${url}`}</pre>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" leftIcon={<Copy />} onClick={() => copy(`curl -X POST ${url}`)}>
+                Copy command
+              </Button>
+              <Button size="sm" variant="ghost" loading={create.isPending} onClick={() => create.mutate([projectId])}>
+                New URL
+              </Button>
+            </div>
+            <p className="text-[12px] text-fg-4">Anyone with this URL can trigger a check (nothing else). Make a new one if it leaks; the old one stops working.</p>
+          </>
+        ) : (
+          <Button size="sm" variant="primary" disabled={source.mode === 'demo'} loading={create.isPending} onClick={() => create.mutate([projectId])}>
+            Create deploy hook
+          </Button>
+        )}
+      </div>
+    </Card>
   )
 }
 

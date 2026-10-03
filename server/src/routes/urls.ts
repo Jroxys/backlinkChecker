@@ -1,3 +1,5 @@
+import { selectPriorityPages } from '../services/watch.js'
+import { getPlan } from '../plans.js'
 import { urlKey } from '../lib/url.js'
 import { enforceLimits } from '../services/plan.js'
 import { z } from 'zod'
@@ -31,6 +33,7 @@ export function presentUrl(u: UrlRow) {
     title: u.title,
     status: u.index_status,
     paused: Boolean(u.paused),
+    priority: Boolean(u.priority),
     coverageState: u.coverage_state,
     http: u.http_status,
     indexable: u.indexable === null ? null : Boolean(u.indexable),
@@ -123,6 +126,23 @@ urlRoutes.post('/urls/:id/recheck', async (c) => {
     alertForUrlChanges(c.var.ctx, changes)
   }
   return c.json({ url: presentUrl(ownedUrl(c, u.id)), changes: changes.map((x) => ({ kind: x.kind, detail: x.detail })) })
+})
+
+/** Pin a page to the fast watch interval (or unpin it). Pinned pages count toward the plan's priority pages. */
+urlRoutes.post('/urls/:id/priority', async (c) => {
+  const u = ownedUrl(c, c.req.param('id'))
+  const { on } = await body(c, z.object({ on: z.boolean() }))
+  const { db } = c.var.ctx
+  if (on) {
+    const limit = getPlan(c.var.account.plan).limits.priorityPages
+    const pinned = db.get<{ n: number }>('SELECT COUNT(*) AS n FROM monitored_urls WHERE project_id = ? AND priority_manual = 1', [u.project_id])!.n
+    if (!u.priority_manual && pinned >= limit) throw new ApiError(402, 'plan_limit', `Your plan watches up to ${limit} page${limit === 1 ? '' : 's'} closely. Unpin one or upgrade.`)
+  }
+  db.run('UPDATE monitored_urls SET priority_manual = ? WHERE id = ?', [on ? 1 : 0, u.id])
+  selectPriorityPages(c.var.ctx, u.project_id)
+  const row = ownedUrl(c, u.id)
+  if (row.priority) db.run('UPDATE monitored_urls SET next_check_at = ? WHERE id = ? AND paused = 0', [c.var.ctx.now().toISOString(), u.id])
+  return c.json({ url: presentUrl(ownedUrl(c, u.id)) })
 })
 
 urlRoutes.delete('/urls/:id', (c) => {

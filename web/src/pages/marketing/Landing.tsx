@@ -315,7 +315,7 @@ function Features() {
               ))}
             </div>
           </FeatureCard>
-          <FeatureCard icon={<Workflow />} title="Automations" text="Index checks, backlink verification, sitemap and robots.txt watching all run on their own. You hear about it — by email, Slack or webhook — only when something changed.">
+          <FeatureCard icon={<Workflow />} title="Automations" text="Your key pages, uptime and robots.txt are checked every 5 minutes; everything else daily. Plug in the deploy hook and a bad release is caught within a minute. You only hear about it when something changed.">
             <div className="flex items-center gap-1">
               {['02:00', '02:15', '02:30', '02:45', '03:00'].map((t, i) => (
                 <div key={t} className="flex flex-1 flex-col items-center gap-1.5">

@@ -413,4 +413,36 @@ export const migrations: { id: number; name: string; sql: string }[] = [
       ALTER TABLE projects ADD COLUMN discovery_checked_at TEXT;
     `,
   },
+  {
+    id: 19,
+    name: 'near_realtime_watch',
+    sql: `
+      -- Pages checked on the plan's fast watch interval instead of the daily schedule.
+      ALTER TABLE monitored_urls ADD COLUMN priority INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE monitored_urls ADD COLUMN priority_manual INTEGER NOT NULL DEFAULT 0;
+      -- Secret for the "I just deployed" hook; robots.txt is now checked per project on the watch interval.
+      ALTER TABLE projects ADD COLUMN deploy_token TEXT;
+      ALTER TABLE projects ADD COLUMN robots_checked_at TEXT;
+      CREATE UNIQUE INDEX projects_deploy_token ON projects(deploy_token) WHERE deploy_token IS NOT NULL;
+      -- Is the site up? One row per project, plus a log of outages.
+      CREATE TABLE uptime (
+        project_id TEXT PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE,
+        url TEXT NOT NULL,
+        state TEXT NOT NULL DEFAULT 'unknown', -- up | down | unknown
+        fails INTEGER NOT NULL DEFAULT 0,
+        since TEXT,
+        checked_at TEXT,
+        response_ms INTEGER,
+        last_error TEXT
+      );
+      CREATE TABLE outages (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        started_at TEXT NOT NULL,
+        ended_at TEXT,
+        error TEXT
+      );
+      CREATE INDEX outages_project ON outages(project_id, started_at);
+    `,
+  },
 ]

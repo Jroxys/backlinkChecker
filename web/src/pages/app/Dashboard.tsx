@@ -6,7 +6,7 @@ import { ArrowRight, FileCheck2, Globe2, Link2, Play, ShieldAlert, Sparkles, Shi
 import { Link } from '@/lib/router'
 import { useChartColors } from '@/lib/chartColors'
 import { useProject } from '@/lib/project'
-import { useAction, useAlerts, useHistory, useMe, useHealth } from '@/api/hooks'
+import { useAction, useAlerts, useHistory, useMe, useHealth, useWatch } from '@/api/hooks'
 import type { HistoryPoint, Project } from '@/api/types'
 import { greeting, formatNumber, timeAgo, formatShortDate } from '@/utils/format'
 import { Card, CardHeader } from '@/components/ui/Card'
@@ -404,6 +404,9 @@ function AlertsCard() {
 function MonitoringCard({ project }: { project: Project | undefined }) {
   const me = useMe().data
   const health = useHealth(project?.id).data
+  const watch = useWatch(project?.id).data
+  const up = watch?.uptime
+  const ago = (iso: string | null) => (iso ? `${Math.max(1, Math.round((Date.now() - new Date(iso).getTime()) / 60_000))} min ago` : '')
   const s = project?.stats
   const plan = me?.plan
   const days = (iso: string) => Math.floor((new Date(iso).getTime() - Date.now()) / 86_400_000)
@@ -412,6 +415,23 @@ function MonitoringCard({ project }: { project: Project | undefined }) {
   const certDays = cert?.expiresAt ? days(cert.expiresAt) : null
   const domDays = dom?.expiresAt ? days(dom.expiresAt) : null
   const items: { ok: boolean; warn?: boolean; title: string; detail: string; cta: null | { label: string; to: string } }[] = [
+    {
+      ok: up?.state === 'up',
+      warn: up?.state === 'down',
+      title: up?.state === 'down' ? 'Site is down' : 'Uptime',
+      detail: !up
+        ? 'First check within a minute'
+        : up.state === 'down'
+          ? `Down since ${up.since ? new Date(up.since).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'} · ${up.error ?? ''}`
+          : `Up · ${up.responseMs ?? '—'} ms · checked ${ago(up.checkedAt)}`,
+      cta: null,
+    },
+    {
+      ok: !!watch?.priority.pages.length,
+      title: 'Key pages watched closely',
+      detail: watch ? `${watch.priority.pages.length} of ${watch.priority.limit} pages · every ${watch.watchMinutes} min` : '—',
+      cta: null,
+    },
     {
       ok: !!s?.urls,
       title: 'URL monitoring',

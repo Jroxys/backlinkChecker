@@ -20,6 +20,8 @@ export interface Plan {
     backlinkCheckHours: number
     urlCheckHours: number
     discovery: false | 'weekly' | 'daily'
+    watchMinutes?: number
+    priorityPages?: number
   }
   features: { slack: boolean; webhooks: boolean; reports: boolean; whiteLabel: boolean; api: boolean }
 }
@@ -50,6 +52,14 @@ export type CwvResponse =
   | { configured: false }
   | { configured: true; checked: false }
   | { configured: true; checked: true; origin: string | null; series: { dates: string[]; p75: Record<CwvMetric, (number | null)[]> } | null; fetchedAt: string }
+
+export interface WatchStatus {
+  watchMinutes: number
+  uptime: { url: string; state: 'up' | 'down' | 'unknown'; since: string | null; checkedAt: string | null; responseMs: number | null; error: string | null } | null
+  outages: { startedAt: string; endedAt: string | null; error: string | null }[]
+  priority: { limit: number; pages: { id: string; url: string; manual: boolean }[] }
+  deployHook: string | null
+}
 
 export interface DomainHealth {
   certificate: { host: string | null; expiresAt: string | null; issuer: string | null; error: string | null; checkedAt: string } | null
@@ -105,6 +115,8 @@ export interface Project {
 
 export interface UrlItem {
   paused?: boolean
+  /** Checked on the plan's fast watch interval */
+  priority?: boolean
   id: string
   url: string
   path: string

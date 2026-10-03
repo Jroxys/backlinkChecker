@@ -3,6 +3,7 @@ import type { Ctx } from '../context.js'
 import { id } from '../lib/ids.js'
 import { createAlert, plural } from './alerts.js'
 import { addUrls } from './urls.js'
+import { selectPriorityPages } from './watch.js'
 
 const MAX_CHILD_SITEMAPS = 50
 const MAX_URLS = 50_000
@@ -60,6 +61,7 @@ export async function syncSitemap(ctx: Ctx, sitemapId: string) {
   }
 
   const { created, skipped } = addUrls(ctx, sm.project_id, pageUrls, 'sitemap')
+  if (created.length) selectPriorityPages(ctx, sm.project_id)
   ctx.db.run("UPDATE sitemaps SET status = 'ok', last_error = NULL, url_count = ?, last_fetched_at = ? WHERE id = ?", [pageUrls.length, at, sm.id])
   const limited = skipped.filter((s) => s.reason === 'plan_limit').length
   const p = ctx.db.get<{ user_id: string }>('SELECT user_id FROM projects WHERE id = ?', [sm.project_id])
