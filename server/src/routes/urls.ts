@@ -1,3 +1,4 @@
+import { urlKey } from '../lib/url.js'
 import { enforceLimits } from '../services/plan.js'
 import { z } from 'zod'
 import { ApiError, body, notFound, ownedProject, pageParams, requireUser, router } from '../http.js'
@@ -87,7 +88,27 @@ urlRoutes.get('/urls/:id', (c) => {
     "SELECT id, source_url AS sourceUrl, source_domain AS sourceDomain, anchor, rel, authority, status, first_seen AS firstSeen FROM backlinks WHERE project_id = ? AND (found_target = ? OR target_url = ?) AND status != 'pending' ORDER BY authority DESC NULLS LAST LIMIT 100",
     [u.project_id, u.url, u.url],
   )
-  return c.json({ url: presentUrl(u), events, backlinks })
+  // Search performance from the cached 28-day keyword report (no extra Google calls):
+  // the queries for which this URL is the site's best-ranking page.
+  const project = db.get<{ gsc_property: string | null }>('SELECT gsc_property FROM projects WHERE id = ?', [u.project_id])!
+  const cached = db.get<{ body: string }>("SELECT body FROM gsc_cache WHERE project_id = ? AND key = 'queries:28d'", [u.project_id])
+  let search: { queries: { query: string; clicks: number; impressions: number; position: number }[]; range: unknown } | null = null
+  if (cached) {
+    const k = (s: string) => {
+      try {
+        return urlKey(s)
+      } catch {
+        return s
+      }
+    }
+    const report = JSON.parse(cached.body) as { rows?: { query: string; page: string | null; clicks: number; impressions: number; position: number }[]; range?: unknown }
+    const mine = k(u.url)
+    search = {
+      queries: (report.rows ?? []).filter((r) => r.page && k(r.page) === mine).slice(0, 15).map(({ query, clicks, impressions, position }) => ({ query, clicks, impressions, position })),
+      range: report.range ?? null,
+    }
+  }
+  return c.json({ url: presentUrl(u), events, backlinks, search, gscProperty: project.gsc_property })
 })
 
 urlRoutes.post('/urls/:id/recheck', async (c) => {

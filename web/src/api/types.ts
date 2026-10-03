@@ -136,6 +136,8 @@ export interface UrlDetailResponse {
   url: UrlItem
   events: UrlEvent[]
   backlinks: { id: string; sourceUrl: string; sourceDomain: string; anchor: string | null; rel: LinkRel | null; authority: number | null; status: BacklinkStatus; firstSeen: string | null }[]
+  /** Queries where this URL is the site's best-ranking page (cached 28-day Search Console data) */
+  search?: { queries: { query: string; clicks: number; impressions: number; position: number }[]; range: { start: string; end: string } | null } | null
 }
 
 export interface Backlink {

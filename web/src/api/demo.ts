@@ -238,6 +238,18 @@ export const demoSource: DataSource = {
       backlinks: backlinkItems
         .filter((b) => b.target === u.url && b.status !== 'pending')
         .map((b) => ({ id: b.id, sourceUrl: b.sourceUrl, sourceDomain: b.sourceDomain, anchor: b.anchor, rel: b.type, authority: b.authority, status: b.status, firstSeen: b.firstSeen })),
+      search:
+        u.status === 'indexed'
+          ? {
+              range: { start: '2026-09-03', end: '2026-09-30' },
+              queries: (() => {
+                // Deterministic sample queries derived from the page slug
+                const words = (u.url.split('/').filter(Boolean).pop() ?? 'seo').split('-').filter((w) => w.length > 2)
+                const base = words.slice(0, 3).join(' ') || 'seo monitoring'
+                return [`${base}`, `${base} guide`, `best ${base}`, `${base} 2026`, `how to ${base}`].map((query, i) => ({ query, clicks: Math.max(0, 140 - i * 31), impressions: 2400 - i * 380, position: 2.4 + i * 1.7 }))
+              })(),
+            }
+          : null,
     })
   },
   backlinks: (_id, q) => wait(queryBacklinks(q)),

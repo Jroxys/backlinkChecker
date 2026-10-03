@@ -100,3 +100,24 @@ test('Search Console coverage states map to our buckets', () => {
   assert.equal(mapCoverage('URL is unknown to Google', 'NEUTRAL'), 'unknown')
   assert.equal(mapCoverage('Alternate page with proper canonical tag', 'NEUTRAL'), 'crawled')
 })
+
+test('URL detail includes the cached queries where this URL is the best-ranking page', async () => {
+  const { client, testCtx } = await import('./helpers.js')
+  const { ctx } = testCtx()
+  const api = client(ctx)
+  await api.post('/api/auth/signup', { email: 'q@example.com', name: 'Q', password: 'correct horse battery' })
+  const p = (await api.post('/api/projects', { domain: 'example.com' })).json.project
+  const urlId = (await api.post(`/api/projects/${p.id}/urls`, { urls: ['https://example.com/guide'] })).json.created[0]
+  assert.equal((await api.get(`/api/urls/${urlId}`)).json.search, null, 'no Search Console data yet')
+  const report = {
+    connected: true,
+    range: { start: '2026-09-01', end: '2026-09-28' },
+    rows: [
+      { query: 'seo guide', page: 'https://www.example.com/guide/', clicks: 40, impressions: 900, ctr: 0.04, position: 4.2 },
+      { query: 'pricing', page: 'https://example.com/pricing', clicks: 5, impressions: 50, ctr: 0.1, position: 2 },
+    ],
+  }
+  ctx.db.run("INSERT INTO gsc_cache (project_id, key, body, fetched_at) VALUES (?, 'queries:28d', ?, ?)", [p.id, JSON.stringify(report), ctx.now().toISOString()])
+  const d = (await api.get(`/api/urls/${urlId}`)).json
+  assert.deepEqual(d.search.queries, [{ query: 'seo guide', clicks: 40, impressions: 900, position: 4.2 }], 'www and trailing slash normalised')
+})

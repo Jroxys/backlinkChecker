@@ -212,6 +212,43 @@ export function UrlDetail() {
           </Card>
         )}
 
+        {tab === 'google' && q.data?.search && (
+          <Card className="mt-4 overflow-hidden">
+            <CardHeader
+              title="Search queries"
+              description={
+                q.data.search.range
+                  ? `Where this is your best-ranking page · ${formatDate(q.data.search.range.start)} – ${formatDate(q.data.search.range.end)}`
+                  : 'Where this is your best-ranking page'
+              }
+            />
+            {q.data.search.queries.length === 0 ? (
+              <p className="px-5 pt-3 pb-5 text-[13px] text-fg-3">No queries where this page is your top result in the last 28 days. Pages need impressions before they show up here.</p>
+            ) : (
+              <table className="mt-3 w-full text-[13px]">
+                <thead>
+                  <tr className="border-y border-line-soft text-left text-[12px] text-fg-3">
+                    <th className="px-5 py-2 font-medium">Query</th>
+                    <th className="px-3 py-2 text-right font-medium">Position</th>
+                    <th className="px-3 py-2 text-right font-medium">Clicks</th>
+                    <th className="px-5 py-2 text-right font-medium">Impressions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {q.data.search.queries.map((r) => (
+                    <tr key={r.query} className="border-b border-line-soft last:border-0">
+                      <td className="px-5 py-2.5 text-fg">{r.query}</td>
+                      <td className="tnum px-3 py-2.5 text-right text-fg-2">{r.position.toFixed(1)}</td>
+                      <td className="tnum px-3 py-2.5 text-right text-fg-2">{formatNumber(r.clicks)}</td>
+                      <td className="tnum px-5 py-2.5 text-right text-fg-2">{formatNumber(r.impressions)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </Card>
+        )}
+
         {tab === 'links' && (
           <Card className="overflow-hidden">
             <CardHeader title="Backlinks to this URL" description="Verified links pointing here" icon={<Link2 />} />
