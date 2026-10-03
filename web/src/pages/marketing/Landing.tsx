@@ -286,7 +286,7 @@ function Features() {
               </div>
             </div>
           </FeatureCard>
-          <FeatureCard icon={<Swords />} title="Competitor Tracking" text="See which domains link to your competitors but not you, and how your referring domain growth compares month over month.">
+          <FeatureCard icon={<Swords />} title="Competitor Tracking" text="See which domains link to your competitors but not to you — ranked by authority and by how many of your competitors they already link to, so you know who to pitch first.">
             <div className="space-y-2">
               {[
                 ['you', 642, 'var(--primary)'],
@@ -305,7 +305,7 @@ function Features() {
               ))}
             </div>
           </FeatureCard>
-          <FeatureCard icon={<Workflow />} title="Automations" text="Schedule crawls, index checks, backlink scans and reports. Get a Slack message only when something actually changed.">
+          <FeatureCard icon={<Workflow />} title="Automations" text="Index checks, backlink verification, sitemap and robots.txt watching all run on their own. You hear about it — by email, Slack or webhook — only when something changed.">
             <div className="flex items-center gap-1">
               {['02:00', '02:15', '02:30', '02:45', '03:00'].map((t, i) => (
                 <div key={t} className="flex flex-1 flex-col items-center gap-1.5">
@@ -319,7 +319,7 @@ function Features() {
               ))}
             </div>
           </FeatureCard>
-          <FeatureCard icon={<FileBarChart2 />} title="Reports" text="White-label PDF reports your clients will actually read — executive summary, trends, wins and next actions. Sent on schedule.">
+          <FeatureCard icon={<FileBarChart2 />} title="Reports" text="One-page reports your clients will actually read: trends, wins and the issues to fix next. Print to PDF, or share a live link under your own brand. A summary lands in your inbox every month.">
             <div className="flex gap-2">
               {[0, 1, 2].map((i) => (
                 <div key={i} className="flex-1 rounded-md border border-line-soft bg-surface-2 p-2" style={{ transform: `translateY(${i * 4}px)` }}>
@@ -599,7 +599,7 @@ const plans = [
     price: [12, 10],
     founding: 9,
     desc: 'For a single business site or a side project.',
-    features: ['3 projects', '1,000 monitored URLs', '1,000 tracked backlinks', 'Daily backlink verification', 'Search Console index status', 'Slack alerts & monthly reports'],
+    features: ['3 projects', '1,000 monitored URLs', '1,000 tracked backlinks', 'Daily backlink verification', 'Search Console index status', 'Slack alerts, monthly reports & client links'],
     cta: 'Start 14-day trial',
   },
   {
@@ -616,7 +616,7 @@ const plans = [
     price: [79, 66],
     founding: 49,
     desc: 'For agencies reporting to many clients.',
-    features: ['50 projects', '50,000 monitored URLs', '50,000 tracked backlinks', 'URL checks every 6 hours', 'White-label client reports', '10 seats'],
+    features: ['50 projects', '50,000 monitored URLs', '50,000 tracked backlinks', 'URL checks every 6 hours', 'White-label client reports & links', '10 seats'],
     cta: 'Start 14-day trial',
   },
 ]
@@ -741,7 +741,7 @@ function Faq() {
   return (
     <section id="faq" className="scroll-mt-16 py-24">
       <Container className="grid grid-cols-1 gap-10 lg:grid-cols-[340px_minmax(0,1fr)]">
-        <SectionHeading eyebrow="FAQ" title="Questions, answered." description="Can’t find what you’re looking for? Our team replies within a few hours." />
+        <SectionHeading eyebrow="FAQ" title="Questions, answered." description="Can’t find what you’re looking for? Email us — we reply within one business day." />
         <div className="divide-y divide-line border-y border-line">
           {faqs.map(([q, a], i) => {
             const isOpen = open === i

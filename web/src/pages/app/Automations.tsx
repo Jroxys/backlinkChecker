@@ -28,8 +28,13 @@ function AutomationsLive() {
     { icon: Link2, title: 'Backlink verification', desc: 'Opens every linking page and confirms your link, anchor and rel are still there.', freq: l ? every(l.backlinkCheckHours) : '—', on: true },
     { icon: Map, title: 'Sitemap watcher', desc: 'Re-reads your sitemaps and starts monitoring any new URLs.', freq: 'Every 24 hours', on: true },
     { icon: Sparkles, title: 'New backlink discovery', desc: 'Pulls newly found links from a backlink index and verifies them before showing them.', freq: l?.discovery ? 'Every week' : 'Pro plan', on: !!l?.discovery, cta: l?.discovery ? null : { to: '/app/settings?tab=billing', label: 'Upgrade' } },
+    { icon: FileSearch, title: 'robots.txt watcher', desc: 'Fetches robots.txt every hour and alerts you if a change blocks Googlebot from pages you monitor.', freq: 'Every hour', on: true },
     { icon: CalendarClock, title: 'Daily snapshot', desc: 'Stores index coverage and link counts so every chart has history.', freq: 'Every hour (one point per day)', on: true },
     { icon: Bell, title: notif?.digest ? 'Daily digest email' : 'Instant alerts', desc: notif?.digest ? 'One summary email every morning at 08:00.' : 'Changes are batched and sent within five minutes.', freq: notif?.digest ? 'Daily · 08:00' : 'Every 5 minutes', on: true, cta: { to: '/app/alerts', label: 'Notification settings' } },
+    { icon: Bell, title: 'Weekly summary', desc: 'What we checked and what changed, every Monday morning.', freq: 'Mondays · 08:00', on: notif ? notif.email !== 0 : true, cta: null },
+    ...(me?.plan.features.reports
+      ? [{ icon: CalendarClock, title: 'Monthly report', desc: 'A 30-day summary of every project, with your client links.', freq: '1st of the month', on: (notif?.monthlyReport ?? 1) !== 0 && notif?.email !== 0, cta: { to: '/app/reports', label: 'Open reports' } }]
+      : []),
   ]
   return (
     <>

@@ -149,3 +149,9 @@ Her kararda önce seçenekleri, sonra kendi itirazlarımı yazıyorum. Yeni kara
   - Ayın 1'inde, yalnızca ücretli planlara gider.
   - Her ay en fazla bir kez gider; kapatma seçeneği Uyarılar sayfasında.
   - Paylaşım bağlantısı varsa e-postaya eklenir.
+
+### K28 · Landing sayfası metin denetimi
+- "Rakiplerin referans alan adı büyümesini aylık karşılaştırma" vaadi kaldırıldı; geçmiş veri ücretli bir kaynak gerektiriyor ve elimizde yok. Yerine gerçekte yaptığımız yazıldı: yetkiye ve rakip sayısına göre sıralanmış link boşluğu.
+- "Raporlar zamanında gönderilir" vaadi artık doğru: aylık e-posta ve canlı müşteri bağlantısı. "PDF gönderilir" iddiası ise kaldırıldı; PDF tarayıcıdan alınıyor.
+- "Ekibimiz birkaç saat içinde yanıt verir" ifadesi tek kişilik bir kurucu için gerçekçi değil. "Bir iş günü içinde" olarak değiştirildi.
+- Otomasyonlar sayfasına gerçekten çalışan ama listede görünmeyen işler eklendi: robots.txt izleyici, haftalık özet ve aylık rapor.
