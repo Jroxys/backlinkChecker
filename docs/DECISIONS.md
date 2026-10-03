@@ -117,3 +117,20 @@ Her kararda önce seçenekleri, sonra kendi itirazlarımı yazıyorum. Yeni kara
 - **White-label:** Agency planında marka adı, https logo URL'si ve vurgu rengi raporlara uygulanıyor; Indexora adı ve logosu kaldırılıyor.
   - Logo bağlantısını sunucu hiç indirmiyor (SSRF riski yok); yalnızca kullanıcının tarayıcısı `no-referrer` ile yüklüyor.
   - `javascript:` gibi şemalar doğrulamada reddediliyor.
+
+### K26 · Koltuklar: tam "çalışma alanı" modeli değil, "sahibin hesabı = çalışma alanı"
+- **Seçenekler:**
+  - (a) Koltuğu fiyattan kaldırmak: dürüst ama Agency planını zayıflatır.
+  - (b) Çoklu çalışma alanları: her sorguyu değiştirmek gerekir, büyük iş.
+  - (c) Üye, sahibin hesabında çalışır.
+- **Karar:** (c). İstekte `user` (kim giriş yaptı) ve `account` (kimin hesabında çalışıyor) ayrıldı. Veri rotaları `account`'u kullanıyor; servisler zaten proje sahibinin planını kullanıyordu.
+- **Yalnızca sahip yapabilir:** fatura, Google bağlantısı, marka ayarları, ekip yönetimi.
+- **Davetler:**
+  - Davet bağlantısı 7 gün geçerli.
+  - Bekleyen davet de bir koltuk sayılır.
+  - Davet yalnızca davet edilen e-posta adresiyle kabul edilebilir.
+  - Kendi projesi olan bir hesap üye olamaz; böylece veri karışmaz ve kimsenin verisi sessizce kaybolmaz.
+- **Plan düşürülürse:** son katılan üyeler askıya alınır, silinmez. Askıdaki üye hesabını görebilir, ekipten ayrılabilir veya hesabını silebilir. Plan yükseltilince erişim aynen geri gelir.
+- **Uyarılar** sahibe e-postayla gider. Tüm ekibe ulaşmak için Slack webhook öneriliyor (bunu arayüzde de söylüyoruz).
+- **Güvenlik:** giriş ve kayıt sonrası `next` parametresi artık yalnızca uygulama içi yolları kabul ediyor (açık yönlendirme koruması).
+- **Süreç dersi:** derleme hata verdiği halde bir commit gitti, çünkü komutlar ayrı satırlardaydı. Bundan sonra derleme ve commit aynı `&&` zincirinde çalışıyor.
