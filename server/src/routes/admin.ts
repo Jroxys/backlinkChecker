@@ -24,10 +24,10 @@ adminRoutes.get('/metrics', (c) => {
     { step: 'Connected Search Console', users: n(`SELECT COUNT(*) AS n FROM google_connections WHERE user_id IN (${cohort})`, [since]) },
     { step: 'Received a real alert', users: n(`SELECT COUNT(DISTINCT user_id) AS n FROM alerts WHERE user_id IN (${cohort})`, [since]) },
     { step: 'Started checkout', users: n(`SELECT COUNT(DISTINCT user_id) AS n FROM events WHERE name = 'checkout_started' AND user_id IN (${cohort})`, [since]) },
-    { step: 'Paying', users: n(`SELECT COUNT(*) AS n FROM users WHERE plan != 'free' AND id IN (${cohort})`, [since]) },
+    { step: 'Paying', users: n(`SELECT COUNT(*) AS n FROM users WHERE plan != 'free' AND trial_ends_at IS NULL AND id IN (${cohort})`, [since]) },
   ]
 
-  const paying = db.all<{ plan: string; founding: number; n: number }>("SELECT plan, founding, COUNT(*) AS n FROM users WHERE plan != 'free' GROUP BY plan, founding")
+  const paying = db.all<{ plan: string; founding: number; n: number }>("SELECT plan, founding, COUNT(*) AS n FROM users WHERE plan != 'free' AND trial_ends_at IS NULL GROUP BY plan, founding")
   const mrr = paying.reduce((a, r) => a + (r.founding ? getPlan(r.plan).founding : getPlan(r.plan).monthly) * r.n, 0)
 
   const daily = db.all<{ day: string; signups: number }>("SELECT substr(created_at, 1, 10) AS day, COUNT(*) AS signups FROM users WHERE created_at >= ? GROUP BY day ORDER BY day", [since])
@@ -42,6 +42,7 @@ adminRoutes.get('/metrics', (c) => {
       backlinks: n('SELECT COUNT(*) AS n FROM backlinks'),
       paying: paying.reduce((a, r) => a + r.n, 0),
       founding: n('SELECT COUNT(*) AS n FROM users WHERE founding = 1'),
+      trials: n('SELECT COUNT(*) AS n FROM users WHERE trial_ends_at IS NOT NULL'),
       mrr,
     },
     funnel,

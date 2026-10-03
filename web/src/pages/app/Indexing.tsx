@@ -1,3 +1,4 @@
+import { PausedNotice } from '@/components/domain/PausedNotice'
 import { useSource } from '@/api/source'
 import { useState } from 'react'
 import { FileSearch, Map, Plus, CheckCircle2, AlertTriangle, XCircle, Clock3, ExternalLink, Download } from 'lucide-react'
@@ -61,6 +62,7 @@ export function Indexing() {
           </>
         }
       />
+      <PausedNotice kind="urls" />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
         {tileOrder.map((st) => {

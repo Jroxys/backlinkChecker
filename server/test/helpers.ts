@@ -47,7 +47,7 @@ export function testCtx(overrides: Partial<Ctx> = {}) {
   let clock = new Date('2026-10-02T09:00:00Z')
   const ctx: Ctx = {
     db,
-    config: { ...config, appUrl: 'http://app.test', apiUrl: 'http://api.test' },
+    config: { ...config, appUrl: 'http://app.test', apiUrl: 'http://api.test', trialDays: 0 },
     fetcher: new PoliteFetcher({ userAgent: 'IndexoraBot-test', allowPrivate: true, perHostDelayMs: 0, timeoutMs: 3000 }),
     notifier,
     provider: null,

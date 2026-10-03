@@ -7,6 +7,7 @@ import { addHours, id, now } from '../lib/ids.js'
 import { getPlan } from '../plans.js'
 import { usageFor } from '../services/usage.js'
 import { track } from '../services/events.js'
+import { startTrial, TRIAL_PLAN } from '../services/plan.js'
 import type { Db } from '../db/index.js'
 
 // One limiter per app context (tests create many contexts; prod has one).
@@ -39,9 +40,10 @@ authRoutes.post('/signup', async (c) => {
   db.run('INSERT INTO users (id, email, name, password_hash, created_at) VALUES (?, ?, ?, ?, ?)', [userId, input.email, input.name, await hashPassword(input.password), now()])
   db.run('INSERT INTO notification_settings (user_id) VALUES (?)', [userId])
   track(db, 'signup', userId)
+  const trialEndsAt = startTrial(c.var.ctx, userId)
   const s = createSession(db, userId)
   setCookie(c, SESSION_COOKIE, s.token, { httpOnly: true, secure: config.cookieSecure, sameSite: 'Lax', path: '/', maxAge: s.maxAge })
-  return c.json({ user: { id: userId, email: input.email, name: input.name, plan: 'free' } }, 201)
+  return c.json({ user: { id: userId, email: input.email, name: input.name, plan: trialEndsAt ? TRIAL_PLAN : 'free', trialEndsAt } }, 201)
 })
 
 authRoutes.post('/login', async (c) => {
@@ -68,10 +70,15 @@ authRoutes.get('/me', requireUser, (c) => {
   const acct = c.var.account
   const plan = getPlan(acct.plan)
   const google = c.var.ctx.db.get<{ email: string | null }>('SELECT email FROM google_connections WHERE user_id = ?', [acct.id])
+  const owner = c.var.ctx.db.get<{ trial_ends_at: string | null }>('SELECT trial_ends_at FROM users WHERE id = ?', [acct.id])
+  const pausedCount = (table: string) =>
+    c.var.ctx.db.get<{ n: number }>(`SELECT COUNT(*) AS n FROM ${table} t JOIN projects p ON p.id = t.project_id WHERE p.user_id = ? AND t.paused = 1`, [acct.id])!.n
   return c.json({
     user: { id: u.id, email: u.email, name: u.name, plan: plan.id, founding: Boolean(acct.role === 'owner' && u.founding), createdAt: u.created_at, isAdmin: c.var.ctx.config.adminEmails.includes(u.email.toLowerCase()) },
     plan,
     usage: usageFor(c.var.ctx.db, acct.id),
+    trialEndsAt: owner?.trial_ends_at ?? null,
+    paused: { urls: pausedCount('monitored_urls'), backlinks: pausedCount('backlinks') },
     team: { role: acct.role, ownerName: acct.ownerName, suspended: Boolean(acct.suspended) },
     google: { connected: Boolean(google), email: google?.email ?? null, configured: c.var.ctx.google.configured },
     branding: brandingFor(c.var.ctx.db, acct.id),

@@ -28,6 +28,7 @@ export function presentUrl(u: UrlRow) {
     path,
     title: u.title,
     status: u.index_status,
+    paused: Boolean(u.paused),
     coverageState: u.coverage_state,
     http: u.http_status,
     indexable: u.indexable === null ? null : Boolean(u.indexable),

@@ -75,22 +75,31 @@ export function Landing() {
 
 /* ------------------------------------------------------------------ Nav */
 
-export function Nav() {
+export function Nav({ lang = 'en' }: { lang?: 'en' | 'tr' }) {
   const { theme, toggle } = useTheme()
   const [open, setOpen] = useState(false)
-  const links = [
-    ['Product', '#product'],
-    ['Features', '#features'],
-    ['Pricing', '#pricing'],
-    ['FAQ', '#faq'],
-    ['Free tools', '/tools'],
-    ['Blog', '/blog'],
-  ]
+  const tr = lang === 'tr'
+  const links = tr
+    ? [
+        ['Özellikler', '/tr#ozellikler'],
+        ['Fiyatlar', '/tr#fiyatlar'],
+        ['SSS', '/tr#sss'],
+        ['Ücretsiz araçlar', '/tools'],
+        ['English', '/'],
+      ]
+    : [
+        ['Product', '#product'],
+        ['Features', '#features'],
+        ['Pricing', '#pricing'],
+        ['FAQ', '#faq'],
+        ['Free tools', '/tools'],
+        ['Blog', '/blog'],
+      ]
   return (
     <header className="sticky top-0 z-50 border-b border-line/70 bg-bg/80 backdrop-blur-md">
       <Container className="flex h-15 items-center justify-between">
         <div className="flex items-center gap-10">
-          <Link to="/" aria-label="Indexora home">
+          <Link to={tr ? '/tr' : '/'} aria-label="Indexora home">
             <Logo />
           </Link>
           <nav className="hidden items-center gap-1 md:flex">
@@ -107,12 +116,12 @@ export function Nav() {
           </button>
           <Link to="/login" className="hidden sm:block">
             <Button variant="ghost" size="sm">
-              Sign in
+              {tr ? 'Giriş yap' : 'Sign in'}
             </Button>
           </Link>
           <Link to="/signup">
             <Button variant="primary" size="sm">
-              Start Free
+              {tr ? 'Ücretsiz başla' : 'Start Free'}
             </Button>
           </Link>
           <button className="rounded-lg p-2 text-fg-2 md:hidden" onClick={() => setOpen(!open)} aria-label="Menu">
@@ -586,7 +595,7 @@ function BacklinkSection() {
 /* -------------------------------------------------------------- Pricing */
 
 // Mirrors server/src/plans.ts — keep in sync. Reasoning: docs/PRICING.md
-const plans = [
+export const plans = [
   {
     name: 'Free',
     price: [0, 0],
@@ -795,11 +804,14 @@ function FinalCta() {
 
 /* --------------------------------------------------------------- Footer */
 
-export function Footer() {
+export function Footer({ lang = 'en' }: { lang?: 'en' | 'tr' }) {
+  const tr = lang === 'tr'
   const cols: [string, [string, string][]][] = [
-    ['Product', [['Features', '/#features'], ['Pricing', '/#pricing'], ['Live demo', '/demo'], ['FAQ', '/#faq'], ['Blog', '/blog']]],
-    ['Free tools', [['Backlink checker', '/tools/backlink-checker'], ['Indexability checker', '/tools/indexability-checker'], ['Redirect checker', '/tools/redirect-checker'], ['SSL checker', '/tools/ssl-checker']]],
-    ['Legal', [['Privacy', '/privacy'], ['Terms', '/terms']]],
+    tr
+      ? ['Ürün', [['Özellikler', '/tr#ozellikler'], ['Fiyatlar', '/tr#fiyatlar'], ['Canlı demo', '/demo'], ['SSS', '/tr#sss'], ['English', '/']]]
+      : ['Product', [['Features', '/#features'], ['Pricing', '/#pricing'], ['Live demo', '/demo'], ['FAQ', '/#faq'], ['Blog', '/blog'], ['Türkçe', '/tr']]],
+    [tr ? 'Ücretsiz araçlar' : 'Free tools', [['Backlink checker', '/tools/backlink-checker'], ['Indexability checker', '/tools/indexability-checker'], ['Redirect checker', '/tools/redirect-checker'], ['SSL checker', '/tools/ssl-checker']]],
+    [tr ? 'Yasal' : 'Legal', [[tr ? 'Gizlilik' : 'Privacy', '/privacy'], [tr ? 'Koşullar' : 'Terms', '/terms']]],
   ]
   return (
     <footer className="border-t border-line py-14">
@@ -807,7 +819,7 @@ export function Footer() {
         <div className="grid grid-cols-2 gap-8 md:grid-cols-5">
           <div className="col-span-2">
             <Logo />
-            <p className="mt-3 max-w-xs text-[13px] leading-relaxed text-fg-3">Know exactly what Google sees: index status, indexability and every backlink, checked for you every day.</p>
+            <p className="mt-3 max-w-xs text-[13px] leading-relaxed text-fg-3">{tr ? 'Google’ın ne gördüğünü bil: indeks durumu, indekslenebilirlik ve her backlink, her gün senin yerine kontrol edilir.' : 'Know exactly what Google sees: index status, indexability and every backlink, checked for you every day.'}</p>
           </div>
           {cols.map(([h, items]) => (
             <div key={h}>
@@ -824,7 +836,7 @@ export function Footer() {
             </div>
           ))}
         </div>
-        <div className="mt-12 border-t border-line pt-6 text-[12.5px] text-fg-4">© {new Date().getFullYear()} Indexora. All rights reserved.</div>
+        <div className="mt-12 border-t border-line pt-6 text-[12.5px] text-fg-4">© {new Date().getFullYear()} Indexora. {tr ? 'Tüm hakları saklıdır.' : 'All rights reserved.'}</div>
       </Container>
     </footer>
   )

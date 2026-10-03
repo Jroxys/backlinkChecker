@@ -8,6 +8,7 @@ import { createAlert, plural } from './alerts.js'
 import { accessTokenFor, type IndexStatus } from './google.js'
 
 export interface UrlRow {
+  paused: number
   id: string
   project_id: string
   url: string

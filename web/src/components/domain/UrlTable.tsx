@@ -1,3 +1,4 @@
+import { Badge } from '@/components/ui/Badge'
 import { useState } from 'react'
 import { Filter, MoreHorizontal, RefreshCw, X, Check, Minus, Link as LinkIcon, FileSearch, Plus, ExternalLink } from 'lucide-react'
 import type { IndexStatus, UrlItem } from '@/api/types'
@@ -264,7 +265,7 @@ function UrlRow({ u, dense, selected, onSelect, onOpen, onRecheck }: { u: UrlIte
         </div>
       </TD>
       <TD>
-        <IndexStatusBadge status={u.status} />
+        {u.paused ? <Badge tone="outline">Paused</Badge> : <IndexStatusBadge status={u.status} />}
       </TD>
       <TD>
         <HttpBadge code={u.http} />

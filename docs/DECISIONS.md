@@ -228,3 +228,27 @@ Kurucu panelinin e-postayla belirlenmesi ve e-posta doğrulamasının olmaması 
   3. Taşıma sonrası yönlendirme kontrol listesi
   Her yazı ilgili ücretsiz araca ve ürüne bağlanıyor. Kural: önce gerçekten faydalı bir rehber, en sonda tek bir yumuşak çağrı.
 - **Yan bulgu:** `Container` bileşeninde `max-w-*` sınıfları çakışıyordu; araç ve yasal sayfalar da bu yüzden olması gerekenden geniş görünüyordu. Düzeltildi.
+
+### K34 · Ters deneme (reverse trial) ve plan düşünce sınır uygulaması
+- **Bulgu:** fiyat sayfası "14 günlük deneme, kart gerekmez" diyordu ama deneme diye bir şey yoktu; `?plan=pro` ile kaydolan kullanıcı Free'de başlıyordu. Bir ikinci bulgu daha: plan düşünce (iptal veya süre dolması) hiçbir sınır uygulanmıyordu. Agency'den Free'ye düşen bir hesap 50.000 URL'yi bedavaya taramaya devam ederdi.
+- **Seçenekler:**
+  - (a) Metni "ücretsiz başla" olarak değiştirmek.
+  - (b) Klasik deneme: plan seçen, kartını girer.
+  - (c) Ters deneme: herkes 14 gün Pro'yla başlar, kart istenmez, sonra Free'ye düşer.
+- **Karar:** (c).
+  - 0 müşteride en büyük risk, kullanıcının ürünün değerini hiç görmemesi. Pro'da günlük kontroller, keşif ve rakip boşluğu ilk hafta "aha" anını getirir.
+  - Kart istememek kayıt sürtünmesini sıfırlar.
+  - Bilinen bir PLG (ürün odaklı büyüme) taktiği.
+- **Uygulama:**
+  - Kayıtta `plan = pro` ve `trial_ends_at = +14 gün`.
+  - Saatlik iş, bitişe 3 gün kala tek bir hatırlatma gönderiyor; süre dolunca Free'ye düşürüp "deneme bitti" e-postası gönderiyor.
+  - Deneme sırasında abonelik başlarsa denemeyi kapatıyor, düşürmüyor.
+- **Sınırlar:**
+  - Her plan değişikliğinden sonra (deneme bitişi, webhook) `enforceLimits` çalışıyor.
+  - En eski kayıtlar yerini koruyor; fazlası **silinmiyor**, duraklatılıyor (`paused`, `next_check_at = NULL`), dolayısıyla tarayıcı onlara dokunmuyor.
+  - Yükseltilince otomatik devam ediyor. Arayüzde neyin neden duraklatıldığı açıkça yazıyor.
+- **Ölçümler:**
+  - Kurucu panelinde denemedeki hesaplar ödeyen sayılmıyor ve MRR'a girmiyor.
+  - Aktivasyon e-postaları deneme kullanıcılarına da gidiyor.
+  - Aylık rapor yalnızca gerçek ödeyenlere gidiyor.
+- **Ayar:** `TRIAL_DAYS=0` ile deneme kapatılabilir.

@@ -384,4 +384,16 @@ export const migrations: { id: number; name: string; sql: string }[] = [
       );
     `,
   },
+  {
+    id: 16,
+    name: 'trials_and_pausing',
+    sql: `
+      -- Reverse trial: new accounts run on a paid plan until trial_ends_at, then fall back to free.
+      ALTER TABLE users ADD COLUMN trial_ends_at TEXT;
+      ALTER TABLE users ADD COLUMN trial_reminded INTEGER NOT NULL DEFAULT 0;
+      -- Entries beyond the plan's limits after a downgrade: kept, but not checked until there's room again.
+      ALTER TABLE monitored_urls ADD COLUMN paused INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE backlinks ADD COLUMN paused INTEGER NOT NULL DEFAULT 0;
+    `,
+  },
 ]

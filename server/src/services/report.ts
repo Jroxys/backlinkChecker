@@ -63,7 +63,7 @@ export async function sendMonthlyReports(ctx: Ctx, { anyDay = false } = {}) {
   const users = ctx.db.all<{ id: string; email: string; name: string; plan: string; enabled: number | null; last: string | null }>(
     `SELECT u.id, u.email, u.name, u.plan, s.monthly_report AS enabled, u.last_report_month AS last
        FROM users u LEFT JOIN notification_settings s ON s.user_id = u.id
-      WHERE u.plan != 'free' AND EXISTS (SELECT 1 FROM projects p WHERE p.user_id = u.id)`,
+      WHERE u.plan != 'free' AND u.trial_ends_at IS NULL AND EXISTS (SELECT 1 FROM projects p WHERE p.user_id = u.id)`,
   )
   let sent = 0
   for (const u of users) {

@@ -19,6 +19,7 @@ export function presentBacklink(b: BacklinkRow, nowMs = Date.now()) {
     anchor: b.anchor,
     type: b.rel,
     status: b.status,
+    paused: Boolean(b.paused),
     isNew,
     origin: b.origin,
     authority: b.authority,

@@ -58,3 +58,8 @@ Tek gerçek kaynak: `server/src/plans.ts`. Landing sayfasındaki tablo onu yans�
 - **İlk 10 ücretli müşteriden** sonra: kimse "pahalı" demiyorsa Starter'ı $15'e çıkar (kurucular etkilenmez).
 - Pro'dan Agency'ye geçen yoksa Agency'yi koltuk/beyaz etiket odaklı yeniden paketle.
 - Ücretsiz → ücretli dönüşümü %2'nin altındaysa ücretsiz limitleri daralt; %8'in üstündeyse ücretsiz plan fazla cimri olabilir.
+
+
+## Deneme (güncelleme)
+
+Her yeni hesap **14 gün Pro** ile başlar; kart istenmez (ters deneme). Süre bitince hesap Free'ye düşer. Free sınırını aşan URL ve backlinkler silinmez, duraklatılır; plan yükseltilince kaldığı yerden devam eder. Bitişe 3 gün kala bir hatırlatma e-postası gider. Neden böyle yapıldığı DECISIONS K34'te.

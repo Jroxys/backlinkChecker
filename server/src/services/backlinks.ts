@@ -10,6 +10,7 @@ import { createAlert, plural } from './alerts.js'
 export type BacklinkStatus = 'pending' | 'active' | 'lost' | 'broken' | 'blocked'
 
 export interface BacklinkRow {
+  paused: number
   id: string
   project_id: string
   source_url: string

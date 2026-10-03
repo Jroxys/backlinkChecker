@@ -19,6 +19,8 @@ export const config = {
   crawlerAllowPrivate: bool(env.CRAWLER_ALLOW_PRIVATE, false) && env.NODE_ENV !== 'production',
   /** Built web app to serve (vite build output). Empty = API only. */
   webDist: env.WEB_DIST ?? '../web/dist',
+  /** Days of the no-card Pro trial every new account starts with (0 = no trial). */
+  trialDays: Number(env.TRIAL_DAYS ?? 14),
   /** Markdown content (blog). */
   contentDir: env.CONTENT_DIR ? env.CONTENT_DIR + '/blog' : '../content/blog',
   google: {

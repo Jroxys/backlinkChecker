@@ -1,3 +1,5 @@
+import { Badge } from '@/components/ui/Badge'
+import { PausedNotice } from '@/components/domain/PausedNotice'
 import { useSource } from '@/api/source'
 import { useMemo, useState } from 'react'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
@@ -117,6 +119,7 @@ export function Backlinks() {
           </>
         }
       />
+      <PausedNotice kind="backlinks" />
 
       {noLinksYet ? (
         <Card>
@@ -382,7 +385,7 @@ function BacklinkRow({ b }: { b: Backlink }) {
       </TD>
       <TD>
         <span className="inline-flex items-center gap-1.5">
-          <LinkStatusBadge status={b.status} isNew={b.isNew} />
+          {b.paused ? <Badge tone="outline">Paused</Badge> : <LinkStatusBadge status={b.status} isNew={b.isNew} />}
           {b.lastError && b.status !== 'active' && (
             <Tip content={b.lastError}>
               <Info className="size-3.5 text-fg-4" />

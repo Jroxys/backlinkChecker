@@ -1,3 +1,4 @@
+import { trialDaysLeft } from '@/api/types'
 import { useLocation } from 'react-router-dom'
 import { NavLink, useAppPath } from '@/lib/router'
 import { PanelLeftClose, PanelLeftOpen, ArrowUpRight, X } from 'lucide-react'
@@ -103,8 +104,12 @@ export function Sidebar({
       {!collapsed && me && (
         <div className="mx-3 mb-3 rounded-xl border border-line bg-surface p-3 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-[12px] font-medium text-fg">{me.plan.name} plan</span>
-            {me.user.founding && <span className="text-[11px] text-primary-ink">Founding</span>}
+            <span className="text-[12px] font-medium text-fg">{me.plan.name} {me.trialEndsAt ? 'trial' : 'plan'}</span>
+            {me.trialEndsAt ? (
+              <span className="text-[11px] text-primary-ink">{trialDaysLeft(me.trialEndsAt)} days left</span>
+            ) : (
+              me.user.founding && <span className="text-[11px] text-primary-ink">Founding</span>
+            )}
           </div>
           <div className="mt-2.5 flex items-baseline justify-between text-[11.5px] text-fg-3">
             <span>{tight === 'urls' ? 'Monitored URLs' : 'Tracked backlinks'}</span>
@@ -113,9 +118,9 @@ export function Sidebar({
             </span>
           </div>
           <ProgressBar value={used * 100} tone={used > 0.9 ? 'warning' : 'primary'} className="mt-1.5" />
-          {me.plan.id !== 'agency' && me.team?.role !== 'member' && (
+          {(me.plan.id !== 'agency' || me.trialEndsAt) && me.team?.role !== 'member' && (
             <Link to="/app/settings?tab=billing" onClick={onNavigate} className="mt-2.5 inline-flex items-center gap-1 text-[12px] font-medium text-primary-ink hover:underline">
-              {me.plan.id === 'free' ? 'Upgrade — from $9/mo' : 'Compare plans'} <ArrowUpRight className="size-3" />
+              {me.trialEndsAt ? `Keep ${me.plan.name} — from $${me.plan.founding || me.plan.monthly}/mo` : me.plan.id === 'free' ? 'Upgrade — from $9/mo' : 'Compare plans'} <ArrowUpRight className="size-3" />
             </Link>
           )}
         </div>

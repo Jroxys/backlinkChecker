@@ -116,7 +116,7 @@ export function Signup() {
   return (
     <AuthLayout
       title="Create your account"
-      subtitle={plan && plan !== 'free' ? `Start free, then pick ${plan[0].toUpperCase() + plan.slice(1)} after setup. No card needed now.` : 'Free forever for one site. No credit card.'}
+      subtitle="Every account starts with 14 days of Pro, free. No card — and a free plan for one site after that."
       footer={
         <>
           Already have an account?{' '}

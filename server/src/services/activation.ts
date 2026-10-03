@@ -76,7 +76,7 @@ export async function sendActivationEmails(ctx: Ctx) {
             (SELECT COUNT(*) FROM google_connections g WHERE g.user_id = u.id) AS google,
             (SELECT MAX(sent_at) FROM activation_emails a WHERE a.user_id = u.id) AS last_sent
        FROM users u LEFT JOIN notification_settings s ON s.user_id = u.id
-      WHERE u.created_at >= ? AND u.plan = 'free'
+      WHERE u.created_at >= ? AND (u.plan = 'free' OR u.trial_ends_at IS NOT NULL)
         AND u.id NOT IN (SELECT member_id FROM team_members)`,
     [new Date(now - 14 * DAY).toISOString()],
   )

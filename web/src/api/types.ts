@@ -39,6 +39,10 @@ export interface Me {
   google: { connected: boolean; email: string | null; configured: boolean }
   branding?: Branding
   team?: { role: 'owner' | 'member'; ownerName: string; suspended: boolean }
+  /** Set while the account is on its no-card trial */
+  trialEndsAt?: string | null
+  /** Entries over the plan's limits, kept but not checked */
+  paused?: { urls: number; backlinks: number }
 }
 
 export type CwvMetric = 'lcp' | 'inp' | 'cls' | 'fcp' | 'ttfb'
@@ -59,6 +63,8 @@ export interface Team {
   members: { id: string; name: string; email: string; joinedAt: string }[]
   invites: { id: string; email: string; createdAt: string; expiresAt: string; expired: boolean }[]
 }
+
+export const trialDaysLeft = (iso: string | null | undefined) => (iso ? Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000)) : null)
 
 export interface Branding {
   name: string | null
@@ -96,6 +102,7 @@ export interface Project {
 }
 
 export interface UrlItem {
+  paused?: boolean
   id: string
   url: string
   path: string
@@ -130,6 +137,7 @@ export interface UrlDetailResponse {
 }
 
 export interface Backlink {
+  paused?: boolean
   id: string
   sourceUrl: string
   sourceDomain: string

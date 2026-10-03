@@ -8,7 +8,7 @@ import { useProject } from '@/lib/project'
 import { useAction, useApiKeys, useMe, usePlans, useTeam } from '@/api/hooks'
 import { useSource } from '@/api/source'
 import { ApiError } from '@/api/client'
-import type { PlanId } from '@/api/types'
+import { trialDaysLeft, type PlanId } from '@/api/types'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -239,8 +239,15 @@ function Billing() {
             <div className="flex items-center gap-2">
               <span className="text-[16px] font-semibold text-fg">{me.plan.name} plan</span>
               {me.user.founding && <Badge tone="primary" icon={<Sparkles />}>Founding customer</Badge>}
+              {me.trialEndsAt && <Badge tone="primary">Trial</Badge>}
             </div>
-            <p className="mt-1 text-[13px] text-fg-3">{me.plan.monthly === 0 ? 'Free forever for one site.' : `$${me.user.founding ? me.plan.founding : me.plan.monthly} / month`}</p>
+            <p className="mt-1 text-[13px] text-fg-3">
+              {me.trialEndsAt
+                ? `Free trial — ${trialDaysLeft(me.trialEndsAt)} days left, until ${formatDate(me.trialEndsAt)}. No card on file; you’ll move to Free unless you pick a plan.`
+                : me.plan.monthly === 0
+                  ? 'Free forever for one site.'
+                  : `$${me.user.founding ? me.plan.founding : me.plan.monthly} / month`}
+            </p>
           </div>
         </div>
         <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
@@ -284,7 +291,7 @@ function Billing() {
         {plans.plans
           .filter((p) => p.id !== 'free')
           .map((p) => {
-            const current = p.id === me.plan.id
+            const current = p.id === me.plan.id && !me.trialEndsAt
             const price = cycle === 'yearly' ? Math.round(p.yearly / 12) : foundingLeft > 0 ? p.founding : p.monthly
             return (
               <Card key={p.id} className={cn('flex flex-col p-5', p.id === 'pro' && 'border-primary')}>
@@ -310,7 +317,7 @@ function Billing() {
                   loading={checkout.isPending && checkout.variables?.[0] === p.id}
                   onClick={() => checkout.mutateAsync([p.id as Exclude<PlanId, 'free'>, cycle]).then((r) => (window.location.href = r.url), () => undefined)}
                 >
-                  {current ? 'Current plan' : `Choose ${p.name}`}
+                  {current ? 'Current plan' : me.trialEndsAt && p.id === me.plan.id ? `Keep ${p.name}` : `Choose ${p.name}`}
                 </Button>
               </Card>
             )
