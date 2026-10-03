@@ -19,12 +19,14 @@ FROM node:22-slim
 ENV NODE_ENV=production \
     PORT=8787 \
     DATABASE_PATH=/data/indexora.db \
-    WEB_DIST=/app/web/dist
+    WEB_DIST=/app/web/dist \
+    CONTENT_DIR=/app/content
 WORKDIR /app/server
 COPY --from=server /build/server/dist ./dist
 COPY --from=server /build/server/node_modules ./node_modules
 COPY --from=server /build/server/package.json ./
 COPY --from=web /build/web/dist /app/web/dist
+COPY content /app/content
 RUN mkdir -p /data && chown -R node:node /data
 USER node
 VOLUME ["/data"]

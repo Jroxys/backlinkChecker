@@ -27,6 +27,8 @@ const ForgotPassword = lazy(() => import('./pages/auth/Login').then((m) => ({ de
 const ResetPassword = lazy(() => import('./pages/auth/Login').then((m) => ({ default: m.ResetPassword })))
 const Join = lazy(() => import('./pages/auth/Join').then((m) => ({ default: m.Join })))
 const PublicReport = lazy(() => import('./pages/PublicReport').then((m) => ({ default: m.PublicReport })))
+const BlogIndex = lazy(() => import('./pages/marketing/Blog').then((m) => ({ default: m.BlogIndex })))
+const BlogPost = lazy(() => import('./pages/marketing/Blog').then((m) => ({ default: m.BlogPost })))
 const Tools = lazy(() => import('./pages/marketing/Tools').then((m) => ({ default: m.Tools })))
 const Legal = lazy(() => import('./pages/marketing/Legal').then((m) => ({ default: m.Legal })))
 const NotFound = lazy(() => import('./pages/NotFound').then((m) => ({ default: m.NotFound })))
@@ -37,6 +39,8 @@ export function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/tools" element={<Tools />} />
+        <Route path="/blog" element={<BlogIndex />} />
+        <Route path="/blog/:slug" element={<BlogPost />} />
         <Route path="/tools/:slug" element={<Tools />} />
         <Route path="/privacy" element={<Legal page="privacy" />} />
         <Route path="/terms" element={<Legal page="terms" />} />

@@ -211,3 +211,20 @@ Kurucu panelinin e-postayla belirlenmesi ve e-posta doğrulamasının olmaması 
   - Az trafikli siteler CrUX'ta görünmüyor; bu durum hata gibi değil, açıklamasıyla gösteriliyor.
   - `CRUX_API_KEY` yoksa kart tamamen gizleniyor.
 - **Test edilebilirlik:** sandbox CrUX'a erişemiyor. İstemci `fetch` enjekte edilebilir şekilde yazıldı ve testler belgelenmiş yanıt biçimiyle çalışıyor.
+
+### K33 · Blog: depodaki Markdown, sunucu tarafında önceden işleme
+- **Neden:** LANSMAN.md'ye göre 0 müşteride ana kanal içerik ve SEO, ama yayın yapacak bir yer yoktu.
+- **Seçenekler:**
+  - (a) Ayrı bir CMS veya Ghost: ayrı alan adı ve ayrı bakım; ayrıca alt alan adı ana alan adının otoritesini paylaşmaz.
+  - (b) Depoda Markdown: yazmak bir dosya eklemek kadar kolay, sürüm kontrolü bedava, tek dağıtım.
+- **Karar:** (b).
+  - Sunucu `content/blog/*.md` dosyalarını `marked` ile işliyor.
+  - Makale sayfaları tarayıcılar için önceden işlenmiş HTML olarak sunuluyor: başlık, açıklama, `og:type=article`, Article JSON-LD ve `#root` içinde makalenin kendisi. React yüklenince bu içeriği yeniden çiziyor.
+  - Gelecek tarihli yazılar o güne kadar gizli kalıyor (zamanlanmış yayın), `draft: true` olanlar hiç yayınlanmıyor.
+  - Site haritasında yazılar `lastmod` ile yer alıyor.
+- **İlk üç yazı** ücretsiz araçların çözdüğü uzun kuyruk sorunları hedefliyor:
+  1. Backlink hâlâ duruyor mu nasıl kontrol edilir?
+  2. "Crawled – currently not indexed" ne demek?
+  3. Taşıma sonrası yönlendirme kontrol listesi
+  Her yazı ilgili ücretsiz araca ve ürüne bağlanıyor. Kural: önce gerçekten faydalı bir rehber, en sonda tek bir yumuşak çağrı.
+- **Yan bulgu:** `Container` bileşeninde `max-w-*` sınıfları çakışıyordu; araç ve yasal sayfalar da bu yüzden olması gerekenden geniş görünüyordu. Düzeltildi.

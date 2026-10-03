@@ -82,3 +82,23 @@ Kayıt olup takılanlara otomatik hatırlatma gidiyor: 1. gün site ekle, 3. gü
 - Mobil uygulama.
 
 Kural: **bir özelliği ancak iki ödeyen müşteri isterse yap.**
+
+## 8. Blog nasıl yazılır?
+
+Yeni bir yazı için `content/blog/<url-adi>.md` dosyası ekle ve dağıt:
+
+```
+---
+title: Başlık (60 karakter civarı)
+description: Arama sonucunda görünen açıklama (150–160 karakter)
+date: 2026-10-10        # bu tarihten önce görünmez, yani yazıyı zamanlayabilirsin
+---
+Metin (Markdown)…
+```
+
+**İpuçları:**
+- Her yazı tek bir aramaya cevap versin.
+- Aranan bir sorunla başla ve çözümü adım adım ver.
+- Uygun yerde ücretsiz araçlardan birine bağlantı ver.
+- Sonda tek bir yumuşak çağrı yeter.
+- Haftada bir yazı, ayda dört yazıdan iyidir.

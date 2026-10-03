@@ -19,6 +19,8 @@ export const config = {
   crawlerAllowPrivate: bool(env.CRAWLER_ALLOW_PRIVATE, false) && env.NODE_ENV !== 'production',
   /** Built web app to serve (vite build output). Empty = API only. */
   webDist: env.WEB_DIST ?? '../web/dist',
+  /** Markdown content (blog). */
+  contentDir: env.CONTENT_DIR ? env.CONTENT_DIR + '/blog' : '../content/blog',
   google: {
     clientId: env.GOOGLE_CLIENT_ID ?? '',
     clientSecret: env.GOOGLE_CLIENT_SECRET ?? '',

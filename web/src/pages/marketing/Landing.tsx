@@ -37,7 +37,8 @@ import { formatShortDate } from '@/utils/format'
 import { usePageTitle } from '@/hooks/usePageTitle'
 
 export function Container({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn('mx-auto w-full max-w-[1200px] px-4 sm:px-6', className)}>{children}</div>
+  // cn() doesn't merge Tailwind classes, so a caller's max-w-* must replace the default rather than compete with it
+  return <div className={cn('mx-auto w-full px-4 sm:px-6', !/(^|\s)max-w-/.test(className ?? '') && 'max-w-[1200px]', className)}>{children}</div>
 }
 
 function SectionHeading({ eyebrow, title, description, center }: { eyebrow: string; title: ReactNode; description?: string; center?: boolean }) {
@@ -80,10 +81,10 @@ export function Nav() {
   const links = [
     ['Product', '#product'],
     ['Features', '#features'],
-    ['Automations', '#automations'],
     ['Pricing', '#pricing'],
     ['FAQ', '#faq'],
     ['Free tools', '/tools'],
+    ['Blog', '/blog'],
   ]
   return (
     <header className="sticky top-0 z-50 border-b border-line/70 bg-bg/80 backdrop-blur-md">
@@ -796,7 +797,7 @@ function FinalCta() {
 
 export function Footer() {
   const cols: [string, [string, string][]][] = [
-    ['Product', [['Features', '/#features'], ['Pricing', '/#pricing'], ['Live demo', '/demo'], ['FAQ', '/#faq']]],
+    ['Product', [['Features', '/#features'], ['Pricing', '/#pricing'], ['Live demo', '/demo'], ['FAQ', '/#faq'], ['Blog', '/blog']]],
     ['Free tools', [['Backlink checker', '/tools/backlink-checker'], ['Indexability checker', '/tools/indexability-checker'], ['Redirect checker', '/tools/redirect-checker'], ['SSL checker', '/tools/ssl-checker']]],
     ['Legal', [['Privacy', '/privacy'], ['Terms', '/terms']]],
   ]
