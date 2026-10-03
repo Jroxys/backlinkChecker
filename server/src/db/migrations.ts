@@ -332,4 +332,15 @@ export const migrations: { id: number; name: string; sql: string }[] = [
       );
     `,
   },
+  {
+    id: 12,
+    name: 'report_sharing',
+    sql: `
+      -- Capability URL for a read-only client report; NULL = sharing off.
+      ALTER TABLE projects ADD COLUMN report_token TEXT;
+      CREATE UNIQUE INDEX projects_report_token ON projects(report_token) WHERE report_token IS NOT NULL;
+      ALTER TABLE notification_settings ADD COLUMN monthly_report INTEGER NOT NULL DEFAULT 1;
+      ALTER TABLE users ADD COLUMN last_report_month TEXT;
+    `,
+  },
 ]

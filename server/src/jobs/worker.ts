@@ -7,6 +7,7 @@ import { getPlan } from '../plans.js'
 import { snapshotAll } from '../services/stats.js'
 import { sendWeeklySummaries } from '../services/summary.js'
 import { sendActivationEmails } from '../services/activation.js'
+import { sendMonthlyReports } from '../services/report.js'
 import { checkRobots } from '../services/robots.js'
 import { claim, complete, enqueue, fail, prune, recoverStale, type Job } from './queue.js'
 
@@ -48,6 +49,7 @@ export const handlers: Record<string, Handler> = {
   'stats.snapshot': async (ctx) => snapshotAll(ctx),
   'summary.weekly': (ctx) => sendWeeklySummaries(ctx),
   'activation.sweep': (ctx) => sendActivationEmails(ctx),
+  'reports.monthly': (ctx) => sendMonthlyReports(ctx),
   /** robots.txt for every project, hourly: a bad Disallow can de-index a site overnight. */
   'robots.sweep': async (ctx) => {
     const ps = ctx.db.all<{ id: string }>('SELECT id FROM projects')
@@ -106,6 +108,8 @@ export function startWorker(ctx: Ctx, { concurrency = 3, pollMs = 2000 } = {}) {
     const d = new Date()
     if (d.getHours() === 8 && d.getMinutes() === 0) enqueue(ctx.db, 'alerts.digest', {}, { dedupeKey: `digest:${d.toDateString()}` })
     // Weekly summary on Monday mornings (per-user guard prevents duplicates)
+    // Monthly report on the 1st (per-user month guard prevents duplicates)
+    if (d.getDate() === 1 && d.getHours() === 9 && d.getMinutes() < 2) enqueue(ctx.db, 'reports.monthly', {}, { dedupeKey: `reports:${d.toDateString()}` })
     if (d.getDay() === 1 && d.getHours() === 8 && d.getMinutes() < 2) enqueue(ctx.db, 'summary.weekly', {}, { dedupeKey: `summary:${d.toDateString()}` })
   }
 

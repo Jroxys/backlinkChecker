@@ -38,6 +38,7 @@ export function metaFor(path: string): PageMeta {
   const clean = path.replace(/\/+$/, '') || '/'
   if (pages[clean]) return pages[clean]
   if (clean.startsWith('/demo/')) return { ...pages['/demo'], index: false }
+  if (clean.startsWith('/r/')) return { title: 'SEO report', description: 'A read-only SEO report.', index: false }
   return { title: 'Indexora', description: pages['/'].description, index: false }
 }
 
@@ -48,7 +49,7 @@ export function injectHead(html: string, path: string, appUrl: string) {
     `<meta name="description" content="${esc(m.description)}" />`,
     m.index ? `<link rel="canonical" href="${esc(url)}" />` : `<meta name="robots" content="noindex, nofollow" />`,
     `<meta property="og:type" content="website" />`,
-    `<meta property="og:site_name" content="Indexora" />`,
+    ...(path.startsWith('/r/') ? [] : [`<meta property="og:site_name" content="Indexora" />`]),
     `<meta property="og:title" content="${esc(m.title)}" />`,
     `<meta property="og:description" content="${esc(m.description)}" />`,
     `<meta property="og:url" content="${esc(url)}" />`,
@@ -61,7 +62,7 @@ export function injectHead(html: string, path: string, appUrl: string) {
 }
 
 export function robotsTxt(appUrl: string) {
-  return `User-agent: *\nAllow: /\nDisallow: /app\nDisallow: /api/\nDisallow: /demo/\n\nSitemap: ${appUrl.replace(/\/$/, '')}/sitemap.xml\n`
+  return `User-agent: *\nAllow: /\nDisallow: /app\nDisallow: /api/\nDisallow: /demo/\nDisallow: /r/\n\nSitemap: ${appUrl.replace(/\/$/, '')}/sitemap.xml\n`
 }
 
 export function sitemapXml(appUrl: string) {

@@ -35,8 +35,8 @@ alertRoutes.post('/read-all', (c) => {
 })
 
 alertRoutes.get('/settings', (c) => {
-  const s = c.var.ctx.db.get('SELECT email, slack_webhook AS slackWebhook, webhook_url AS webhookUrl, digest, min_severity AS minSeverity FROM notification_settings WHERE user_id = ?', [c.var.account.id])
-  return c.json({ settings: s ?? { email: 1, slackWebhook: null, webhookUrl: null, digest: 0, minSeverity: 'warning' } })
+  const s = c.var.ctx.db.get('SELECT email, slack_webhook AS slackWebhook, webhook_url AS webhookUrl, digest, min_severity AS minSeverity, monthly_report AS monthlyReport FROM notification_settings WHERE user_id = ?', [c.var.account.id])
+  return c.json({ settings: s ?? { email: 1, slackWebhook: null, webhookUrl: null, digest: 0, minSeverity: 'warning', monthlyReport: 1 } })
 })
 
 const settingsSchema = z.object({
@@ -45,6 +45,7 @@ const settingsSchema = z.object({
   webhookUrl: z.string().url().startsWith('https://').nullable().optional(),
   digest: z.boolean().optional(),
   minSeverity: z.enum(['info', 'warning', 'critical']).optional(),
+  monthlyReport: z.boolean().optional(),
 })
 
 alertRoutes.put('/settings', async (c) => {
@@ -60,7 +61,8 @@ alertRoutes.put('/settings', async (c) => {
        slack_webhook = CASE WHEN :setSlack THEN :slack ELSE slack_webhook END,
        webhook_url = CASE WHEN :setHook THEN :hook ELSE webhook_url END,
        digest = COALESCE(:digest, digest),
-       min_severity = COALESCE(:min, min_severity)
+       min_severity = COALESCE(:min, min_severity),
+       monthly_report = COALESCE(:monthly, monthly_report)
      WHERE user_id = :u`,
     {
       u: c.var.account.id,
@@ -71,6 +73,7 @@ alertRoutes.put('/settings', async (c) => {
       hook: input.webhookUrl ?? null,
       digest: input.digest === undefined ? null : input.digest ? 1 : 0,
       min: input.minSeverity ?? null,
+      monthly: input.monthlyReport === undefined ? null : input.monthlyReport ? 1 : 0,
     },
   )
   return c.json({ ok: true })
