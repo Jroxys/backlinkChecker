@@ -48,7 +48,7 @@ export function Indexing() {
             {source.mode === 'live' && project && (
               <a href={`/api/projects/${project.id}/export/urls.csv`} download>
                 <Button variant="ghost" leftIcon={<Download />}>
-                  Export CSV
+                  Export
                 </Button>
               </a>
             )}

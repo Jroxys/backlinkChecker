@@ -1,3 +1,4 @@
+import { enqueue } from '../jobs/queue.js'
 import type { Ctx } from '../context.js'
 import { FetchError } from '../lib/fetcher.js'
 import { analyzeHtml, findBacklink, type Rel } from '../lib/html.js'
@@ -104,6 +105,8 @@ export function addBacklinks(ctx: Ctx, projectId: string, items: NewBacklinkInpu
       else skipped.push({ sourceUrl: item.sourceUrl, reason: 'duplicate' })
     }
   })
+  // Check new entries now rather than at the next periodic sweep (same dedupe key, so never doubled).
+  if (created.length) enqueue(ctx.db, 'backlinks.sweep', {}, { dedupeKey: 'periodic:backlinks.sweep' })
   return { created, skipped }
 }
 

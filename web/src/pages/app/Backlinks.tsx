@@ -104,7 +104,7 @@ export function Backlinks() {
             {source.mode === 'live' && project && (
               <a href={`/api/projects/${project.id}/export/backlinks.csv`} download>
                 <Button variant="ghost" leftIcon={<Download />}>
-                  Export CSV
+                  Export
                 </Button>
               </a>
             )}

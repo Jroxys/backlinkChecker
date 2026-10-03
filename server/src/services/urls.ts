@@ -1,3 +1,4 @@
+import { enqueue } from '../jobs/queue.js'
 import type { Ctx } from '../context.js'
 import { analyzeHtml } from '../lib/html.js'
 import { addHours, id } from '../lib/ids.js'
@@ -68,6 +69,8 @@ export function addUrls(ctx: Ctx, projectId: string, rawUrls: string[], source: 
       }
     }
   })
+  // Check new entries now rather than at the next periodic sweep (same dedupe key, so never doubled).
+  if (created.length) enqueue(ctx.db, 'urls.sweep', {}, { dedupeKey: 'periodic:urls.sweep' })
   return { created, skipped }
 }
 
