@@ -2,7 +2,7 @@ import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import { z } from 'zod'
 import { ApiError, body, ownerOnly, requireUser, router } from '../http.js'
 import { randomBytes } from 'node:crypto'
-import { RateLimiter, SESSION_COOKIE, createSession, destroySession, hashPassword, sha256, verifyPassword } from '../lib/auth.js'
+import { RateLimiter, SESSION_COOKIE, clientIp, createSession, destroySession, hashPassword, sha256, verifyPassword } from '../lib/auth.js'
 import { addHours, id, now } from '../lib/ids.js'
 import { getPlan } from '../plans.js'
 import { usageFor } from '../services/usage.js'
@@ -27,7 +27,7 @@ const loginSchema = z.object({ email: z.string().trim().toLowerCase().email(), p
 export const authRoutes = router()
 
 function ip(c: { req: { header: (k: string) => string | undefined } }) {
-  return c.req.header('x-forwarded-for')?.split(',')[0].trim() ?? 'local'
+  return clientIp((k) => c.req.header(k))
 }
 
 authRoutes.post('/signup', async (c) => {

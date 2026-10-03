@@ -62,7 +62,7 @@ Alan adın için SPF/DKIM kayıtlarını eklemeyi unutma, yoksa alarmlar spam'e 
    `starter_monthly ($12)`, `starter_yearly ($120)`, `pro_monthly ($29)`, `pro_yearly ($290)`, `agency_monthly ($79)`, `agency_yearly ($790)`
    ve kurucu varyantları: `starter_monthly_founding ($9)`, `pro_monthly_founding ($19)`, `agency_monthly_founding ($49)`.
 3. Her varyantın "buy link"ini `LEMONSQUEEZY_CHECKOUT_URLS` JSON'una yaz.
-4. Varyant ID → plan eşlemesini `LEMONSQUEEZY_VARIANT_PLANS` içine yaz: `{"123":"starter","124":"starter","125":"pro",...}`
+4. Varyant ID → plan eşlemesini `LEMONSQUEEZY_VARIANT_PLANS` içine yaz: `{"123":"starter","124":"starter:founding","125":"pro",...}` — kurucu fiyatlı varyantlara `:founding` ekle; kurucu rozeti yalnızca buradan belirlenir
 5. Webhook: `https://app.alanadin.com/api/billing/webhooks/lemonsqueezy`
    Olaylar: `subscription_created`, `subscription_updated`, `subscription_resumed`, `subscription_expired`. İmzalama anahtarını `LEMONSQUEEZY_WEBHOOK_SECRET`'e yaz.
 6. Müşteri portalı linkini `LEMONSQUEEZY_PORTAL_URL`'e yaz.
@@ -96,3 +96,9 @@ Veritabanı göçleri (migration) açılışta otomatik çalışır.
 ## Alternatif: Fly.io
 
 `deploy/fly.toml` hazır. Worker'ın sürekli çalışması gerektiği için `auto_stop_machines = "off"` olmalı.
+
+## Güvenlik notları (yayına almadan önce)
+
+- **`ADMIN_EMAILS`:** kayıtta e-posta doğrulaması yok. Bu yüzden kurucu panelindeki e-posta adresiyle hesabı yayına almadan **önce kendin aç**. Aksi halde o adresi önce kaydeden kişi metrikleri görür.
+- **Ters vekil sunucu:** uygulama tam olarak **bir** ters vekil sunucunun (Caddy veya Fly) arkasında çalışmalı. Hız sınırları `X-Forwarded-For` başlığındaki **son** adresi kullanır; o adresi vekil sunucu ekler. Uygulamayı doğrudan internete açarsan bu başlığı istemci yazabilir ve hız sınırları anlamsızlaşır.
+- **`LEMONSQUEEZY_VARIANT_PLANS`:** kurucu fiyatlı varyantları `"pro:founding"` biçiminde işaretle. Kurucu rozeti yalnızca satın alınan varyanttan belirlenir.

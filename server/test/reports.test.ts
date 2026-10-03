@@ -64,3 +64,23 @@ test('monthly report: paid plans, once per month, respects opt-out, includes the
   await t.api.put('/api/alerts/settings', { monthlyReport: true })
   assert.equal((await sendMonthlyReports(t.ctx)).sent, 0, 'free plan')
 })
+
+test('monthly report: a failed send is retried on the next run and does not block other users', async () => {
+  const t = await setup()
+  const other = client(t.ctx)
+  await other.post('/api/auth/signup', { email: 'two@example.com', name: 'Two', password: 'correct horse battery' })
+  t.ctx.db.run("UPDATE users SET plan = 'starter'")
+  await other.post('/api/projects', { domain: 'two.com' })
+  const real = t.ctx.notifier.email.bind(t.ctx.notifier)
+  t.ctx.notifier.email = async (to, subject, text) => {
+    if (to === 'own@example.com') throw new Error('mailbox full')
+    return real(to, subject, text)
+  }
+  assert.equal((await sendMonthlyReports(t.ctx)).sent, 1, 'the other user still gets theirs')
+  t.ctx.notifier.email = real
+  assert.equal((await sendMonthlyReports(t.ctx)).sent, 1, 'the failed one is retried')
+  assert.equal((await sendMonthlyReports(t.ctx)).sent, 0)
+  t.advance(24 * 5) // Oct 7: outside the first three days
+  t.ctx.db.run('UPDATE users SET last_report_month = NULL')
+  assert.equal((await sendMonthlyReports(t.ctx)).sent, 0)
+})

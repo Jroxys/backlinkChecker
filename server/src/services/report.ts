@@ -56,7 +56,9 @@ export type Report = NonNullable<ReturnType<typeof buildReport>>
  * First of the month: a plain-text report per project for plans that include reports.
  * Paid plans only, opt-out under Alerts, and at most once per calendar month per user.
  */
-export async function sendMonthlyReports(ctx: Ctx) {
+export async function sendMonthlyReports(ctx: Ctx, { anyDay = false } = {}) {
+  // Runs hourly; only the first three days of a month (UTC) count, so a failed send or a down server gets retried.
+  if (!anyDay && ctx.now().getUTCDate() > 3) return { sent: 0 }
   const month = ctx.now().toISOString().slice(0, 7)
   const users = ctx.db.all<{ id: string; email: string; name: string; plan: string; enabled: number | null; last: string | null }>(
     `SELECT u.id, u.email, u.name, u.plan, s.monthly_report AS enabled, u.last_report_month AS last
@@ -68,13 +70,19 @@ export async function sendMonthlyReports(ctx: Ctx) {
     if (u.enabled === 0 || u.last === month || !getPlan(u.plan).features.reports) continue
     const projects = ctx.db.all<{ id: string; report_token: string | null }>('SELECT id, report_token FROM projects WHERE user_id = ? ORDER BY created_at', [u.id])
     const sections = projects.map((p) => reportText(ctx, buildReport(ctx, p.id)!, p.report_token))
+    try {
+      await ctx.notifier.email(
+        u.email,
+        `Your monthly SEO report — ${new Date(ctx.now().getTime() - DAY).toLocaleString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })}`,
+        `Hi ${u.name.split(' ')[0] || 'there'},\n\nHere’s the last 30 days for your sites.\n\n${sections.join('\n\n')}\n\n` +
+          `Open the full printable report: ${ctx.config.appUrl}/app/reports\n\nYou get this on the 1st of each month. Turn it off under Alerts → Email alerts.`,
+      )
+    } catch (e) {
+      // One bad mailbox must not stop everyone else's report; this user is retried on the next run.
+      console.error('[reports] monthly email failed', u.id, e)
+      continue
+    }
     ctx.db.run('UPDATE users SET last_report_month = ? WHERE id = ?', [month, u.id])
-    await ctx.notifier.email(
-      u.email,
-      `Your monthly SEO report — ${new Date(ctx.now().getTime() - DAY).toLocaleString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })}`,
-      `Hi ${u.name.split(' ')[0] || 'there'},\n\nHere’s the last 30 days for your sites.\n\n${sections.join('\n\n')}\n\n` +
-        `Open the full printable report: ${ctx.config.appUrl}/app/reports\n\nYou get this on the 1st of each month. Turn it off under Alerts → Email alerts.`,
-    )
     sent++
   }
   return { sent }

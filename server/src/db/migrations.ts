@@ -363,4 +363,12 @@ export const migrations: { id: number; name: string; sql: string }[] = [
       );
     `,
   },
+  {
+    id: 14,
+    name: 'subscription_id',
+    sql: `
+      -- The Lemon Squeezy subscription the current plan comes from; events for other subscriptions are ignored.
+      ALTER TABLE users ADD COLUMN subscription_id TEXT;
+    `,
+  },
 ]

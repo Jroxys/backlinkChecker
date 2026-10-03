@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import { ApiError, notFound, ownedProject, requireUser, router } from '../http.js'
-import { RateLimiter } from '../lib/auth.js'
+import { RateLimiter, clientIp } from '../lib/auth.js'
 import { getPlan } from '../plans.js'
 import { buildReport } from '../services/report.js'
 import { keywordsFor } from '../services/keywords.js'
@@ -14,7 +14,7 @@ const limiters = new WeakMap<object, RateLimiter>()
 reportRoutes.get('/reports/:token', (c) => {
   const { ctx } = c.var
   if (!limiters.has(ctx)) limiters.set(ctx, new RateLimiter(120, 60 * 60_000))
-  const ip = c.req.header('x-forwarded-for')?.split(',')[0]?.trim() || 'local'
+  const ip = clientIp((k) => c.req.header(k))
   if (!limiters.get(ctx)!.take(ip)) throw new ApiError(429, 'rate_limited', 'Too many requests')
   const p = ctx.db.get<{ id: string; plan: string }>(
     'SELECT p.id, u.plan FROM projects p JOIN users u ON u.id = p.user_id WHERE p.report_token = ?',

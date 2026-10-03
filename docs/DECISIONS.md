@@ -168,3 +168,23 @@ Her kararda önce seçenekleri, sonra kendi itirazlarımı yazıyorum. Yeni kara
   - Kök alan adında HTTPS yoksa `www.` deneniyor.
   - RDAP her TLD'de yayınlanmıyor; o durumda "bu kayıt otoritesi yayınlamıyor" deniyor, hata verilmiyor.
 - **Güvenlik:** TLS bağlantısı da tarayıcıyla aynı bağlantı anı DNS korumasını (`guardedLookup`) kullanıyor; ortak kod tek yere taşındı.
+
+### K30 · Bağımsız güvenlik incelemesinin bulguları ve düzeltmeler
+Yeni yetki yüzeylerini (API anahtarları, ekipler, herkese açık raporlar) ve faturalandırmayı ayrı bir ajana inceletttim. Bulunan ve düzeltilen sorunlar:
+1. **Abonelik iptal edilince plan anında ücretsize düşüyordu.** Müşteri parasını ödediği süreyi kaybediyordu. Artık "cancelled" durumu dönem sonuna kadar ücretli sayılıyor; plan yalnızca süre dolunca veya ödeme alınamayınca düşüyor.
+2. **Kurucu rozeti satın alma sayfası adresinden taklit edilebiliyordu** (`custom_data`). Artık yalnızca satın alınan varyanttan (`pro:founding`) belirleniyor.
+3. **Eski bir aboneliğe ait geç gelen olaylar** yeni planı bozabiliyordu. `subscription_id` saklanıyor; yalnızca güncel aboneliğin olayları planı değiştirebiliyor.
+4. **Ekip üyelerine "henüz site eklemedin" e-postası gidiyordu.** Üyeler artık aktivasyon e-postalarının dışında.
+5. **Birden fazla yönlendirici aynı yolu eşleştirdiği için kimlik doğrulama bir istekte 5 kez çalışıyordu.** API anahtarı sınırı fiilen 120 yerine yaklaşık 24'e düşüyordu. Artık istek başına bir kez çalışıyor.
+6. **Koltuk sınırındayken aynı kişiyi yeniden davet etmek** önce eski daveti siliyor, sonra 402 döndürüyordu; davet kayboluyordu. Kontrol artık silmeden önce yapılıyor.
+7. **Aylık rapor:**
+   - Gönderim hatası tüm işi durduruyor ve kullanıcıyı "gönderildi" olarak işaretliyordu.
+   - İş yerel saat dilimine bağlı 2 dakikalık tek bir pencerede çalışıyordu.
+   - Artık saatlik çalışıyor ve ayın ilk üç günü (UTC) geçerli. Kullanıcı yalnızca başarılı gönderimden sonra işaretleniyor, hatalar kullanıcı bazında yakalanıyor. Özet ve günlük bülten de UTC'ye geçti.
+8. **Uyarı ayarları:**
+   - Ekip üyeleri ve sızmış bir API anahtarı uyarıların gideceği webhook adresini değiştirip tüm uyarı verisini kendine yönlendirebiliyordu.
+   - Artık ayarları yalnızca hesap sahibi değiştirebiliyor; uyarı hedefleri ise yalnızca tarayıcı oturumuyla değişebiliyor.
+9. **Hız sınırları** istemcinin yazabildiği ilk `X-Forwarded-For` değerine bakıyordu, giriş denemelerinin sınırı da buna dahildi. Artık vekil sunucunun eklediği son değer kullanılıyor ve sınırlayıcı bellek tablosu temizleniyor.
+10. **Bekleyen davetleri olan biri başka bir ekibe katılabiliyordu.** Bu artık engelli.
+
+Kurucu panelinin e-postayla belirlenmesi ve e-posta doğrulamasının olmaması DEPLOY.md'de belgelendi: yönetici hesabını yayından önce kendin aç.

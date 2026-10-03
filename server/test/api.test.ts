@@ -119,13 +119,13 @@ test('public plans endpoint exposes founding seats', async () => {
 test('Lemon Squeezy webhook: rejects bad signature, upgrades on valid event', async () => {
   const { createHmac } = await import('node:crypto')
   const { ctx } = testCtx()
-  ctx.config = { ...ctx.config, lemonSqueezy: { ...ctx.config.lemonSqueezy, webhookSecret: 'whsec', variantPlans: { '42': 'pro' } } }
+  ctx.config = { ...ctx.config, lemonSqueezy: { ...ctx.config.lemonSqueezy, webhookSecret: 'whsec', variantPlans: { '42': 'pro:founding' } } }
   const api = client(ctx)
   await signup(api)
   const userId = ctx.db.get<{ id: string }>('SELECT id FROM users')!.id
   const payload = JSON.stringify({
-    meta: { event_name: 'subscription_created', custom_data: { user_id: userId, founding: '1' } },
-    data: { attributes: { variant_id: 42, status: 'active', renews_at: '2026-11-02T00:00:00Z', customer_id: 7 } },
+    meta: { event_name: 'subscription_created', custom_data: { user_id: userId } },
+    data: { id: 'sub_1', attributes: { variant_id: 42, status: 'active', renews_at: '2026-11-02T00:00:00Z', customer_id: 7 } },
   })
   const bad = await api.post('/api/billing/webhooks/lemonsqueezy', payload, { 'x-signature': 'deadbeef', 'content-type': 'application/json', origin: 'https://lemonsqueezy.com' })
   assert.equal(bad.status, 401)

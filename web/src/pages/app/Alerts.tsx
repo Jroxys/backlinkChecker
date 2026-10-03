@@ -170,8 +170,10 @@ function NotificationPrefs() {
   const canSlack = me?.plan.features.slack
   const canHook = me?.plan.features.webhooks
 
+  const member = me?.team?.role === 'member'
   return (
-    <div className="space-y-4">
+    <fieldset disabled={member} className={cn('min-w-0 space-y-4', member && 'opacity-70')}>
+      {member && <p className="rounded-lg border border-line bg-surface-2 px-4 py-3 text-[13px] text-fg-2">Notification settings belong to {me?.team?.ownerName}, the workspace owner.</p>}
       <Card>
         <CardHeader title="How we notify you" icon={<Settings2 />} />
         <div className="mt-3 divide-y divide-line-soft border-t border-line-soft">
@@ -235,7 +237,7 @@ function NotificationPrefs() {
           </Button>
         </div>
       </Card>
-    </div>
+    </fieldset>
   )
 }
 

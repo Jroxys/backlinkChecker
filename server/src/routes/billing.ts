@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { z } from 'zod'
 import { ApiError, body, ownerOnly, requireUser, router } from '../http.js'
-import { getPlan, plans, type PlanId } from '../plans.js'
+import { plans, type PlanId } from '../plans.js'
 import { track } from '../services/events.js'
 
 export const FOUNDING_SEATS = 100
@@ -26,7 +26,6 @@ billingRoutes.post('/checkout', requireUser, ownerOnly, async (c) => {
   u.searchParams.set('checkout[email]', c.var.user.email)
   u.searchParams.set('checkout[name]', c.var.user.name)
   u.searchParams.set('checkout[custom][user_id]', c.var.user.id)
-  u.searchParams.set('checkout[custom][founding]', founding ? '1' : '0')
   track(db, 'checkout_started', c.var.user.id)
   return c.json({ url: u.href, founding })
 })
@@ -51,36 +50,44 @@ billingRoutes.post('/webhooks/lemonsqueezy', async (c) => {
   if (sig.length !== expected.length || !timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) throw new ApiError(401, 'bad_signature', 'Invalid signature')
 
   const evt = JSON.parse(raw) as {
-    meta: { event_name: string; custom_data?: { user_id?: string; founding?: string } }
-    data: { attributes: { variant_id?: number; status?: string; renews_at?: string | null; ends_at?: string | null; customer_id?: number } }
+    meta: { event_name: string; custom_data?: { user_id?: string } }
+    data: { id?: string | number; attributes: { variant_id?: number; status?: string; renews_at?: string | null; ends_at?: string | null; customer_id?: number } }
   }
   const userId = evt.meta.custom_data?.user_id
   if (!userId) return c.json({ ignored: 'no user id' })
+  const user = db.get<{ id: string; subscription_id: string | null }>('SELECT id, subscription_id FROM users WHERE id = ?', [userId])
+  if (!user) return c.json({ ignored: 'unknown user' })
   const a = evt.data.attributes
-  const plan = config.lemonSqueezy.variantPlans[String(a.variant_id)] as PlanId | undefined
-  const active = ['active', 'on_trial', 'past_due'].includes(a.status ?? '')
+  const subId = evt.data.id === undefined ? null : String(evt.data.id)
+  // Variant map values are "pro" or "pro:founding". Founding comes from what was bought, never from client-editable checkout data.
+  const [planKey, tag] = (config.lemonSqueezy.variantPlans[String(a.variant_id)] ?? '').split(':')
+  const plan = planKey && planKey in plans && planKey !== 'free' ? (planKey as PlanId) : undefined
+  const founding = tag === 'founding'
+  // "cancelled" means it won't renew; the customer keeps what they paid for until it expires.
+  const paid = ['active', 'on_trial', 'past_due', 'cancelled'].includes(a.status ?? '')
+  // Only the subscription the plan currently comes from may change it (late or replayed events for an old one are ignored).
+  const current = !user.subscription_id || !subId || user.subscription_id === subId
+  const name = evt.meta.event_name
 
-  switch (evt.meta.event_name) {
+  switch (name) {
     case 'subscription_created':
     case 'subscription_updated':
     case 'subscription_resumed':
-      if (plan && active) {
-        if (evt.meta.event_name === 'subscription_created') track(db, 'subscribed', userId)
-        db.run('UPDATE users SET plan = ?, plan_renews_at = ?, billing_customer_id = COALESCE(?, billing_customer_id), founding = CASE WHEN ? = 1 THEN 1 ELSE founding END WHERE id = ?', [
-          getPlan(plan).id,
-          a.renews_at ?? null,
-          a.customer_id ? String(a.customer_id) : null,
-          evt.meta.custom_data?.founding === '1' ? 1 : 0,
-          userId,
-        ])
-      } else if (!active) db.run("UPDATE users SET plan = 'free' WHERE id = ?", [userId])
+      if (name !== 'subscription_created' && !current) return c.json({ ignored: 'not the current subscription' })
+      if (plan && paid) {
+        if (name === 'subscription_created') track(db, 'subscribed', userId)
+        db.run(
+          'UPDATE users SET plan = ?, plan_renews_at = ?, billing_customer_id = COALESCE(?, billing_customer_id), subscription_id = COALESCE(?, subscription_id), founding = CASE WHEN ? = 1 THEN 1 ELSE founding END WHERE id = ?',
+          [plan, a.ends_at ?? a.renews_at ?? null, a.customer_id ? String(a.customer_id) : null, subId, founding ? 1 : 0, userId],
+        )
+      } else if (!paid && current) db.run("UPDATE users SET plan = 'free', plan_renews_at = NULL WHERE id = ?", [userId])
       break
     case 'subscription_expired':
-      // Cancelled subscriptions stay active until the period ends; only expiry downgrades.
-      db.run("UPDATE users SET plan = 'free', plan_renews_at = NULL WHERE id = ?", [userId])
+      if (!current) return c.json({ ignored: 'not the current subscription' })
+      db.run("UPDATE users SET plan = 'free', plan_renews_at = NULL, subscription_id = NULL WHERE id = ?", [userId])
       break
     default:
-      return c.json({ ignored: evt.meta.event_name })
+      return c.json({ ignored: name })
   }
   return c.json({ ok: true })
 })

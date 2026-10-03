@@ -80,6 +80,8 @@ const schedule: { kind: string; everyMinutes: number }[] = [
   { kind: 'robots.sweep', everyMinutes: 60 },
   { kind: 'activation.sweep', everyMinutes: 60 },
   { kind: 'health.sweep', everyMinutes: 60 },
+  // Monthly report: hourly, but it only sends on days 1–3 (UTC) and once per user per month.
+  { kind: 'reports.monthly', everyMinutes: 60 },
   { kind: 'maintenance', everyMinutes: 30 },
 ]
 
@@ -108,13 +110,11 @@ export function startWorker(ctx: Ctx, { concurrency = 3, pollMs = 2000 } = {}) {
         lastQueued.set(s.kind, t)
       }
     }
-    // Daily digest at 08:00 server time
+    // Daily digest at 08:00 UTC
     const d = new Date()
-    if (d.getHours() === 8 && d.getMinutes() === 0) enqueue(ctx.db, 'alerts.digest', {}, { dedupeKey: `digest:${d.toDateString()}` })
+    if (d.getUTCHours() === 8 && d.getUTCMinutes() === 0) enqueue(ctx.db, 'alerts.digest', {}, { dedupeKey: `digest:${d.toISOString().slice(0, 10)}` })
     // Weekly summary on Monday mornings (per-user guard prevents duplicates)
-    // Monthly report on the 1st (per-user month guard prevents duplicates)
-    if (d.getDate() === 1 && d.getHours() === 9 && d.getMinutes() < 2) enqueue(ctx.db, 'reports.monthly', {}, { dedupeKey: `reports:${d.toDateString()}` })
-    if (d.getDay() === 1 && d.getHours() === 8 && d.getMinutes() < 2) enqueue(ctx.db, 'summary.weekly', {}, { dedupeKey: `summary:${d.toDateString()}` })
+    if (d.getUTCDay() === 1 && d.getUTCHours() === 8 && d.getUTCMinutes() < 2) enqueue(ctx.db, 'summary.weekly', {}, { dedupeKey: `summary:${d.toISOString().slice(0, 10)}` })
   }
 
   const loops = Array.from({ length: concurrency }, async () => {

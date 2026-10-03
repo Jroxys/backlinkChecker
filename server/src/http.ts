@@ -54,6 +54,8 @@ const sessionOnly = ['/api/auth/', '/api/billing/', '/api/google/', '/api/admin/
 const keyLimiters = new WeakMap<object, RateLimiter>()
 
 export const requireUser: MiddlewareHandler<Env> = async (c, next) => {
+  // Several routers mounted at /api match the same paths; authenticate (and rate-limit keys) once.
+  if (c.var.user) return next()
   const { ctx } = c.var
   const bearer = c.req.header('authorization')?.match(/^Bearer\s+(\S+)$/i)?.[1]
   if (bearer?.startsWith(API_KEY_PREFIX)) {

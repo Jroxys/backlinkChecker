@@ -91,3 +91,26 @@ test('downgrade suspends members beyond the seat limit without deleting them; th
   assert.equal((await sam.post('/api/team/leave')).status, 204)
   assert.equal((await sam.get('/api/auth/me')).json.team.role, 'owner')
 })
+
+test('review regressions: re-invite at the limit keeps the invite, members can’t touch alert settings, no nudges for members', async () => {
+  const t = await agency()
+  await invite(t, 'a@agency.com')
+  await invite(t, 'b@agency.com')
+  t.ctx.db.run("UPDATE users SET plan = 'starter' WHERE email = 'boss@agency.com'")
+  assert.equal((await t.owner.post('/api/team/invites', { email: 'a@agency.com' })).status, 402)
+  assert.equal(t.ctx.db.get<{ n: number }>("SELECT COUNT(*) AS n FROM team_invites WHERE email = 'a@agency.com'")!.n, 1, 'invite not lost')
+  t.ctx.db.run("UPDATE users SET plan = 'pro' WHERE email = 'boss@agency.com'")
+  assert.equal((await t.owner.post('/api/team/invites', { email: 'a@agency.com' })).status, 201, 're-invite at the limit replaces, not adds')
+
+  const token = await invite(t, 'b@agency.com')
+  const sam = client(t.ctx)
+  await sam.post('/api/auth/signup', { email: 'b@agency.com', name: 'B', password: 'correct horse battery' })
+  await sam.post('/api/team/join', { token })
+  assert.equal((await sam.put('/api/alerts/settings', { webhookUrl: 'https://evil.example/hook' })).status, 403)
+  assert.equal((await sam.put('/api/alerts/settings', { email: false })).status, 403)
+
+  const { sendActivationEmails } = await import('../src/services/activation.js')
+  t.advance(30)
+  await sendActivationEmails(t.ctx)
+  assert.ok(!t.notifier.sent.some((m) => m.to === 'b@agency.com' && /Add your site/.test(m.text)))
+})

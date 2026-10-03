@@ -73,8 +73,9 @@ teamRoutes.post('/invites', async (c) => {
   if (email === c.var.user.email.toLowerCase()) throw new ApiError(409, 'invalid', 'That’s you')
   if (db.get('SELECT 1 FROM team_members t JOIN users u ON u.id = t.member_id WHERE t.owner_id = ? AND u.email = ?', [ownerId, email])) throw new ApiError(409, 'duplicate', `${email} is already on your team`)
   // Re-inviting the same email replaces the old invite (fresh link, fresh expiry) instead of using another seat.
+  const existing = db.get<{ n: number }>('SELECT COUNT(*) AS n FROM team_invites WHERE owner_id = ? AND email = ? AND expires_at > ?', [ownerId, email, c.var.ctx.now().toISOString()])!.n
+  if (seatsUsed(c, ownerId) - existing >= limit) throw new ApiError(402, 'plan_limit', `Your plan includes ${limit} seats. Remove a member or upgrade for more.`)
   db.run('DELETE FROM team_invites WHERE owner_id = ? AND email = ?', [ownerId, email])
-  if (seatsUsed(c, ownerId) >= limit) throw new ApiError(402, 'plan_limit', `Your plan includes ${limit} seats. Remove a member or upgrade for more.`)
   const token = randomBytes(24).toString('base64url')
   const inviteId = id('inv')
   const nowIso = c.var.ctx.now().toISOString()
@@ -116,7 +117,7 @@ teamRoutes.post('/join', async (c) => {
   const me = c.var.user
   if (inv.email !== me.email.toLowerCase()) throw new ApiError(403, 'wrong_account', `This invite is for ${inv.email}. Sign in with that email to accept it.`)
   if (c.var.account.role === 'member') throw new ApiError(409, 'already_member', `You’re already on ${c.var.account.ownerName}’s team. Leave it first.`)
-  if (db.get('SELECT 1 FROM team_members WHERE owner_id = ?', [me.id])) throw new ApiError(409, 'has_team', 'You have your own team. Remove its members before joining another.')
+  if (db.get('SELECT 1 FROM team_members WHERE owner_id = ? UNION SELECT 1 FROM team_invites WHERE owner_id = ?', [me.id, me.id])) throw new ApiError(409, 'has_team', 'You have your own team or pending invites. Remove them before joining another team.')
   if (db.get('SELECT 1 FROM projects WHERE user_id = ?', [me.id]))
     throw new ApiError(409, 'has_projects', 'Your account has its own projects. Delete them first, or accept with a different account — members work inside the team’s projects.')
   db.tx(() => {

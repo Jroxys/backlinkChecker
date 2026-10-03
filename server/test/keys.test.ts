@@ -68,3 +68,14 @@ test('white-label branding: Agency only, https logos only, returned by /me', asy
   assert.equal((await api.put('/api/auth/branding', { name: null, logoUrl: null, color: null })).status, 200)
   assert.deepEqual((await api.get('/api/auth/me')).json.branding, { name: null, logoUrl: null, color: null })
 })
+
+test('a key request is authenticated once, even when several routers match the path', async () => {
+  const { ctx, api, bot } = await proUser()
+  const { token } = (await api.post('/api/keys', { name: 'x' })).json
+  const project = (await api.post('/api/projects', { domain: 'example.com' })).json.project
+  const auth = { authorization: `Bearer ${token}` }
+  for (let i = 0; i < 60; i++) assert.equal((await bot.call('GET', `/api/projects/${project.id}/report`, undefined, auth)).status, 200, `request ${i}`)
+  assert.equal((await bot.call('PUT', '/api/alerts/settings', { webhookUrl: 'https://evil.example/hook' }, auth)).status, 403, 'keys cannot redirect alerts')
+  assert.equal((await bot.call('PUT', '/api/alerts/settings', { minSeverity: 'critical' }, auth)).status, 200)
+  void ctx
+})

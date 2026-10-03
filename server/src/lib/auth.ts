@@ -73,6 +73,15 @@ export function destroySession(db: Db, token: string | undefined) {
   if (token) db.run('DELETE FROM sessions WHERE id = ?', [sha256(token)])
 }
 
+/**
+ * Client IP for rate limiting. The app runs behind exactly one reverse proxy (Caddy / Fly), which
+ * *appends* the address it saw. Earlier entries are whatever the client sent, so only the last one counts.
+ */
+export function clientIp(header: (k: string) => string | undefined) {
+  const xff = header('x-forwarded-for')
+  return xff?.split(',').at(-1)?.trim() || 'local'
+}
+
 /** Tiny fixed-window limiter for login/signup. In-memory is fine for a single instance. */
 export class RateLimiter {
   private hits = new Map<string, { count: number; reset: number }>()
@@ -82,6 +91,7 @@ export class RateLimiter {
   ) {}
   take(key: string) {
     const t = Date.now()
+    if (this.hits.size > 50_000) for (const [k, e] of this.hits) if (e.reset < t) this.hits.delete(k)
     const e = this.hits.get(key)
     if (!e || e.reset < t) {
       this.hits.set(key, { count: 1, reset: t + this.windowMs })

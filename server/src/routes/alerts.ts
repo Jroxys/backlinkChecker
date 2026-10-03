@@ -50,6 +50,10 @@ const settingsSchema = z.object({
 
 alertRoutes.put('/settings', async (c) => {
   const input = await body(c, settingsSchema)
+  if (c.var.account.role !== 'owner') throw new ApiError(403, 'owner_only', `Only ${c.var.account.ownerName} can change notification settings`)
+  // Where alerts go is account-level: an API key (which may leak) can't point them somewhere else.
+  if ((input.slackWebhook !== undefined || input.webhookUrl !== undefined) && c.var.auth !== 'session')
+    throw new ApiError(403, 'session_required', 'Alert destinations can only be changed while signed in')
   const plan = getPlan(c.var.account.plan)
   if (input.slackWebhook && !plan.features.slack) throw new ApiError(402, 'plan_feature', `Slack alerts are available from the Starter plan`)
   if (input.webhookUrl && !plan.features.webhooks) throw new ApiError(402, 'plan_feature', `Webhooks are available from the Pro plan`)

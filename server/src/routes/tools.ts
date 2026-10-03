@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { ApiError, body, router } from '../http.js'
-import { RateLimiter } from '../lib/auth.js'
+import { RateLimiter, clientIp } from '../lib/auth.js'
 import { FetchError } from '../lib/fetcher.js'
 import { analyzeHtml, findBacklink } from '../lib/html.js'
 import { normalizeDomain, parseHttpUrl, urlKey } from '../lib/url.js'
@@ -22,7 +22,7 @@ function limit(ctx: object, ip: string) {
   if (!perIp.get(ctx)!.take(ip)) throw new ApiError(429, 'rate_limited', 'You’ve used the free checker 10 times this hour. Create a free account to monitor links continuously.')
   if (!global.get(ctx)!.take('all')) throw new ApiError(429, 'busy', 'The free checker is busy right now. Please try again in a few minutes.')
 }
-const ipOf = (h: (k: string) => string | undefined) => h('x-forwarded-for')?.split(',')[0].trim() ?? 'local'
+const ipOf = clientIp
 
 function fetchProblem(e: unknown) {
   if (e instanceof FetchError) {
