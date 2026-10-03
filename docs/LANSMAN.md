@@ -59,6 +59,10 @@ Bu planın tek bir amacı var: **ilk 10 ödeyen müşteri.** İlk 10 müşteri g
 | Ücretsiz → ücretli | %3–5 | |
 | Aylık iptal (churn) | < %5 | Haftalık özet e-postası bunun için var |
 
+Bu metriklerin hepsi **`/app/admin` kurucu panelinde** hazır: huni, MRR, kurucu koltukları, günlük kayıtlar, ücretsiz araç kullanımı. Görmek için kendi e-postanı `ADMIN_EMAILS`'e yaz.
+
+Kayıt olup takılanlara otomatik hatırlatma gidiyor: 1. gün site ekle, 3. gün backlink ekle, 5. gün Search Console bağla (bkz. DECISIONS K24).
+
 "Aha anı" ilk gerçek alarm. Kullanıcı "Indexora benim yerime bir şey yakaladı" dediği an ürünü anlar. Onboarding'deki her adımın amacı bu ana olabildiğince hızlı ulaştırmak.
 
 ## 6. İlk 30 günlük takvim
@@ -72,8 +76,8 @@ Bu planın tek bir amacı var: **ilk 10 ödeyen müşteri.** İlk 10 müşteri g
 
 ## 7. Bilerek ertelenenler (şimdi yapma)
 
-- Ekip/koltuk yönetimi: tek kullanıcı yeterli, ajans müşterisi gelince yap.
-- Beyaz etiket alan adı, API anahtarları: ilk Agency müşterisi isteyince.
+- ~~Ekip/koltuk yönetimi, API anahtarları~~: fiyat sayfası bunları zaten vaat ettiği için yapıldı (bkz. DECISIONS K25). Vaat edilip olmayan özellik, iade sebebidir.
+- Rapor için özel alan adı (`rapor.ajansin.com`): marka adı, logo ve renk yeterli; ilk Agency müşterisi isteyince yap.
 - SERP sıralama takibi: Search Console verisi yeterli, pahalı ve riskli.
 - Mobil uygulama.
 

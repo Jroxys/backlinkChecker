@@ -92,18 +92,42 @@ pending ─────────────► active ◄──────�
 
 ## 3. Bildirimler
 
-`services/notifier.ts`: e-posta (SMTP), Slack, genel webhook. Kullanıcı minimum önem seviyesi seçebilir ya da her şeyi günde bir kez 08:00'de özet olarak alabilir. Gönderilemeyen bildirimler bir sonraki turda tekrar denenir.
+`services/notifier.ts`: e-posta (SMTP), Slack, genel webhook. Kullanıcı minimum önem seviyesi seçebilir ya da her şeyi günde bir kez 08:00'de (UTC) özet olarak alabilir. Gönderilemeyen bildirimler bir sonraki turda tekrar denenir.
+
+Düzenli e-postalar:
+- **Haftalık özet** (pazartesi): bu hafta neyi kontrol ettik, ne değişti.
+- **Aylık rapor** (ayın 1'i, ücretli planlar): her proje için 30 günlük özet ve varsa müşteri bağlantısı.
+- **Aktivasyon hatırlatmaları** (ilk 14 gün, ücretsiz hesaplar): eksik kalan bir sonraki adım.
+
+## 4. Diğer izlemeler
+
+| İş | Sıklık | Ne yapar |
+|---|---|---|
+| robots.txt izleyici | saatlik | Değişikliği yakalar; Googlebot'u izlenen sayfalardan engelleyen bir değişiklikte uyarır |
+| SSL sertifikası | günlük | Süresine 30/14/7/3/1 gün kala uyarır; güvenilmeyen sertifikayı da (yanlış host, kendinden imzalı) yakalar |
+| Alan adı kaydı (RDAP) | haftalık | Kaydın bitiş tarihini okur; aynı eşiklerde uyarır |
+| Core Web Vitals (CrUX) | haftalık | Gerçek Chrome kullanıcılarının LCP/INP/CLS değerleri; derece kötüleşirse uyarır (`CRUX_API_KEY` gerekir) |
+
+## 5. Ekip, API ve raporlar
+
+- **Ekip (koltuklar):** üye, hesap sahibinin projelerinde ve planıyla çalışır. Fatura, Google bağlantısı, marka ayarları ve ekip yönetimi yalnızca sahipte. Plan düşürülürse fazla üyeler silinmez, askıya alınır.
+- **API anahtarları (Pro+):** `Authorization: Bearer ix_…`. Anahtar başına dakikada 120 istek. Anahtarlar hesabı, faturayı ve uyarı hedeflerini yönetemez.
+- **Müşteri raporu:**
+  - Uygulama içinden PDF olarak alınabilir ya da `/r/<token>` bağlantısıyla paylaşılabilir.
+  - Bağlantı salt okunur ve her zaman güncel; yenilenebilir ve kapatılabilir.
+  - Agency planında marka adı, logo ve renk kullanılır.
+- **Dışa aktarma:** backlinkler ve URL'ler CSV olarak indirilebilir.
 
 ---
 
-## 4. Çalıştırma
+## 6. Çalıştırma
 
 ```bash
 cd server
 cp .env.example .env      # en azından SECRET_KEY doldur
 npm install
 npm run dev               # API + arka plan işçisi, http://localhost:8787
-npm test                  # 39+ test, internete çıkmadan sahte bir site üzerinde
+npm test                  # 88 test, internete çıkmadan sahte bir site üzerinde
 ```
 
 Tek sunucu + SQLite dosyası yeterli. Yedek almak için tek dosyayı kopyalamak yetiyor. Postgres'e geçiş gerektiğinde SQL standart tutuldu.

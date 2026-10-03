@@ -2,6 +2,20 @@
 
 **Know exactly what Google sees.** SEO monitoring for people who'd rather be told than have to check: index status from Search Console, indexability checks on every URL, and every backlink re-verified on the linking page itself.
 
+What runs for every project:
+
+- **Indexing:** Search Console URL Inspection, plus our own status, noindex, canonical and robots checks, sitemap sync and a robots.txt watcher.
+- **Backlinks:** daily re-verification (link, anchor, rel, linking page indexable), import from any SEO tool's CSV, and weekly discovery (Pro+).
+- **Site health:**
+  - SSL certificate expiry and trust, domain registration expiry (RDAP).
+  - Core Web Vitals from the Chrome UX Report.
+- **Insights:** rule-based audit, Search Console keywords, and opportunities (lost-link reclaim, 404 redirects, competitor gap).
+- **Outputs:**
+  - Alerts by email, Slack or webhook, with a weekly summary and a monthly report.
+  - Printable and shareable client reports, white-label on Agency.
+  - CSV export and a REST API with personal keys.
+- **Accounts:** teams with seats; Lemon Squeezy billing with founding prices; a founder metrics page at `/app/admin`.
+
 | | |
 |---|---|
 | `web/` | React + TypeScript + Vite + Tailwind front end (marketing site, app, public demo, free tools) |
@@ -19,7 +33,7 @@ cd server && cp .env.example .env && npm install && npm run dev
 cd web && npm install && npm run dev
 ```
 
-Open `/demo` for the sample-data demo, `/signup` to create a real account, `/tools` for the free checkers.
+Open `/demo` for the sample-data demo, `/signup` to create a real account, `/tools` for the four free checkers (backlink, indexability, redirect, SSL).
 
 ## Test
 
