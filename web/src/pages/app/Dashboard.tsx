@@ -1,3 +1,4 @@
+import { SetupChecklist } from '@/components/domain/SetupChecklist'
 import { cn } from '@/lib/cn'
 import { useMemo } from 'react'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
@@ -78,6 +79,8 @@ export function Dashboard() {
           </Button>
         </div>
       </div>
+
+      <SetupChecklist project={project} />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {loading || !s ? (
