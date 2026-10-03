@@ -1,0 +1,12 @@
+# Streams every SQLite write to object storage within ~1s.
+# Restore on a fresh server: litestream restore -o /data/indexora.db s3://$LITESTREAM_BUCKET/indexora.db
+dbs:
+  - path: /data/indexora.db
+    replicas:
+      - type: s3
+        bucket: ${LITESTREAM_BUCKET}
+        path: indexora.db
+        endpoint: ${LITESTREAM_ENDPOINT}
+        access-key-id: ${LITESTREAM_ACCESS_KEY_ID}
+        secret-access-key: ${LITESTREAM_SECRET_ACCESS_KEY}
+        retention: 720h

@@ -1,0 +1,29 @@
+# Alternative to the VPS stack: Fly.io with a persistent volume.
+#   fly launch --no-deploy --copy-config && fly volumes create data --size 3
+#   fly secrets set SECRET_KEY=... APP_URL=https://<app>.fly.dev API_URL=https://<app>.fly.dev ...
+#   fly deploy --dockerfile ../Dockerfile
+app = "indexora"
+primary_region = "fra"
+
+[build]
+  dockerfile = "../Dockerfile"
+
+[env]
+  COOKIE_SECURE = "true"
+
+[mounts]
+  source = "data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  auto_stop_machines = "off"   # the background worker must keep running
+  min_machines_running = 1
+
+[[http_service.checks]]
+  grace_period = "20s"
+  interval = "30s"
+  method = "GET"
+  path = "/api/health"
+  timeout = "5s"

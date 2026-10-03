@@ -1,0 +1,187 @@
+import { z } from 'zod'
+import { ApiError, body, ownedProject, requireUser, router } from '../http.js'
+import { id, now } from '../lib/ids.js'
+import { normalizeDomain } from '../lib/url.js'
+import { getPlan } from '../plans.js'
+import { enqueue } from '../jobs/queue.js'
+import { addUrls } from '../services/urls.js'
+import { projectSnapshot } from '../services/stats.js'
+import { runAudit } from '../services/audit.js'
+import { keywordsFor } from '../services/keywords.js'
+import { track } from '../services/events.js'
+import { healthFor } from '../services/health.js'
+import { enforceLimits } from '../services/plan.js'
+import { newDeployToken, selectPriorityPages } from '../services/watch.js'
+import { cwvFor } from '../services/cwv.js'
+
+export const projectRoutes = router()
+projectRoutes.use('*', requireUser)
+
+const createSchema = z.object({
+  domain: z.string().trim().min(3).max(253),
+  name: z.string().trim().max(80).optional(),
+  gscProperty: z.string().trim().max(300).nullish(),
+})
+
+function present(p: { id: string; name: string; domain: string; gsc_property: string | null; created_at: string; paused?: number }, stats?: ReturnType<typeof projectSnapshot>) {
+  return { id: p.id, name: p.name, domain: p.domain, gscProperty: p.gsc_property, createdAt: p.created_at, paused: Boolean(p.paused), stats }
+}
+
+projectRoutes.get('/', (c) => {
+  const { db } = c.var.ctx
+  const rows = db.all<{ id: string; name: string; domain: string; gsc_property: string | null; created_at: string }>('SELECT * FROM projects WHERE user_id = ? ORDER BY created_at', [c.var.account.id])
+  return c.json({
+    projects: rows.map((p) => {
+      const last = db.get<{ at: string | null }>(
+        'SELECT MAX(x) AS at FROM (SELECT MAX(last_checked_at) AS x FROM monitored_urls WHERE project_id = ? UNION ALL SELECT MAX(last_checked_at) FROM backlinks WHERE project_id = ?)',
+        [p.id, p.id],
+      )
+      const trend = db.all<{ indexed: number }>('SELECT indexed FROM daily_stats WHERE project_id = ? ORDER BY date DESC LIMIT 14', [p.id]).map((r) => r.indexed).reverse()
+      return { ...present(p, projectSnapshot(db, p.id)), lastScan: last?.at ?? null, indexTrend: trend }
+    }),
+  })
+})
+
+projectRoutes.post('/', async (c) => {
+  const { db } = c.var.ctx
+  const input = await body(c, createSchema)
+  const domain = normalizeDomain(input.domain)
+  if (!domain) throw new ApiError(422, 'invalid_domain', 'Enter a domain like example.com')
+  const plan = getPlan(c.var.account.plan)
+  const count = db.get<{ n: number }>('SELECT COUNT(*) AS n FROM projects WHERE user_id = ?', [c.var.account.id])!.n
+  if (count >= plan.limits.projects) throw new ApiError(402, 'plan_limit', `Your ${plan.name} plan includes ${plan.limits.projects} project${plan.limits.projects > 1 ? 's' : ''}. Upgrade to add more.`)
+  if (db.get('SELECT 1 FROM projects WHERE user_id = ? AND domain = ?', [c.var.account.id, domain])) throw new ApiError(409, 'duplicate', `${domain} is already a project`)
+  const projectId = id('prj')
+  db.run('INSERT INTO projects (id, user_id, name, domain, gsc_property, created_at) VALUES (?, ?, ?, ?, ?, ?)', [projectId, c.var.account.id, input.name || domain, domain, input.gscProperty ?? null, now()])
+  // Start monitoring right away: the homepage, then whatever the sitemaps list.
+  addUrls(c.var.ctx, projectId, [`https://${domain}/`])
+  track(db, 'project_created', c.var.user.id)
+  enqueue(db, 'sitemaps.discover', { projectId }, { dedupeKey: `discover:${projectId}` })
+  selectPriorityPages(c.var.ctx, projectId) // the home page is watched from minute one
+  const p = ownedProject(c, projectId)
+  return c.json({ project: present(p, projectSnapshot(db, projectId)) }, 201)
+})
+
+projectRoutes.get('/:id', (c) => {
+  const p = ownedProject(c, c.req.param('id'))
+  return c.json({ project: present(p, projectSnapshot(c.var.ctx.db, p.id)) })
+})
+
+projectRoutes.patch('/:id', async (c) => {
+  const p = ownedProject(c, c.req.param('id'))
+  const input = await body(c, z.object({ name: z.string().trim().min(1).max(80).optional(), gscProperty: z.string().trim().max(300).nullable().optional() }))
+  c.var.ctx.db.run('UPDATE projects SET name = COALESCE(?, name), gsc_property = CASE WHEN ? THEN ? ELSE gsc_property END WHERE id = ?', [
+    input.name ?? null,
+    input.gscProperty !== undefined ? 1 : 0,
+    input.gscProperty ?? null,
+    p.id,
+  ])
+  if (input.gscProperty) track(c.var.ctx.db, 'gsc_property_set', c.var.user.id)
+  return c.json({ project: present(ownedProject(c, p.id)) })
+})
+
+projectRoutes.delete('/:id', (c) => {
+  const p = ownedProject(c, c.req.param('id'))
+  c.var.ctx.db.run('DELETE FROM projects WHERE id = ?', [p.id])
+  enforceLimits(c.var.ctx, c.var.account.id) // freed room resumes paused projects and entries
+  return c.json({ ok: true })
+})
+
+/** "Scan now": make everything in the project due immediately. */
+projectRoutes.post('/:id/scan', (c) => {
+  const p = ownedProject(c, c.req.param('id'))
+  const { db } = c.var.ctx
+  if (db.get('SELECT 1 FROM projects WHERE id = ? AND paused = 1', [p.id])) throw new ApiError(402, 'paused', 'This is paused because it’s over your plan’s limits. Upgrade, or remove something, to resume it.')
+  const at = now()
+  const u = db.run('UPDATE monitored_urls SET next_check_at = ? WHERE project_id = ? AND paused = 0', [at, p.id]).changes
+  const b = db.run("UPDATE backlinks SET next_check_at = ? WHERE project_id = ? AND paused = 0 AND status != 'blocked'", [at, p.id]).changes
+  enqueue(db, 'urls.sweep', {}, { dedupeKey: 'periodic:urls.sweep' })
+  enqueue(db, 'backlinks.sweep', {}, { dedupeKey: 'periodic:backlinks.sweep' })
+  enqueue(db, 'sitemaps.discover', { projectId: p.id }, { dedupeKey: `discover:${p.id}` })
+  return c.json({ queued: { urls: u, backlinks: b } })
+})
+
+/** Daily series for charts. */
+projectRoutes.get('/:id/history', (c) => {
+  const p = ownedProject(c, c.req.param('id'))
+  const days = Math.min(400, Math.max(7, Number(c.req.query('days') ?? 90)))
+  const since = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10)
+  const rows = c.var.ctx.db.all('SELECT * FROM daily_stats WHERE project_id = ? AND date >= ? ORDER BY date', [p.id, since])
+  return c.json({ history: rows })
+})
+
+projectRoutes.get('/:id/sitemaps', (c) => {
+  const p = ownedProject(c, c.req.param('id'))
+  const rows = c.var.ctx.db.all<{ id: string; project_id: string; url: string }>('SELECT * FROM sitemaps WHERE project_id = ? ORDER BY url', [p.id])
+  const indexedBySitemap = c.var.ctx.db.get<{ total: number; indexed: number }>(
+    "SELECT COUNT(*) AS total, SUM(index_status = 'indexed') AS indexed FROM monitored_urls WHERE project_id = ? AND in_sitemap = 1",
+    [p.id],
+  )
+  return c.json({ sitemaps: rows, coverage: indexedBySitemap })
+})
+
+projectRoutes.post('/:id/sitemaps', async (c) => {
+  const p = ownedProject(c, c.req.param('id'))
+  const { url } = await body(c, z.object({ url: z.string().url().max(2000) }))
+  const host = normalizeDomain(new URL(url).hostname)
+  if (!host || !(host === p.domain || host.endsWith('.' + p.domain))) throw new ApiError(422, 'not_on_project_domain', `Sitemap must be on ${p.domain}`)
+  const smId = id('sm')
+  c.var.ctx.db.run('INSERT OR IGNORE INTO sitemaps (id, project_id, url, created_at) VALUES (?, ?, ?, ?)', [smId, p.id, url, now()])
+  const row = c.var.ctx.db.get<{ id: string }>('SELECT id FROM sitemaps WHERE project_id = ? AND url = ?', [p.id, url])!
+  enqueue(c.var.ctx.db, 'sitemaps.sync', { sitemapId: row.id }, { dedupeKey: `sitemap:${row.id}` })
+  return c.json({ sitemap: row }, 201)
+})
+
+/** SSL certificate and domain registration expiry (null until the first check has run). */
+projectRoutes.get('/:id/health', (c) => {
+  const p = ownedProject(c, c.req.param('id'))
+  return c.json({ health: healthFor(c.var.ctx, p.id) })
+})
+
+/** Core Web Vitals (CrUX field data), refreshed weekly by the worker. */
+projectRoutes.get('/:id/cwv', (c) => {
+  const p = ownedProject(c, c.req.param('id'))
+  return c.json(cwvFor(c.var.ctx, p.id))
+})
+
+/** Near real-time watch status: uptime, recent outages, priority pages and the deploy hook. */
+projectRoutes.get('/:id/watch', (c) => {
+  const p = ownedProject(c, c.req.param('id'))
+  const { db, config } = c.var.ctx
+  const limits = getPlan(c.var.account.plan).limits
+  const up = db.get<{ url: string; state: string; since: string | null; checked_at: string | null; response_ms: number | null; last_error: string | null }>('SELECT * FROM uptime WHERE project_id = ?', [p.id])
+  const outages = db.all<{ started_at: string; ended_at: string | null; error: string | null }>('SELECT started_at, ended_at, error FROM outages WHERE project_id = ? ORDER BY started_at DESC LIMIT 10', [p.id])
+  const priority = db.all<{ id: string; url: string; manual: number }>('SELECT id, url, priority_manual AS manual FROM monitored_urls WHERE project_id = ? AND priority = 1 ORDER BY priority_manual DESC, url', [p.id])
+  const token = db.get<{ deploy_token: string | null }>('SELECT deploy_token FROM projects WHERE id = ?', [p.id])!.deploy_token
+  return c.json({
+    watchMinutes: limits.watchMinutes,
+    uptime: up ? { url: up.url, state: up.state, since: up.since, checkedAt: up.checked_at, responseMs: up.response_ms, error: up.last_error } : null,
+    outages: outages.map((o) => ({ startedAt: o.started_at, endedAt: o.ended_at, error: o.error })),
+    priority: { limit: limits.priorityPages, pages: priority.map((u) => ({ id: u.id, url: u.url, manual: Boolean(u.manual) })) },
+    deployHook: token ? `${config.apiUrl.replace(/\/$/, '')}/api/hooks/deploy/${token}` : null,
+  })
+})
+
+/** Create or rotate the deploy hook URL (the old one stops working). */
+projectRoutes.post('/:id/deploy-hook', (c) => {
+  const p = ownedProject(c, c.req.param('id'))
+  const token = newDeployToken()
+  c.var.ctx.db.run('UPDATE projects SET deploy_token = ? WHERE id = ?', [token, p.id])
+  return c.json({ url: `${c.var.ctx.config.apiUrl.replace(/\/$/, '')}/api/hooks/deploy/${token}` })
+})
+
+/** Rule-based technical audit over everything we've crawled for this project. */
+projectRoutes.get('/:id/audit', (c) => {
+  const p = ownedProject(c, c.req.param('id'))
+  return c.json(runAudit(c.var.ctx.db, p.id, c.var.ctx.now().toISOString()))
+})
+
+/** Queries this site ranks for, from Search Console (cached 6h; ?refresh=1 forces a reload). */
+projectRoutes.get('/:id/keywords', async (c) => {
+  const p = ownedProject(c, c.req.param('id'))
+  try {
+    return c.json(await keywordsFor(c.var.ctx, p.id, { force: c.req.query('refresh') === '1' }))
+  } catch (e) {
+    throw new ApiError(503, 'google_unavailable', `Search Console didn’t answer: ${(e as Error).message}`)
+  }
+})
