@@ -29,6 +29,12 @@ export interface Plan {
     watchMinutes: number
     /** How many pages per project get the fast watch interval */
     priorityPages: number
+    /** Keywords tracked per project (positions from Search Console are free) */
+    trackedKeywords: number
+    /** Days between live Google result refreshes per keyword (null = no live SERP data) */
+    serpRefreshDays: number | null
+    /** Page-vs-competitor comparisons per project per day */
+    comparisonsPerDay: number
   }
   features: {
     slack: boolean
@@ -46,7 +52,7 @@ export const plans: Record<PlanId, Plan> = {
     monthly: 0,
     yearly: 0,
     founding: 0,
-    limits: { projects: 1, urls: 100, backlinks: 100, competitorsPerProject: 0, seats: 1, backlinkCheckHours: 168, urlCheckHours: 24, discovery: false, watchMinutes: 60, priorityPages: 1 },
+    limits: { projects: 1, urls: 100, backlinks: 100, competitorsPerProject: 0, seats: 1, backlinkCheckHours: 168, urlCheckHours: 24, discovery: false, watchMinutes: 60, priorityPages: 1, trackedKeywords: 10, serpRefreshDays: null, comparisonsPerDay: 5 },
     features: { slack: false, webhooks: false, reports: false, whiteLabel: false, api: false },
   },
   starter: {
@@ -55,7 +61,7 @@ export const plans: Record<PlanId, Plan> = {
     monthly: 12,
     yearly: 120,
     founding: 9,
-    limits: { projects: 3, urls: 1_000, backlinks: 1_000, competitorsPerProject: 1, seats: 1, backlinkCheckHours: 24, urlCheckHours: 24, discovery: false, watchMinutes: 15, priorityPages: 5 },
+    limits: { projects: 3, urls: 1_000, backlinks: 1_000, competitorsPerProject: 1, seats: 1, backlinkCheckHours: 24, urlCheckHours: 24, discovery: false, watchMinutes: 15, priorityPages: 5, trackedKeywords: 50, serpRefreshDays: 7, comparisonsPerDay: 30 },
     features: { slack: true, webhooks: false, reports: true, whiteLabel: false, api: false },
   },
   pro: {
@@ -64,7 +70,7 @@ export const plans: Record<PlanId, Plan> = {
     monthly: 29,
     yearly: 290,
     founding: 19,
-    limits: { projects: 10, urls: 10_000, backlinks: 10_000, competitorsPerProject: 3, seats: 3, backlinkCheckHours: 24, urlCheckHours: 12, discovery: 'weekly', watchMinutes: 5, priorityPages: 20 },
+    limits: { projects: 10, urls: 10_000, backlinks: 10_000, competitorsPerProject: 3, seats: 3, backlinkCheckHours: 24, urlCheckHours: 12, discovery: 'weekly', watchMinutes: 5, priorityPages: 20, trackedKeywords: 250, serpRefreshDays: 3, comparisonsPerDay: 100 },
     features: { slack: true, webhooks: true, reports: true, whiteLabel: false, api: true },
   },
   agency: {
@@ -73,7 +79,7 @@ export const plans: Record<PlanId, Plan> = {
     monthly: 79,
     yearly: 790,
     founding: 49,
-    limits: { projects: 50, urls: 50_000, backlinks: 50_000, competitorsPerProject: 5, seats: 10, backlinkCheckHours: 24, urlCheckHours: 6, discovery: 'weekly', watchMinutes: 5, priorityPages: 50 },
+    limits: { projects: 50, urls: 50_000, backlinks: 50_000, competitorsPerProject: 5, seats: 10, backlinkCheckHours: 24, urlCheckHours: 6, discovery: 'weekly', watchMinutes: 5, priorityPages: 50, trackedKeywords: 1000, serpRefreshDays: 1, comparisonsPerDay: 300 },
     features: { slack: true, webhooks: true, reports: true, whiteLabel: true, api: true },
   },
 }

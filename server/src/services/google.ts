@@ -62,6 +62,8 @@ export interface AnalyticsQuery {
   dimensions: ('query' | 'page' | 'date' | 'country' | 'device')[]
   rowLimit?: number
   page?: string
+  /** Extra dimension filters (ANDed), e.g. { dimension: 'query', operator: 'includingRegex', expression: '^(a|b)$' } */
+  filters?: { dimension: 'query' | 'page' | 'country' | 'device'; operator: 'equals' | 'contains' | 'includingRegex'; expression: string }[]
 }
 
 export interface AnalyticsRow {
@@ -181,7 +183,9 @@ export function createGoogleClient(clientId: string, clientSecret: string, fetch
             dimensions: q.dimensions,
             rowLimit: q.rowLimit ?? 250,
             dataState: 'final',
-            ...(q.page ? { dimensionFilterGroups: [{ filters: [{ dimension: 'page', operator: 'equals', expression: q.page }] }] } : {}),
+            ...(q.page || q.filters?.length
+              ? { dimensionFilterGroups: [{ filters: [...(q.page ? [{ dimension: 'page', operator: 'equals', expression: q.page }] : []), ...(q.filters ?? [])] }] }
+              : {}),
           }),
         }),
       )

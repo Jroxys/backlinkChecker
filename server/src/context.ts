@@ -6,6 +6,7 @@ import type { BacklinkProvider } from './services/discovery.js'
 import type { GoogleClient } from './services/google.js'
 import type { HealthProbes } from './services/health.js'
 import type { CruxClient } from './services/cwv.js'
+import type { SerpProvider } from './services/serp.js'
 
 /** Everything a service needs, passed explicitly so tests can swap any part. */
 export interface Ctx {
@@ -19,5 +20,7 @@ export interface Ctx {
   probes: HealthProbes
   /** Chrome UX Report (Core Web Vitals field data) */
   crux: CruxClient
+  /** Live Google results (null = not configured; rank tracking then uses Search Console only) */
+  serp: SerpProvider | null
   now: () => Date
 }

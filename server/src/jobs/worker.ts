@@ -13,6 +13,7 @@ import { sweepCwv } from '../services/cwv.js'
 import { processTrials } from '../services/plan.js'
 import { sendFirstScanEmails } from '../services/firstScan.js'
 import { refreshPriorityPages, sweepWatch } from '../services/watch.js'
+import { refreshSerp, sweepRankings, syncGscPositions } from '../services/rankings.js'
 import { checkRobots } from '../services/robots.js'
 import { claim, complete, enqueue, fail, prune, recoverStale, type Job } from './queue.js'
 
@@ -70,6 +71,19 @@ export const handlers: Record<string, Handler> = {
   /** Near real-time: uptime and robots.txt on each plan's watch interval (checked every minute). */
   'watch.sweep': (ctx) => sweepWatch(ctx),
   'priority.refresh': async (ctx) => refreshPriorityPages(ctx),
+  /** New keywords: backfill Search Console history, then live results if configured and due. */
+  'rankings.sync': async (ctx, p) => {
+    const projectId = String(p.projectId)
+    await syncGscPositions(ctx, projectId, Number(p.days ?? 10))
+    if (ctx.serp) {
+      const fresh = ctx.db.all<{ id: string }>(
+        "SELECT k.id FROM tracked_keywords k JOIN projects pr ON pr.id = k.project_id JOIN users u ON u.id = pr.user_id WHERE k.project_id = ? AND k.serp_checked_at IS NULL AND u.plan != 'free' LIMIT 50",
+        [projectId],
+      )
+      for (const k of fresh) await refreshSerp(ctx, k.id).catch((e) => console.error('[rankings] serp', k.id, e))
+    }
+  },
+  'rankings.sweep': (ctx) => sweepRankings(ctx),
   /** robots.txt for every project, hourly: a bad Disallow can de-index a site overnight. */
   'robots.sweep': async (ctx) => {
     const ps = ctx.db.all<{ id: string }>('SELECT id FROM projects WHERE paused = 0')
@@ -97,6 +111,7 @@ const schedule: { kind: string; everyMinutes: number }[] = [
   { kind: 'stats.snapshot', everyMinutes: 60 },
   { kind: 'watch.sweep', everyMinutes: 1 },
   { kind: 'priority.refresh', everyMinutes: 360 },
+  { kind: 'rankings.sweep', everyMinutes: 360 },
   { kind: 'activation.sweep', everyMinutes: 60 },
   { kind: 'health.sweep', everyMinutes: 60 },
   { kind: 'cwv.sweep', everyMinutes: 360 },

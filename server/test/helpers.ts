@@ -53,6 +53,7 @@ export function testCtx(overrides: Partial<Ctx> = {}) {
     provider: null,
     google: createGoogleClient('', '') as GoogleClient,
     crux: createCruxClient(''),
+    serp: null,
     probes: {
       certificate: async (host) => ({ host, expiresAt: null, issuer: null, error: 'ECONNREFUSED' }),
       domain: async () => ({ expiresAt: null, registrar: null }),

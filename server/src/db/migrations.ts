@@ -445,4 +445,53 @@ export const migrations: { id: number; name: string; sql: string }[] = [
       CREATE INDEX outages_project ON outages(project_id, started_at);
     `,
   },
+  {
+    id: 20,
+    name: 'rank_tracking',
+    sql: `
+      CREATE TABLE tracked_keywords (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        keyword TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        serp_checked_at TEXT,
+        -- The page Search Console says ranks best for this query (last 28 days)
+        best_page TEXT,
+        UNIQUE (project_id, keyword)
+      );
+      -- Where live Google results are fetched from (DataForSEO location name / language code)
+      ALTER TABLE projects ADD COLUMN serp_location TEXT NOT NULL DEFAULT 'United States';
+      ALTER TABLE projects ADD COLUMN serp_language TEXT NOT NULL DEFAULT 'en';
+      ALTER TABLE projects ADD COLUMN rankings_synced_at TEXT;
+      -- Daily position per keyword; source = gsc (average position, free) or serp (live result)
+      CREATE TABLE keyword_positions (
+        keyword_id TEXT NOT NULL REFERENCES tracked_keywords(id) ON DELETE CASCADE,
+        date TEXT NOT NULL,
+        source TEXT NOT NULL,
+        position REAL,
+        clicks INTEGER,
+        impressions INTEGER,
+        page TEXT,
+        PRIMARY KEY (keyword_id, date, source)
+      );
+      CREATE TABLE serp_snapshots (
+        id TEXT PRIMARY KEY,
+        keyword_id TEXT NOT NULL REFERENCES tracked_keywords(id) ON DELETE CASCADE,
+        fetched_at TEXT NOT NULL,
+        results TEXT NOT NULL
+      );
+      CREATE INDEX serp_snapshots_kw ON serp_snapshots(keyword_id, fetched_at);
+      CREATE TABLE comparisons (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        keyword_id TEXT REFERENCES tracked_keywords(id) ON DELETE CASCADE,
+        keyword TEXT NOT NULL,
+        my_url TEXT NOT NULL,
+        their_url TEXT NOT NULL,
+        result TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+      CREATE INDEX comparisons_project ON comparisons(project_id, created_at);
+    `,
+  },
 ]
