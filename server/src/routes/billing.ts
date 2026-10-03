@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 import { z } from 'zod'
 import { ApiError, body, requireUser, router } from '../http.js'
 import { getPlan, plans, type PlanId } from '../plans.js'
+import { track } from '../services/events.js'
 
 export const FOUNDING_SEATS = 100
 
@@ -26,6 +27,7 @@ billingRoutes.post('/checkout', requireUser, async (c) => {
   u.searchParams.set('checkout[name]', c.var.user.name)
   u.searchParams.set('checkout[custom][user_id]', c.var.user.id)
   u.searchParams.set('checkout[custom][founding]', founding ? '1' : '0')
+  track(db, 'checkout_started', c.var.user.id)
   return c.json({ url: u.href, founding })
 })
 
@@ -63,6 +65,7 @@ billingRoutes.post('/webhooks/lemonsqueezy', async (c) => {
     case 'subscription_updated':
     case 'subscription_resumed':
       if (plan && active) {
+        if (evt.meta.event_name === 'subscription_created') track(db, 'subscribed', userId)
         db.run('UPDATE users SET plan = ?, plan_renews_at = ?, billing_customer_id = COALESCE(?, billing_customer_id), founding = CASE WHEN ? = 1 THEN 1 ELSE founding END WHERE id = ?', [
           getPlan(plan).id,
           a.renews_at ?? null,

@@ -8,6 +8,7 @@ import { addUrls } from '../services/urls.js'
 import { projectSnapshot } from '../services/stats.js'
 import { runAudit } from '../services/audit.js'
 import { keywordsFor } from '../services/keywords.js'
+import { track } from '../services/events.js'
 
 export const projectRoutes = router()
 projectRoutes.use('*', requireUser)
@@ -50,6 +51,7 @@ projectRoutes.post('/', async (c) => {
   db.run('INSERT INTO projects (id, user_id, name, domain, gsc_property, created_at) VALUES (?, ?, ?, ?, ?, ?)', [projectId, c.var.user.id, input.name || domain, domain, input.gscProperty ?? null, now()])
   // Start monitoring right away: the homepage, then whatever the sitemaps list.
   addUrls(c.var.ctx, projectId, [`https://${domain}/`])
+  track(db, 'project_created', c.var.user.id)
   enqueue(db, 'sitemaps.discover', { projectId }, { dedupeKey: `discover:${projectId}` })
   const p = ownedProject(c, projectId)
   return c.json({ project: present(p, projectSnapshot(db, projectId)) }, 201)
@@ -69,6 +71,7 @@ projectRoutes.patch('/:id', async (c) => {
     input.gscProperty ?? null,
     p.id,
   ])
+  if (input.gscProperty) track(c.var.ctx.db, 'gsc_property_set', c.var.user.id)
   return c.json({ project: present(ownedProject(c, p.id)) })
 })
 

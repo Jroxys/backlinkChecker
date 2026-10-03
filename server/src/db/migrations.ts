@@ -257,4 +257,18 @@ export const migrations: { id: number; name: string; sql: string }[] = [
       CREATE INDEX robots_snapshots_project ON robots_snapshots(project_id, fetched_at);
     `,
   },
+  {
+    id: 7,
+    name: 'events',
+    sql: `
+      -- First-party product events for the founder funnel. No IPs, no fingerprints.
+      CREATE TABLE events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        user_id TEXT,
+        at TEXT NOT NULL
+      );
+      CREATE INDEX events_name_at ON events(name, at);
+    `,
+  },
 ]

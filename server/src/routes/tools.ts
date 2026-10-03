@@ -4,6 +4,7 @@ import { RateLimiter } from '../lib/auth.js'
 import { FetchError } from '../lib/fetcher.js'
 import { analyzeHtml, findBacklink } from '../lib/html.js'
 import { normalizeDomain, parseHttpUrl, urlKey } from '../lib/url.js'
+import { track } from '../services/events.js'
 
 /**
  * Free, no-signup tools. They exist to bring people to Indexora, so they must be
@@ -36,6 +37,7 @@ function fetchProblem(e: unknown) {
 toolRoutes.post('/backlink-check', async (c) => {
   const input = await body(c, z.object({ pageUrl: z.string().min(4).max(2000), target: z.string().min(3).max(2000) }))
   limit(c.var.ctx, ipOf((k) => c.req.header(k)))
+  track(c.var.ctx.db, 'tool_backlink_check')
   const page = parseHttpUrl(input.pageUrl)
   if (!page) throw new ApiError(422, 'invalid_url', 'Enter the full URL of the page that should link to you')
   const targetUrl = /\//.test(input.target.replace(/^https?:\/\//, '')) ? parseHttpUrl(input.target) : null
@@ -66,6 +68,7 @@ toolRoutes.post('/backlink-check', async (c) => {
 toolRoutes.post('/indexability', async (c) => {
   const input = await body(c, z.object({ url: z.string().min(4).max(2000) }))
   limit(c.var.ctx, ipOf((k) => c.req.header(k)))
+  track(c.var.ctx.db, 'tool_indexability_check')
   const u = parseHttpUrl(input.url)
   if (!u) throw new ApiError(422, 'invalid_url', 'Enter a full URL, like https://example.com/page')
   const { fetcher } = c.var.ctx

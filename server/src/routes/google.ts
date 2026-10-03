@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto'
 import { ApiError, requireUser, router } from '../http.js'
 import { now } from '../lib/ids.js'
 import { accessTokenFor, saveConnection } from '../services/google.js'
+import { track } from '../services/events.js'
 
 export const googleRoutes = router()
 
@@ -30,6 +31,7 @@ googleRoutes.get('/callback', async (c) => {
   try {
     const tokens = await google.exchangeCode(c.req.query('code') ?? '', redirectUri(config.apiUrl))
     saveConnection(db, row.user_id, tokens)
+    track(db, 'gsc_connected', row.user_id)
     return back('google=connected')
   } catch (e) {
     console.error('[google] token exchange failed', e)

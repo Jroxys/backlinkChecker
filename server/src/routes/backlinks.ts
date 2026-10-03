@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { ApiError, body, notFound, ownedProject, pageParams, requireUser, router, type C } from '../http.js'
 import { extractLinks } from '../lib/csv.js'
 import { addBacklinks, alertForEvents, verifyBacklink, type BacklinkRow } from '../services/backlinks.js'
+import { track } from '../services/events.js'
 
 export const backlinkRoutes = router()
 backlinkRoutes.use('/projects/*', requireUser)
@@ -88,7 +89,9 @@ const addSchema = z.object({
 backlinkRoutes.post('/projects/:id/backlinks', async (c) => {
   const p = ownedProject(c, c.req.param('id'))
   const { links } = await body(c, addSchema)
-  return c.json(addBacklinks(c.var.ctx, p.id, links, 'manual'), 201)
+  const r = addBacklinks(c.var.ctx, p.id, links, 'manual')
+  if (r.created.length) track(c.var.ctx.db, 'backlinks_added', c.var.user.id)
+  return c.json(r, 201)
 })
 
 /** Upload a CSV / URL list as text/plain or text/csv (max 2 MB). */
@@ -106,6 +109,7 @@ backlinkRoutes.post('/projects/:id/backlinks/import', async (c) => {
         : 'No linking page URLs found in this file',
     )
   const r = addBacklinks(c.var.ctx, p.id, links, 'import')
+  if (r.created.length) track(c.var.ctx.db, 'backlinks_added', c.var.user.id)
   return c.json({ format, ...r, domainOnly: domainOnly.length }, 201)
 })
 

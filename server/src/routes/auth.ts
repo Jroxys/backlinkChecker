@@ -6,6 +6,7 @@ import { RateLimiter, SESSION_COOKIE, createSession, destroySession, hashPasswor
 import { addHours, id, now } from '../lib/ids.js'
 import { getPlan } from '../plans.js'
 import { usageFor } from '../services/usage.js'
+import { track } from '../services/events.js'
 
 // One limiter per app context (tests create many contexts; prod has one).
 const limiters = new WeakMap<object, RateLimiter>()
@@ -36,6 +37,7 @@ authRoutes.post('/signup', async (c) => {
   const userId = id('usr')
   db.run('INSERT INTO users (id, email, name, password_hash, created_at) VALUES (?, ?, ?, ?, ?)', [userId, input.email, input.name, await hashPassword(input.password), now()])
   db.run('INSERT INTO notification_settings (user_id) VALUES (?)', [userId])
+  track(db, 'signup', userId)
   const s = createSession(db, userId)
   setCookie(c, SESSION_COOKIE, s.token, { httpOnly: true, secure: config.cookieSecure, sameSite: 'Lax', path: '/', maxAge: s.maxAge })
   return c.json({ user: { id: userId, email: input.email, name: input.name, plan: 'free' } }, 201)
@@ -65,7 +67,7 @@ authRoutes.get('/me', requireUser, (c) => {
   const plan = getPlan(u.plan)
   const google = c.var.ctx.db.get<{ email: string | null }>('SELECT email FROM google_connections WHERE user_id = ?', [u.id])
   return c.json({
-    user: { id: u.id, email: u.email, name: u.name, plan: plan.id, founding: Boolean(u.founding), createdAt: u.created_at },
+    user: { id: u.id, email: u.email, name: u.name, plan: plan.id, founding: Boolean(u.founding), createdAt: u.created_at, isAdmin: c.var.ctx.config.adminEmails.includes(u.email.toLowerCase()) },
     plan,
     usage: usageFor(c.var.ctx.db, u.id),
     google: { connected: Boolean(google), email: google?.email ?? null, configured: c.var.ctx.google.configured },
