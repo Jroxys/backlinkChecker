@@ -10,6 +10,7 @@ import { keywords as mockKeywords } from '@/data/keywords'
 import { opportunities as mockOpps } from '@/data/opportunities'
 import { indexSeries, backlinkSeries } from '@/data/series'
 import { NOW } from '@/utils/format'
+import { rankingsDemo, rankedKeywordDemo, demoCompare } from '@/data/rankings'
 
 const wait = <T>(v: T, ms = 380) => new Promise<T>((r) => setTimeout(() => r(structuredClone(v)), ms))
 
@@ -18,10 +19,10 @@ const demoOnly = () =>
 
 // Kept in sync with server/src/plans.ts
 const plans: Plan[] = [
-  { id: 'free', name: 'Free', monthly: 0, yearly: 0, founding: 0, limits: { projects: 1, urls: 100, backlinks: 100, competitorsPerProject: 0, seats: 1, backlinkCheckHours: 168, urlCheckHours: 24, discovery: false, watchMinutes: 60, priorityPages: 1 }, features: { slack: false, webhooks: false, reports: false, whiteLabel: false, api: false } },
-  { id: 'starter', name: 'Starter', monthly: 12, yearly: 120, founding: 9, limits: { projects: 3, urls: 1000, backlinks: 1000, competitorsPerProject: 1, seats: 1, backlinkCheckHours: 24, urlCheckHours: 24, discovery: false, watchMinutes: 15, priorityPages: 5 }, features: { slack: true, webhooks: false, reports: true, whiteLabel: false, api: false } },
-  { id: 'pro', name: 'Pro', monthly: 29, yearly: 290, founding: 19, limits: { projects: 10, urls: 10000, backlinks: 10000, competitorsPerProject: 3, seats: 3, backlinkCheckHours: 24, urlCheckHours: 12, discovery: 'weekly', watchMinutes: 5, priorityPages: 20 }, features: { slack: true, webhooks: true, reports: true, whiteLabel: false, api: true } },
-  { id: 'agency', name: 'Agency', monthly: 79, yearly: 790, founding: 49, limits: { projects: 50, urls: 50000, backlinks: 50000, competitorsPerProject: 5, seats: 10, backlinkCheckHours: 24, urlCheckHours: 6, discovery: 'weekly', watchMinutes: 5, priorityPages: 50 }, features: { slack: true, webhooks: true, reports: true, whiteLabel: true, api: true } },
+  { id: 'free', name: 'Free', monthly: 0, yearly: 0, founding: 0, limits: { projects: 1, urls: 100, backlinks: 100, competitorsPerProject: 0, seats: 1, backlinkCheckHours: 168, urlCheckHours: 24, discovery: false, watchMinutes: 60, priorityPages: 1, trackedKeywords: 10, serpRefreshDays: null, comparisonsPerDay: 5 }, features: { slack: false, webhooks: false, reports: false, whiteLabel: false, api: false } },
+  { id: 'starter', name: 'Starter', monthly: 12, yearly: 120, founding: 9, limits: { projects: 3, urls: 1000, backlinks: 1000, competitorsPerProject: 1, seats: 1, backlinkCheckHours: 24, urlCheckHours: 24, discovery: false, watchMinutes: 15, priorityPages: 5, trackedKeywords: 50, serpRefreshDays: 7, comparisonsPerDay: 30 }, features: { slack: true, webhooks: false, reports: true, whiteLabel: false, api: false } },
+  { id: 'pro', name: 'Pro', monthly: 29, yearly: 290, founding: 19, limits: { projects: 10, urls: 10000, backlinks: 10000, competitorsPerProject: 3, seats: 3, backlinkCheckHours: 24, urlCheckHours: 12, discovery: 'weekly', watchMinutes: 5, priorityPages: 20, trackedKeywords: 250, serpRefreshDays: 3, comparisonsPerDay: 100 }, features: { slack: true, webhooks: true, reports: true, whiteLabel: false, api: true } },
+  { id: 'agency', name: 'Agency', monthly: 79, yearly: 790, founding: 49, limits: { projects: 50, urls: 50000, backlinks: 50000, competitorsPerProject: 5, seats: 10, backlinkCheckHours: 24, urlCheckHours: 6, discovery: 'weekly', watchMinutes: 5, priorityPages: 50, trackedKeywords: 1000, serpRefreshDays: 1, comparisonsPerDay: 300 }, features: { slack: true, webhooks: true, reports: true, whiteLabel: true, api: true } },
 ]
 
 const me: Me = {
@@ -331,6 +332,26 @@ export const demoSource: DataSource = {
   leaveTeam: demoOnly,
   deleteApiKey: demoOnly,
   addCompetitor: demoOnly,
+  rankings: () => wait(rankingsDemo),
+  rankingSuggestions: () =>
+    wait({
+      suggestions: [
+        { keyword: 'google indexing api', impressions: 1840, clicks: 22, position: 12.4 },
+        { keyword: 'why is my page not indexed', impressions: 1310, clicks: 41, position: 7.8 },
+        { keyword: 'lost backlinks', impressions: 920, clicks: 9, position: 15.1 },
+        { keyword: 'crawled currently not indexed', impressions: 760, clicks: 18, position: 9.3 },
+        { keyword: 'noindex checker', impressions: 410, clicks: 6, position: 19.6 },
+      ],
+    }),
+  addRankedKeywords: demoOnly,
+  saveRankingSettings: demoOnly,
+  rankedKeyword: (id) => {
+    const d = rankedKeywordDemo(id)
+    return d ? wait(d) : Promise.reject(new ApiError(404, 'not_found', 'Keyword not found'))
+  },
+  deleteRankedKeyword: demoOnly,
+  refreshSerp: demoOnly,
+  compare: (_p, input) => wait(demoCompare(input.keyword, input.myUrl, input.theirUrl), 1200),
   deleteCompetitor: demoOnly,
   keywords: () =>
     wait({

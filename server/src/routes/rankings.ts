@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { ApiError, body, notFound, ownedProject, requireUser, router, type C } from '../http.js'
 import { getPlan } from '../plans.js'
+import { keywordsFor } from '../services/keywords.js'
 import { addKeywords, comparePage, keywordSuggestions, RankingError, refreshSerp } from '../services/rankings.js'
 
 /** Rank tracking (Search Console positions, optional live SERP) and page-vs-competitor comparison. */
@@ -83,8 +84,10 @@ rankingRoutes.post('/projects/:id/rankings', async (c) => {
   }
 })
 
-rankingRoutes.get('/projects/:id/rankings/suggestions', (c) => {
+rankingRoutes.get('/projects/:id/rankings/suggestions', async (c) => {
   const p = ownedProject(c, c.req.param('id'))
+  // Warms the Search Console query cache the suggestions read from (no-op when fresh)
+  await keywordsFor(c.var.ctx, p.id).catch(() => null)
   return c.json({ suggestions: keywordSuggestions(c.var.ctx, p.id) })
 })
 

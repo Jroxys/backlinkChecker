@@ -85,6 +85,21 @@ export function useCompetitors(projectId: string | undefined) {
   return useQuery({ queryKey: [s.mode, 'competitors', projectId], queryFn: () => s.competitors(projectId!), enabled: !!projectId })
 }
 
+export function useRankings(projectId: string | undefined) {
+  const s = useSource()
+  return useQuery({ queryKey: [s.mode, 'rankings', projectId], queryFn: () => s.rankings(projectId!), enabled: !!projectId })
+}
+
+export function useRankingSuggestions(projectId: string | undefined, enabled: boolean) {
+  const s = useSource()
+  return useQuery({ queryKey: [s.mode, 'rankingSuggestions', projectId], queryFn: () => s.rankingSuggestions(projectId!), enabled: !!projectId && enabled, staleTime: 10 * 60_000 })
+}
+
+export function useRankedKeyword(id: string | undefined) {
+  const s = useSource()
+  return useQuery({ queryKey: [s.mode, 'rankedKeyword', id], queryFn: () => s.rankedKeyword(id!), enabled: !!id, retry: (n, e) => !(e instanceof ApiError && e.status === 404) && n < 2 })
+}
+
 /* --------------------------------------------------------------- writes */
 
 /**

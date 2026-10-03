@@ -14,6 +14,8 @@ const Backlinks = lazy(() => import('./pages/app/Backlinks').then((m) => ({ defa
 const Opportunities = lazy(() => import('./pages/app/Opportunities').then((m) => ({ default: m.Opportunities })))
 const Audit = lazy(() => import('./pages/app/Audit').then((m) => ({ default: m.Audit })))
 const Keywords = lazy(() => import('./pages/app/Keywords').then((m) => ({ default: m.Keywords })))
+const Rankings = lazy(() => import('./pages/app/Rankings').then((m) => ({ default: m.Rankings })))
+const RankingDetail = lazy(() => import('./pages/app/RankingDetail').then((m) => ({ default: m.RankingDetail })))
 const Competitors = lazy(() => import('./pages/app/Competitors').then((m) => ({ default: m.Competitors })))
 const Automations = lazy(() => import('./pages/app/Automations').then((m) => ({ default: m.Automations })))
 const Reports = lazy(() => import('./pages/app/Reports').then((m) => ({ default: m.Reports })))
@@ -77,6 +79,8 @@ function appRoutes() {
       <Route path="opportunities" element={<Opportunities />} />
       <Route path="audit" element={<Audit />} />
       <Route path="keywords" element={<Keywords />} />
+      <Route path="rankings" element={<Rankings />} />
+      <Route path="rankings/:id" element={<RankingDetail />} />
       <Route path="competitors" element={<Competitors />} />
       <Route path="automations" element={<Automations />} />
       <Route path="reports" element={<Reports />} />

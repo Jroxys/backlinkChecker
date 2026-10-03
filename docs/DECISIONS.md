@@ -322,3 +322,16 @@ Yeni kodu (deneme, sınırlar, blog, dışa aktarma, CWV, araçlar) yine ayrı b
   - **Deploy hook:** kullanıcının yayın sistemi `POST /api/hooks/deploy/<token>` çağırır ve öncelikli sayfalar, robots.txt ve uptime bir dakika içinde kontrol edilir. Hatalar çoğunlukla deploy anında doğduğu için bu, sürekli taramadan daha isabetli. Dakikada en fazla 6 istek kabul ediliyor; token yenilenebiliyor.
   - **Uyarı teslimi:** 5 dakikadan 1 dakikaya indi.
 - **Dürüstlük:** bunu "gerçek zamanlı" diye değil, "kritik sayfalar 5 dakikada bir" diye satıyoruz.
+
+### K40 · Sıra takibi ve "üstümdeki sayfa" karşılaştırması
+- **Neden:** kullanıcı "kaçıncı sıradayım, ilk sıradaki rakibimle farkım ne?" sorusuna cevap istiyor. Canlı Google sonuçları (DataForSEO vb.) ücretli ve şu an bütçe yok.
+- **Karar: ücretsiz çekirdek, ücretli eklenti takılabilir.**
+  - **Pozisyonlar Search Console'dan:** takip edilen her kelime için günlük ortalama pozisyon, tıklama ve gösterim. Kelime eklenince 90 günlük geçmiş geriye dönük doluyor. Maliyet sıfır, veri Google'ın kendisi.
+  - **Karşılaştırma:** kullanıcı kendi sayfasını ve rakip sayfanın URL'sini veriyor. İki sayfa okunuyor; rakip sayfada robots.txt'ye uyuluyor. 14 sinyal karşılaştırılıyor: başlık, H1, URL, açıklama, giriş paragrafı, kelime sayısı, anahtar kelime geçişi, H2, iç link, şema, alt metin, hız, HTTPS ve referans alan adı. Sonuç önem sırasına göre numaralı bir yapılacaklar listesi. Günlük limit plana göre: 5, 30, 100, 300.
+  - **Canlı ilk 10 (isteğe bağlı):** `DATAFORSEO_LOGIN` girilirse açılıyor. Plana göre 7, 3 veya 1 günde bir yenileniyor; Free planda yok. Açık değilse arayüz, rakip URL'sinin elle girilmesini açıklıyor.
+  - **Takip limiti:** 10 / 50 / 250 / 1000 kelime.
+- **Arayüz:**
+  - `/app/rankings`: liste, 7 günlük değişim, 30 günlük trend, en üstteki rakip.
+  - `/app/rankings/:id`: pozisyon grafiği (ters eksen), ilk 10 listesi, karşılaştırma ve yapılacaklar.
+  - Kelime ekleme penceresi Search Console'dan öneri getiriyor.
+- **Sınır:** Search Console pozisyonu bir ortalama; tek bir aramadaki sırayla birebir aynı değil. Arayüz bunu açıkça yazıyor.

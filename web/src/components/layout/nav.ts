@@ -12,6 +12,7 @@ import {
   Workflow,
   Sparkles,
   Gauge,
+  TrendingUp,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -37,6 +38,7 @@ export const navGroups: { label?: string; items: NavItem[] }[] = [
       { to: '/app/opportunities', label: 'Opportunities', icon: Sparkles },
       { to: '/app/audit', label: 'SEO Audit', icon: ShieldCheck },
       { to: '/app/keywords', label: 'Keywords', icon: KeyRound },
+      { to: '/app/rankings', label: 'Rankings', icon: TrendingUp },
       { to: '/app/competitors', label: 'Competitors', icon: Swords },
     ],
   },

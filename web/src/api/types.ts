@@ -22,6 +22,9 @@ export interface Plan {
     discovery: false | 'weekly' | 'daily'
     watchMinutes?: number
     priorityPages?: number
+    trackedKeywords?: number
+    serpRefreshDays?: number | null
+    comparisonsPerDay?: number
   }
   features: { slack: boolean; webhooks: boolean; reports: boolean; whiteLabel: boolean; api: boolean }
 }
@@ -312,4 +315,77 @@ export interface Report {
   queries: { query: string; position: number; clicks: number; impressions: number }[]
   branding: Branding | null
   generatedAt: string
+}
+
+export interface RankedKeyword {
+  id: string
+  keyword: string
+  position: number | null
+  source: 'gsc' | 'serp' | null
+  /** Positive = moved up */
+  change7d: number | null
+  clicks30d: number
+  impressions30d: number
+  bestPage: string | null
+  trend: (number | null)[]
+  topCompetitor: { domain: string; url: string; position: number } | null
+  serpCheckedAt: string | null
+}
+
+export interface RankingsResponse {
+  keywords: RankedKeyword[]
+  limit: number
+  gscConnected: boolean
+  serpConfigured: boolean
+  location: { name: string; language: string }
+}
+
+export interface KeywordSuggestion {
+  keyword: string
+  impressions: number
+  clicks: number
+  position: number
+}
+
+export interface SerpResult {
+  position: number
+  url: string
+  domain: string
+  title: string
+}
+
+export interface PageFacts {
+  url: string
+  title: string
+  metaDescription: string
+  h1: string[]
+  h2Count: number
+  wordCount: number
+  internalLinks: number
+  externalLinks: number
+  images: number
+  imagesWithoutAlt: number
+  schemaTypes: string[]
+  lang: string | null
+  https: boolean
+  responseMs: number | null
+}
+
+export type Verdict = 'ahead' | 'even' | 'behind' | 'missing'
+
+export interface Comparison {
+  id?: string
+  keyword: string
+  mine: PageFacts
+  theirs: PageFacts
+  checks: { id: string; label: string; mine: string; theirs: string; verdict: Verdict; advice: string | null; weight: number }[]
+  todo: { id: string; advice: string }[]
+  createdAt?: string
+}
+
+export interface KeywordDetail {
+  keyword: { id: string; keyword: string; bestPage: string | null; serpCheckedAt: string | null; createdAt: string }
+  history: { date: string; source: 'gsc' | 'serp'; position: number | null; clicks: number | null; impressions: number | null; page: string | null }[]
+  serp: { fetchedAt: string; results: SerpResult[] } | null
+  comparison: Comparison | null
 }

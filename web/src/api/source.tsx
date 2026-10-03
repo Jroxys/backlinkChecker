@@ -1,6 +1,10 @@
 import { createContext, useContext, type ReactNode } from 'react'
 import type {
   ApiKey,
+  RankingsResponse,
+  KeywordSuggestion,
+  KeywordDetail,
+  Comparison,
   WatchStatus,
   CwvResponse,
   DomainHealth,
@@ -85,6 +89,14 @@ export interface DataSource {
   competitors(projectId: string): Promise<{ competitors: Competitor[]; providerConfigured: boolean }>
   addCompetitor(projectId: string, domain: string): Promise<void>
   deleteCompetitor(projectId: string, id: string): Promise<void>
+  rankings(projectId: string): Promise<RankingsResponse>
+  rankingSuggestions(projectId: string): Promise<{ suggestions: KeywordSuggestion[] }>
+  addRankedKeywords(projectId: string, keywords: string[]): Promise<{ created: number; skipped: number }>
+  saveRankingSettings(projectId: string, s: { location: string; language: string }): Promise<void>
+  rankedKeyword(id: string): Promise<KeywordDetail>
+  deleteRankedKeyword(id: string): Promise<void>
+  refreshSerp(id: string): Promise<unknown>
+  compare(projectId: string, input: { keyword: string; keywordId?: string; myUrl?: string; theirUrl?: string }): Promise<Comparison>
 
   createProject(input: { domain: string; name?: string }): Promise<Project>
   updateProject(id: string, input: { name?: string; gscProperty?: string | null }): Promise<Project>
