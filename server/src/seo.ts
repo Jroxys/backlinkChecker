@@ -6,7 +6,11 @@ export interface PageMeta {
   title: string
   description: string
   index: boolean
+  lang?: 'en' | 'tr'
 }
+
+/** Language versions of the same page, for hreflang. */
+const alternates: Record<string, { en: string; tr: string }> = { '/': { en: '/', tr: '/tr' }, '/tr': { en: '/', tr: '/tr' } }
 
 const pages: Record<string, PageMeta> = {
   '/': {
@@ -34,6 +38,12 @@ const pages: Record<string, PageMeta> = {
     title: 'Free SSL Certificate Checker — Expiry date & errors | Indexora',
     description: 'Check when your SSL certificate expires, who issued it and whether browsers trust it, with a plain-English explanation of any error. Free, no signup.',
     index: true,
+  },
+  '/tr': {
+    title: 'Indexora — Google sitende ne görüyor, tam olarak bil',
+    description: 'İndeks durumu, indekslenebilirlik ve her backlink her gün kontrol edilir; bir şey değiştiğinde aynı gün haber verir. 14 gün Pro ücretsiz, kart gerekmez.',
+    index: true,
+    lang: 'tr',
   },
   '/blog': { title: 'Blog — practical guides to indexing and backlinks | Indexora', description: 'Practical, no-fluff guides to getting pages indexed, keeping backlinks alive and fixing technical SEO problems.', index: true },
   '/demo': { title: 'Live demo — Indexora', description: 'Explore Indexora with sample data: index coverage, backlink monitoring, audits and alerts.', index: true },
@@ -74,9 +84,22 @@ export function injectHead(html: string, path: string, appUrl: string, extra?: P
     `<meta property="og:description" content="${esc(m.description)}" />`,
     `<meta property="og:url" content="${esc(url)}" />`,
     `<meta name="twitter:card" content="summary" />`,
+    ...(alternates[path.replace(/\/+$/, '') || '/']
+      ? (() => {
+          const a = alternates[path.replace(/\/+$/, '') || '/']
+          const base = appUrl.replace(/\/$/, '')
+          return [
+            `<link rel="alternate" hreflang="en" href="${esc(base + a.en)}" />`,
+            `<link rel="alternate" hreflang="tr" href="${esc(base + a.tr)}" />`,
+            `<link rel="alternate" hreflang="x-default" href="${esc(base + a.en)}" />`,
+          ]
+        })()
+      : []),
+    ...(m.lang === 'tr' ? [`<meta property="og:locale" content="tr_TR" />`] : []),
     ...(extra?.jsonLd ? [`<script type="application/ld+json">${JSON.stringify(extra.jsonLd).replace(/</g, '\\u003c')}</script>`] : []),
   ].join('\n    ')
-  const withBody = extra?.body ? html.replace('<div id="root"></div>', `<div id="root">${extra.body}</div>`) : html
+  const withLang = m.lang && m.lang !== 'en' ? html.replace('<html lang="en">', `<html lang="${m.lang}">`) : html
+  const withBody = extra?.body ? withLang.replace('<div id="root"></div>', `<div id="root">${extra.body}</div>`) : withLang
   return withBody
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(m.title)}</title>`)
     .replace(/<meta name="description"[^>]*>\s*/, '')

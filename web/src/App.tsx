@@ -27,6 +27,7 @@ const ForgotPassword = lazy(() => import('./pages/auth/Login').then((m) => ({ de
 const ResetPassword = lazy(() => import('./pages/auth/Login').then((m) => ({ default: m.ResetPassword })))
 const Join = lazy(() => import('./pages/auth/Join').then((m) => ({ default: m.Join })))
 const PublicReport = lazy(() => import('./pages/PublicReport').then((m) => ({ default: m.PublicReport })))
+const LandingTr = lazy(() => import('./pages/marketing/LandingTr').then((m) => ({ default: m.LandingTr })))
 const BlogIndex = lazy(() => import('./pages/marketing/Blog').then((m) => ({ default: m.BlogIndex })))
 const BlogPost = lazy(() => import('./pages/marketing/Blog').then((m) => ({ default: m.BlogPost })))
 const Tools = lazy(() => import('./pages/marketing/Tools').then((m) => ({ default: m.Tools })))
@@ -38,6 +39,7 @@ export function App() {
     <Suspense fallback={<PageFallback />}>
       <Routes>
         <Route path="/" element={<Landing />} />
+        <Route path="/tr" element={<LandingTr />} />
         <Route path="/tools" element={<Tools />} />
         <Route path="/blog" element={<BlogIndex />} />
         <Route path="/blog/:slug" element={<BlogPost />} />

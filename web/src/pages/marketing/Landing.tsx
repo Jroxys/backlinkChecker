@@ -156,7 +156,7 @@ function Hero() {
             className="mb-7 inline-flex animate-rise items-center gap-2 rounded-full border border-line bg-surface/80 py-1 pr-3 pl-1 text-[12.5px] text-fg-2 shadow-xs backdrop-blur transition-colors hover:border-line-strong"
           >
             <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11.5px] font-semibold text-primary-ink">New</span>
-            Real-time URL Inspection monitoring
+            SSL, domain expiry & Core Web Vitals monitoring
             <ArrowRight className="size-3.5 text-fg-4" />
           </a>
           <h1 className="display animate-rise text-[44px] leading-[1.02] font-semibold text-fg [animation-delay:60ms] sm:text-[64px] lg:text-[72px]">
@@ -181,7 +181,7 @@ function Hero() {
             </Link>
           </div>
           <div className="mt-5 flex animate-rise flex-wrap items-center justify-center gap-x-5 gap-y-1 text-[12.5px] text-fg-4 [animation-delay:220ms]">
-            {['Free plan, no card', 'Read-only Search Console access', 'Founding price locked for life'].map((t) => (
+            {['14 days of Pro free, no card', 'Read-only Search Console access', 'Founding price locked for life'].map((t) => (
               <span key={t} className="inline-flex items-center gap-1.5">
                 <Check className="size-3.5 text-primary" />
                 {t}

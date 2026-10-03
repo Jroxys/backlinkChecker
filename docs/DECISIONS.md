@@ -252,3 +252,14 @@ Kurucu panelinin e-postayla belirlenmesi ve e-posta doğrulamasının olmaması 
   - Aktivasyon e-postaları deneme kullanıcılarına da gidiyor.
   - Aylık rapor yalnızca gerçek ödeyenlere gidiyor.
 - **Ayar:** `TRIAL_DAYS=0` ile deneme kapatılabilir.
+
+### K35 · Türkçe tanıtım sayfası (/tr), uygulama İngilizce kalıyor
+- **Lehte:**
+  - Kurucunun en ucuz dağıtım kanalı kendi yerel ağı: Türk SEO'cuları ve ajansları.
+  - Türkçe aramalarda rekabet daha az.
+- **Aleyhte:** tam bir i18n altyapısı tüm ekranlarda metin bakımını ikiye katlar.
+- **Karar:** yalnızca pazarlama sayfası Türkçe. Çeviri değil, Türkçe olarak yazıldı.
+  - Uygulamanın İngilizce olduğu SSS'de açıkça söyleniyor.
+  - Menü ve altbilgi dile duyarlı; sayfalar arasında karşılıklı dil bağlantısı var.
+  - Sunucu `/tr` için `<html lang="tr">`, Türkçe meta ve `hreflang` (en/tr/x-default) üretiyor.
+- **Ayrıca:** İngilizce ana sayfadaki iki abartılı ifade düzeltildi. "Gerçek zamanlı URL Inspection" ifadesi yanlıştı, kontroller günlük. "Free plan, no card" ise artık "14 gün Pro, kart yok".

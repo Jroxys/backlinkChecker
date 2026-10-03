@@ -22,3 +22,17 @@ test('robots.txt and sitemap list only public pages', () => {
   assert.match(s, /<loc>https:\/\/x.test\/tools\/indexability-checker<\/loc>/)
   assert.doesNotMatch(s, /login|signup/)
 })
+
+test('Turkish landing page: lang, Turkish meta and hreflang pairs with the English page', async () => {
+  const { injectHead } = await import('../src/seo.js')
+  const shell = '<!doctype html><html lang="en"><head><title>x</title></head><body><div id="root"></div></body></html>'
+  const tr = injectHead(shell, '/tr', 'https://indexora.app')
+  assert.match(tr, /<html lang="tr">/)
+  assert.match(tr, /<title>Indexora — Google sitende/)
+  assert.match(tr, /hreflang="en" href="https:\/\/indexora\.app\/"/)
+  assert.match(tr, /hreflang="tr" href="https:\/\/indexora\.app\/tr"/)
+  const en = injectHead(shell, '/', 'https://indexora.app')
+  assert.match(en, /<html lang="en">/)
+  assert.match(en, /hreflang="tr"/)
+  assert.ok(!injectHead(shell, '/pricing-nope', 'https://indexora.app').includes('hreflang'))
+})
