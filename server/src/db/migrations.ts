@@ -271,4 +271,17 @@ export const migrations: { id: number; name: string; sql: string }[] = [
       CREATE INDEX events_name_at ON events(name, at);
     `,
   },
+  {
+    id: 8,
+    name: 'activation_emails',
+    sql: `
+      -- One row per onboarding nudge actually sent, so each goes out at most once.
+      CREATE TABLE activation_emails (
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        kind TEXT NOT NULL,
+        sent_at TEXT NOT NULL,
+        PRIMARY KEY (user_id, kind)
+      );
+    `,
+  },
 ]

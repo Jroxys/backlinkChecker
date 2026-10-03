@@ -86,3 +86,22 @@ Her kararda önce seçenekleri, sonra kendi itirazlarımı yazıyorum. Yeni kara
 ### K22 · Kendi kodumun güvenlik incelemesi
 - **DNS rebinding:** IP kontrolü bağlantıdan önce yapılıyordu, `fetch` ise DNS'i yeniden çözüyordu. Kötü niyetli bir DNS önce genel, sonra özel IP döndürebilirdi (ücretsiz araçlar herkese açık olduğu için ciddi). → Bağlantı anında çalışan, özel IP'leri reddeden bir undici `Agent`. Node'un yerleşik `fetch`'i farklı bir undici sürümü gömdüğü için tarayıcı undici'nin kendi `fetch`'ine geçirildi.
 - **Slack biçimlendirme enjeksiyonu:** üçüncü taraf sayfalardan gelen anchor metinleri Slack'te sahte link olabiliyordu → `& < >` kaçışlanıyor.
+
+### K23 · Kurucu paneli: harici analitik yerine kendi veritabanımız
+- **Lehte:** Plausible veya PostHog gibi harici araçlar kurulum, maliyet ve çerez/KVKK yükü getiriyor. 0 müşteride ihtiyacım olan tek şey hunide nerede kaybettiğim, ve bu zaten veritabanında var.
+- **Aleyhte:** sayfa görüntüleme verisi yok.
+- **Karar:** IP ve parmak izi tutmayan küçük bir `events` tablosu, `/app/admin` sayfasında huni, MRR, kurucu koltukları ve günlük kayıtlar. Panel yalnızca `ADMIN_EMAILS`'taki hesaplara görünür; diğer herkes için API 404 döner, yani varlığı bile belli olmaz.
+
+### K24 · Aktivasyon e-postaları
+- **Lehte:** SaaS'ta kayıt olanların büyük kısmı ilk gün hiçbir şey yapmadan çıkar. Hatırlatma ücretsizdir.
+- **Aleyhte:** spam hissi.
+- **Karar:** üç e-postalık bir dizi, her biri hunideki bir sonraki eksik adımı hedefliyor:
+  1. 1. gün: site eklenmemişse.
+  2. 3. gün: backlink eklenmemişse.
+  3. 5. gün: Search Console bağlanmamışsa (yalnızca Google OAuth yapılandırılmışsa).
+- **Kurallar:**
+  - Her e-posta bir kez gider.
+  - İki e-posta arasında en az 48 saat olur.
+  - Yalnızca ilk 14 gündeki ücretsiz kullanıcılara gider; böylece özellik yayına girdiğinde eski hesaplar e-posta yağmuruna tutulmaz.
+  - E-posta tercihini kapatan kullanıcıya hiçbir şey gitmez.
+  - Kayıt, gönderimden *önce* yazılır: çökme olursa e-posta bir kez eksik gider ama asla iki kez gitmez.
