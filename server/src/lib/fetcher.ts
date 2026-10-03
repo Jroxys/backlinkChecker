@@ -193,6 +193,11 @@ export class PoliteFetcher {
     return parser.isAllowed(u.href, userAgent) !== false
   }
 
+  /** Drop the cached robots.txt for an origin (call when we know it changed). */
+  forgetRobots(origin: string) {
+    this.robots.delete(new URL(origin).origin)
+  }
+
   /** Raw robots.txt sitemaps for an origin. */
   async sitemapsFromRobots(u: URL): Promise<string[]> {
     return (await this.robotsFor(u))?.getSitemaps() ?? []

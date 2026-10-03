@@ -241,4 +241,20 @@ export const migrations: { id: number; name: string; sql: string }[] = [
       ALTER TABLE users ADD COLUMN last_summary_at TEXT;
     `,
   },
+  {
+    id: 6,
+    name: 'robots_snapshots',
+    sql: `
+      CREATE TABLE robots_snapshots (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        url TEXT NOT NULL,
+        fetched_at TEXT NOT NULL,
+        status INTEGER,
+        hash TEXT NOT NULL,
+        body TEXT NOT NULL
+      );
+      CREATE INDEX robots_snapshots_project ON robots_snapshots(project_id, fetched_at);
+    `,
+  },
 ]

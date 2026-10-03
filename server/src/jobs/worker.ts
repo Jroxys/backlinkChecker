@@ -6,6 +6,7 @@ import { deliverPendingAlerts } from '../services/notifier.js'
 import { getPlan } from '../plans.js'
 import { snapshotAll } from '../services/stats.js'
 import { sendWeeklySummaries } from '../services/summary.js'
+import { checkRobots } from '../services/robots.js'
 import { claim, complete, enqueue, fail, prune, recoverStale, type Job } from './queue.js'
 
 type Handler = (ctx: Ctx, payload: Record<string, unknown>) => Promise<unknown>
@@ -45,6 +46,13 @@ export const handlers: Record<string, Handler> = {
   },
   'stats.snapshot': async (ctx) => snapshotAll(ctx),
   'summary.weekly': (ctx) => sendWeeklySummaries(ctx),
+  /** robots.txt for every project, hourly: a bad Disallow can de-index a site overnight. */
+  'robots.sweep': async (ctx) => {
+    const ps = ctx.db.all<{ id: string }>('SELECT id FROM projects')
+    let changed = 0
+    for (const p of ps) if ((await checkRobots(ctx, p.id)).changed) changed++
+    return { projects: ps.length, changed }
+  },
   'maintenance': async (ctx) => {
     recoverStale(ctx.db)
     prune(ctx.db)
@@ -62,6 +70,7 @@ const schedule: { kind: string; everyMinutes: number }[] = [
   { kind: 'sitemaps.sweep', everyMinutes: 60 },
   { kind: 'discovery.sweep', everyMinutes: 60 },
   { kind: 'stats.snapshot', everyMinutes: 60 },
+  { kind: 'robots.sweep', everyMinutes: 60 },
   { kind: 'maintenance', everyMinutes: 30 },
 ]
 
