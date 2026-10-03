@@ -1,5 +1,6 @@
+import { useSource } from '@/api/source'
 import { useState } from 'react'
-import { FileSearch, Map, Plus, CheckCircle2, AlertTriangle, XCircle, Clock3, ExternalLink } from 'lucide-react'
+import { FileSearch, Map, Plus, CheckCircle2, AlertTriangle, XCircle, Clock3, ExternalLink, Download } from 'lucide-react'
 import type { IndexStatus } from '@/api/types'
 import { useAction, useAudit, useSitemaps, useUrls } from '@/api/hooks'
 import { cn } from '@/lib/cn'
@@ -22,6 +23,7 @@ const tileOrder: IndexStatus[] = ['indexed', 'crawled', 'discovered', 'blocked',
 
 export function Indexing() {
   const { project } = useProject()
+  const source = useSource()
   const [filter, setFilter] = useState<IndexStatus | null>(null)
   const [addUrls, setAddUrls] = useState(false)
   const [addSitemap, setAddSitemap] = useState(false)
@@ -43,6 +45,13 @@ export function Indexing() {
         }
         actions={
           <>
+            {source.mode === 'live' && project && (
+              <a href={`/api/projects/${project.id}/export/urls.csv`} download>
+                <Button variant="ghost" leftIcon={<Download />}>
+                  Export CSV
+                </Button>
+              </a>
+            )}
             <Button leftIcon={<Map />} onClick={() => setAddSitemap(true)}>
               Add sitemap
             </Button>

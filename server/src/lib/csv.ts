@@ -93,3 +93,17 @@ export function extractLinks(text: string): { links: ImportedLink[]; domainOnly:
   }
   return { links, domainOnly, format }
 }
+
+/**
+ * Serialize rows to CSV (with a UTF-8 BOM so Excel reads non-ASCII correctly).
+ * Cells that start with = + - @ are prefixed with ' so spreadsheets don't execute them as formulas:
+ * anchor texts and titles come from third-party pages.
+ */
+export function toCsv(header: string[], rows: (string | number | null | undefined)[][]) {
+  const cell = (v: string | number | null | undefined) => {
+    let s = v === null || v === undefined ? '' : String(v)
+    if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`
+    return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+  }
+  return '﻿' + [header, ...rows].map((r) => r.map(cell).join(',')).join('\r\n') + '\r\n'
+}

@@ -1,6 +1,7 @@
+import { useSource } from '@/api/source'
 import { useMemo, useState } from 'react'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { ExternalLink, Globe2, Link2, Plus, Minus, Play, Sparkles, ArrowRight, Upload, MoreHorizontal, RefreshCw, Trash2, Info, Clock3 } from 'lucide-react'
+import { ExternalLink, Globe2, Link2, Plus, Minus, Play, Sparkles, ArrowRight, Upload, MoreHorizontal, RefreshCw, Trash2, Info, Clock3, Download } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { Link } from '@/lib/router'
 import { useChartColors } from '@/lib/chartColors'
@@ -47,6 +48,7 @@ function change(xs: number[]) {
 
 export function Backlinks() {
   const { project } = useProject()
+  const source = useSource()
   const me = useMe().data
   const c = useChartColors()
   const [metric, setMetric] = useState<Metric>('backlinks')
@@ -99,6 +101,13 @@ export function Backlinks() {
         description={project ? `Every link pointing to ${project.domain}, re-verified on the linking page itself. A link counts as lost only after two consecutive misses.` : ''}
         actions={
           <>
+            {source.mode === 'live' && project && (
+              <a href={`/api/projects/${project.id}/export/backlinks.csv`} download>
+                <Button variant="ghost" leftIcon={<Download />}>
+                  Export CSV
+                </Button>
+              </a>
+            )}
             <Button leftIcon={<Upload />} onClick={() => setImporting(true)}>
               Add / import
             </Button>
