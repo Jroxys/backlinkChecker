@@ -310,4 +310,26 @@ export const migrations: { id: number; name: string; sql: string }[] = [
       ALTER TABLE users ADD COLUMN brand_color TEXT;
     `,
   },
+  {
+    id: 11,
+    name: 'teams',
+    sql: `
+      -- A member works inside exactly one owner's account.
+      CREATE TABLE team_members (
+        member_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        created_at TEXT NOT NULL
+      );
+      CREATE INDEX team_members_owner ON team_members(owner_id);
+      CREATE TABLE team_invites (
+        id TEXT PRIMARY KEY,
+        owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        email TEXT NOT NULL,
+        token_hash TEXT NOT NULL UNIQUE,
+        created_at TEXT NOT NULL,
+        expires_at TEXT NOT NULL,
+        UNIQUE (owner_id, email)
+      );
+    `,
+  },
 ]

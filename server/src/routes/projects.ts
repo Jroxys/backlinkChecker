@@ -25,7 +25,7 @@ function present(p: { id: string; name: string; domain: string; gsc_property: st
 
 projectRoutes.get('/', (c) => {
   const { db } = c.var.ctx
-  const rows = db.all<{ id: string; name: string; domain: string; gsc_property: string | null; created_at: string }>('SELECT * FROM projects WHERE user_id = ? ORDER BY created_at', [c.var.user.id])
+  const rows = db.all<{ id: string; name: string; domain: string; gsc_property: string | null; created_at: string }>('SELECT * FROM projects WHERE user_id = ? ORDER BY created_at', [c.var.account.id])
   return c.json({
     projects: rows.map((p) => {
       const last = db.get<{ at: string | null }>(
@@ -43,12 +43,12 @@ projectRoutes.post('/', async (c) => {
   const input = await body(c, createSchema)
   const domain = normalizeDomain(input.domain)
   if (!domain) throw new ApiError(422, 'invalid_domain', 'Enter a domain like example.com')
-  const plan = getPlan(c.var.user.plan)
-  const count = db.get<{ n: number }>('SELECT COUNT(*) AS n FROM projects WHERE user_id = ?', [c.var.user.id])!.n
+  const plan = getPlan(c.var.account.plan)
+  const count = db.get<{ n: number }>('SELECT COUNT(*) AS n FROM projects WHERE user_id = ?', [c.var.account.id])!.n
   if (count >= plan.limits.projects) throw new ApiError(402, 'plan_limit', `Your ${plan.name} plan includes ${plan.limits.projects} project${plan.limits.projects > 1 ? 's' : ''}. Upgrade to add more.`)
-  if (db.get('SELECT 1 FROM projects WHERE user_id = ? AND domain = ?', [c.var.user.id, domain])) throw new ApiError(409, 'duplicate', `${domain} is already a project`)
+  if (db.get('SELECT 1 FROM projects WHERE user_id = ? AND domain = ?', [c.var.account.id, domain])) throw new ApiError(409, 'duplicate', `${domain} is already a project`)
   const projectId = id('prj')
-  db.run('INSERT INTO projects (id, user_id, name, domain, gsc_property, created_at) VALUES (?, ?, ?, ?, ?, ?)', [projectId, c.var.user.id, input.name || domain, domain, input.gscProperty ?? null, now()])
+  db.run('INSERT INTO projects (id, user_id, name, domain, gsc_property, created_at) VALUES (?, ?, ?, ?, ?, ?)', [projectId, c.var.account.id, input.name || domain, domain, input.gscProperty ?? null, now()])
   // Start monitoring right away: the homepage, then whatever the sitemaps list.
   addUrls(c.var.ctx, projectId, [`https://${domain}/`])
   track(db, 'project_created', c.var.user.id)

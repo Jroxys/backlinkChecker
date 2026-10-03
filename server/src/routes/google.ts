@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import { ApiError, requireUser, router } from '../http.js'
+import { ApiError, ownerOnly, requireUser, router } from '../http.js'
 import { now } from '../lib/ids.js'
 import { accessTokenFor, saveConnection } from '../services/google.js'
 import { track } from '../services/events.js'
@@ -8,7 +8,7 @@ export const googleRoutes = router()
 
 const redirectUri = (apiUrl: string) => `${apiUrl}/api/google/callback`
 
-googleRoutes.get('/connect', requireUser, (c) => {
+googleRoutes.get('/connect', requireUser, ownerOnly, (c) => {
   const { google, config, db } = c.var.ctx
   if (!google.configured) throw new ApiError(503, 'google_not_configured', 'Google sign-in is not configured on this server (GOOGLE_CLIENT_ID/SECRET)')
   const state = randomBytes(24).toString('base64url')
@@ -41,12 +41,12 @@ googleRoutes.get('/callback', async (c) => {
 
 googleRoutes.get('/sites', requireUser, async (c) => {
   const { google, db } = c.var.ctx
-  const token = await accessTokenFor(db, google, c.var.user.id)
+  const token = await accessTokenFor(db, google, c.var.account.id)
   if (!token) throw new ApiError(409, 'google_not_connected', 'Connect Google Search Console first')
   return c.json({ sites: await google.listSites(token) })
 })
 
-googleRoutes.delete('/', requireUser, (c) => {
+googleRoutes.delete('/', requireUser, ownerOnly, (c) => {
   c.var.ctx.db.run('DELETE FROM google_connections WHERE user_id = ?', [c.var.user.id])
   return c.json({ ok: true })
 })

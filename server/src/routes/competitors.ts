@@ -19,7 +19,7 @@ competitorRoutes.post('/projects/:id/competitors', async (c) => {
   const { domain: raw } = await body(c, z.object({ domain: z.string().min(3).max(253) }))
   const domain = normalizeDomain(raw)
   if (!domain || domain === p.domain) throw new ApiError(422, 'invalid_domain', 'Enter a competitor domain like rival.com')
-  const max = getPlan(c.var.user.plan).limits.competitorsPerProject
+  const max = getPlan(c.var.account.plan).limits.competitorsPerProject
   const count = c.var.ctx.db.get<{ n: number }>('SELECT COUNT(*) AS n FROM competitors WHERE project_id = ?', [p.id])!.n
   if (count >= max) throw new ApiError(402, 'plan_limit', max ? `Your plan tracks up to ${max} competitors per project` : 'Competitor tracking starts on the Starter plan')
   c.var.ctx.db.run('INSERT OR IGNORE INTO competitors (id, project_id, domain, created_at) VALUES (?, ?, ?, ?)', [id('cmp'), p.id, domain, now()])

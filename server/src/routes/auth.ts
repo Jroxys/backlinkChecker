@@ -1,6 +1,6 @@
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import { z } from 'zod'
-import { ApiError, body, requireUser, router } from '../http.js'
+import { ApiError, body, ownerOnly, requireUser, router } from '../http.js'
 import { randomBytes } from 'node:crypto'
 import { RateLimiter, SESSION_COOKIE, createSession, destroySession, hashPassword, sha256, verifyPassword } from '../lib/auth.js'
 import { addHours, id, now } from '../lib/ids.js'
@@ -65,14 +65,16 @@ authRoutes.post('/logout', async (c) => {
 
 authRoutes.get('/me', requireUser, (c) => {
   const u = c.var.user
-  const plan = getPlan(u.plan)
-  const google = c.var.ctx.db.get<{ email: string | null }>('SELECT email FROM google_connections WHERE user_id = ?', [u.id])
+  const acct = c.var.account
+  const plan = getPlan(acct.plan)
+  const google = c.var.ctx.db.get<{ email: string | null }>('SELECT email FROM google_connections WHERE user_id = ?', [acct.id])
   return c.json({
-    user: { id: u.id, email: u.email, name: u.name, plan: plan.id, founding: Boolean(u.founding), createdAt: u.created_at, isAdmin: c.var.ctx.config.adminEmails.includes(u.email.toLowerCase()) },
+    user: { id: u.id, email: u.email, name: u.name, plan: plan.id, founding: Boolean(acct.role === 'owner' && u.founding), createdAt: u.created_at, isAdmin: c.var.ctx.config.adminEmails.includes(u.email.toLowerCase()) },
     plan,
-    usage: usageFor(c.var.ctx.db, u.id),
+    usage: usageFor(c.var.ctx.db, acct.id),
+    team: { role: acct.role, ownerName: acct.ownerName, suspended: Boolean(acct.suspended) },
     google: { connected: Boolean(google), email: google?.email ?? null, configured: c.var.ctx.google.configured },
-    branding: brandingFor(c.var.ctx.db, u.id),
+    branding: brandingFor(c.var.ctx.db, acct.id),
   })
 })
 
@@ -82,7 +84,7 @@ function brandingFor(db: Db, userId: string) {
 }
 
 /** White-label branding for client reports. The logo is only ever loaded by the user's own browser. */
-authRoutes.put('/branding', requireUser, async (c) => {
+authRoutes.put('/branding', requireUser, ownerOnly, async (c) => {
   const input = await body(
     c,
     z.object({
@@ -91,7 +93,7 @@ authRoutes.put('/branding', requireUser, async (c) => {
       color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Use a hex color like #0F766E').nullable(),
     }),
   )
-  if (!getPlan(c.var.user.plan).features.whiteLabel) throw new ApiError(402, 'plan_feature', 'White-label reports are part of the Agency plan')
+  if (!getPlan(c.var.account.plan).features.whiteLabel) throw new ApiError(402, 'plan_feature', 'White-label reports are part of the Agency plan')
   c.var.ctx.db.run('UPDATE users SET brand_name = ?, brand_logo_url = ?, brand_color = ? WHERE id = ?', [input.name || null, input.logoUrl || null, input.color, c.var.user.id])
   return c.json({ branding: brandingFor(c.var.ctx.db, c.var.user.id) })
 })

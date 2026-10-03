@@ -72,7 +72,7 @@ urlRoutes.post('/projects/:id/urls', async (c) => {
 })
 
 function ownedUrl(c: Parameters<typeof ownedProject>[0], urlId: string) {
-  const u = c.var.ctx.db.get<UrlRow>('SELECT m.* FROM monitored_urls m JOIN projects p ON p.id = m.project_id WHERE m.id = ? AND p.user_id = ?', [urlId, c.var.user.id])
+  const u = c.var.ctx.db.get<UrlRow>('SELECT m.* FROM monitored_urls m JOIN projects p ON p.id = m.project_id WHERE m.id = ? AND p.user_id = ?', [urlId, c.var.account.id])
   if (!u) throw notFound('URL')
   return u
 }

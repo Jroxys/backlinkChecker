@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { z } from 'zod'
-import { ApiError, body, requireUser, router } from '../http.js'
+import { ApiError, body, ownerOnly, requireUser, router } from '../http.js'
 import { getPlan, plans, type PlanId } from '../plans.js'
 import { track } from '../services/events.js'
 
@@ -14,7 +14,7 @@ billingRoutes.get('/plans', (c) => {
   return c.json({ plans: Object.values(plans), founding: { total: FOUNDING_SEATS, left: Math.max(0, FOUNDING_SEATS - taken) } })
 })
 
-billingRoutes.post('/checkout', requireUser, async (c) => {
+billingRoutes.post('/checkout', requireUser, ownerOnly, async (c) => {
   const { db, config } = c.var.ctx
   const input = await body(c, z.object({ plan: z.enum(['starter', 'pro', 'agency']), cycle: z.enum(['monthly', 'yearly']) }))
   const taken = db.get<{ n: number }>('SELECT COUNT(*) AS n FROM users WHERE founding = 1')!.n
@@ -31,7 +31,7 @@ billingRoutes.post('/checkout', requireUser, async (c) => {
   return c.json({ url: u.href, founding })
 })
 
-billingRoutes.get('/portal', requireUser, (c) => {
+billingRoutes.get('/portal', requireUser, ownerOnly, (c) => {
   const url = c.var.ctx.config.lemonSqueezy.customerPortalUrl
   if (!url) throw new ApiError(503, 'billing_not_configured', 'Customer portal is not configured')
   return c.json({ url })

@@ -114,7 +114,7 @@ backlinkRoutes.post('/projects/:id/backlinks/import', async (c) => {
 })
 
 function ownedBacklink(c: C, blId: string) {
-  const b = c.var.ctx.db.get<BacklinkRow>('SELECT b.* FROM backlinks b JOIN projects p ON p.id = b.project_id WHERE b.id = ? AND p.user_id = ?', [blId, c.var.user.id])
+  const b = c.var.ctx.db.get<BacklinkRow>('SELECT b.* FROM backlinks b JOIN projects p ON p.id = b.project_id WHERE b.id = ? AND p.user_id = ?', [blId, c.var.account.id])
   if (!b) throw notFound('Backlink')
   return b
 }

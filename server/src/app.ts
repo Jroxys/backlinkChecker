@@ -16,6 +16,7 @@ import { competitorRoutes } from './routes/competitors.js'
 import { billingRoutes } from './routes/billing.js'
 import { toolRoutes } from './routes/tools.js'
 import { keyRoutes } from './routes/keys.js'
+import { teamRoutes } from './routes/team.js'
 import { adminRoutes } from './routes/admin.js'
 import { injectHead, robotsTxt, sitemapXml } from './seo.js'
 
@@ -54,6 +55,7 @@ export function createApp(ctx: Ctx) {
   app.route('/api/tools', toolRoutes)
   app.route('/api/admin', adminRoutes)
   app.route('/api/keys', keyRoutes)
+  app.route('/api/team', teamRoutes)
 
   // Serve the built web app from the same origin (cookies stay first-party, one deploy).
   const dist = ctx.config.webDist ? resolve(ctx.config.webDist) : ''

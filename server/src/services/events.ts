@@ -1,6 +1,6 @@
 import type { Db } from '../db/index.js'
 
-export type EventName = 'signup' | 'project_created' | 'backlinks_added' | 'gsc_connected' | 'gsc_property_set' | 'checkout_started' | 'subscribed' | 'tool_backlink_check' | 'tool_indexability_check'
+export type EventName = 'signup' | 'project_created' | 'backlinks_added' | 'gsc_connected' | 'gsc_property_set' | 'checkout_started' | 'subscribed' | 'tool_backlink_check' | 'tool_indexability_check' | 'team_invite_sent' | 'team_joined'
 
 /** Record a product event. Never throws — analytics must not break the product. */
 export function track(db: Db, name: EventName, userId?: string | null) {

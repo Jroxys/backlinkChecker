@@ -21,7 +21,7 @@ keyRoutes.get('/', (c) => {
 keyRoutes.post('/', async (c) => {
   const { db } = c.var.ctx
   const input = await body(c, z.object({ name: z.string().trim().min(1).max(60) }))
-  if (!getPlan(c.var.user.plan).features.api) throw new ApiError(402, 'plan_feature', 'API access is available from the Pro plan')
+  if (!getPlan(c.var.account.plan).features.api) throw new ApiError(402, 'plan_feature', 'API access is available from the Pro plan')
   const count = db.get<{ n: number }>('SELECT COUNT(*) AS n FROM api_keys WHERE user_id = ?', [c.var.user.id])!.n
   if (count >= MAX_KEYS) throw new ApiError(409, 'limit_reached', `You can have up to ${MAX_KEYS} API keys. Revoke one first.`)
   const key = createApiKey()
