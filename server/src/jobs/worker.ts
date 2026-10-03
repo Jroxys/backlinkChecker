@@ -8,7 +8,7 @@ import { snapshotAll } from '../services/stats.js'
 import { sendWeeklySummaries } from '../services/summary.js'
 import { sendActivationEmails } from '../services/activation.js'
 import { sendMonthlyReports } from '../services/report.js'
-import { defaultProbes, sweepHealth } from '../services/health.js'
+import { sweepHealth } from '../services/health.js'
 import { checkRobots } from '../services/robots.js'
 import { claim, complete, enqueue, fail, prune, recoverStale, type Job } from './queue.js'
 
@@ -52,7 +52,7 @@ export const handlers: Record<string, Handler> = {
   'activation.sweep': (ctx) => sendActivationEmails(ctx),
   'reports.monthly': (ctx) => sendMonthlyReports(ctx),
   /** SSL certificate (daily) and domain registration (weekly) expiry; per-project timestamps gate the real work. */
-  'health.sweep': (ctx) => sweepHealth(ctx, defaultProbes(ctx.config.crawlerAllowPrivate)),
+  'health.sweep': (ctx) => sweepHealth(ctx, ctx.probes),
   /** robots.txt for every project, hourly: a bad Disallow can de-index a site overnight. */
   'robots.sweep': async (ctx) => {
     const ps = ctx.db.all<{ id: string }>('SELECT id FROM projects')

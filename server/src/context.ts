@@ -4,6 +4,7 @@ import type { PoliteFetcher } from './lib/fetcher.js'
 import type { Notifier } from './services/notifier.js'
 import type { BacklinkProvider } from './services/discovery.js'
 import type { GoogleClient } from './services/google.js'
+import type { HealthProbes } from './services/health.js'
 
 /** Everything a service needs, passed explicitly so tests can swap any part. */
 export interface Ctx {
@@ -13,5 +14,7 @@ export interface Ctx {
   notifier: Notifier
   provider: BacklinkProvider | null
   google: GoogleClient
+  /** TLS certificate and RDAP lookups (swappable in tests) */
+  probes: HealthProbes
   now: () => Date
 }

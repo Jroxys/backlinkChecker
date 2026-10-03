@@ -797,7 +797,7 @@ function FinalCta() {
 export function Footer() {
   const cols: [string, [string, string][]][] = [
     ['Product', [['Features', '/#features'], ['Pricing', '/#pricing'], ['Live demo', '/demo'], ['FAQ', '/#faq']]],
-    ['Free tools', [['Backlink checker', '/tools/backlink-checker'], ['Indexability checker', '/tools/indexability-checker']]],
+    ['Free tools', [['Backlink checker', '/tools/backlink-checker'], ['Indexability checker', '/tools/indexability-checker'], ['Redirect checker', '/tools/redirect-checker'], ['SSL checker', '/tools/ssl-checker']]],
     ['Legal', [['Privacy', '/privacy'], ['Terms', '/terms']]],
   ]
   return (

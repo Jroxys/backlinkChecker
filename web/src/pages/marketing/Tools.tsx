@@ -1,6 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowRight, Check, CheckCircle2, Link2, ScanSearch, X, AlertTriangle, XCircle } from 'lucide-react'
+import { ArrowRight, Check, CheckCircle2, Link2, ScanSearch, X, AlertTriangle, XCircle, Route, Lock, CornerDownRight } from 'lucide-react'
 import { api, ApiError } from '@/api/client'
 import { cn } from '@/lib/cn'
 import { Button } from '@/components/ui/Button'
@@ -12,6 +12,8 @@ import { usePageTitle } from '@/hooks/usePageTitle'
 const tools = [
   { slug: 'backlink-checker', title: 'Free Backlink Checker', short: 'Does this page link to me?', icon: Link2, desc: 'Check whether a page links to your site, with the exact anchor text and whether the link is dofollow, nofollow, UGC or sponsored.' },
   { slug: 'indexability-checker', title: 'Free Indexability Checker', short: 'Can Google index this URL?', icon: ScanSearch, desc: 'Check a URL the way Googlebot sees it: status code, redirects, robots.txt rules, noindex and canonical — with a plain-English verdict.' },
+  { slug: 'redirect-checker', title: 'Free Redirect Checker', short: 'Where does this URL really go?', icon: Route, desc: 'Follow every redirect hop, spot temporary redirects and chains, and check that http/https and www/non-www all land on one address.' },
+  { slug: 'ssl-checker', title: 'Free SSL Certificate Checker', short: 'Is my HTTPS certificate OK?', icon: Lock, desc: 'See when your certificate expires, who issued it, and whether browsers trust it — with a plain-English explanation of any error.' },
 ]
 
 export function Tools() {
@@ -50,7 +52,9 @@ export function Tools() {
               </Link>
               <h1 className="display mt-3 text-[36px] leading-tight font-semibold text-fg sm:text-[46px]">{tool.title}</h1>
               <p className="mt-3 max-w-xl text-[16px] text-fg-3">{tool.desc}</p>
-              <div className="mt-8">{tool.slug === 'backlink-checker' ? <BacklinkChecker /> : <IndexabilityChecker />}</div>
+              <div className="mt-8">
+                {tool.slug === 'backlink-checker' ? <BacklinkChecker /> : tool.slug === 'redirect-checker' ? <RedirectChecker /> : tool.slug === 'ssl-checker' ? <SslChecker /> : <IndexabilityChecker />}
+              </div>
               <Upsell slug={tool.slug} />
             </>
           )}
@@ -210,6 +214,133 @@ function IndexabilityChecker() {
   )
 }
 
+interface RedirectResult {
+  ok: boolean
+  chain: { url: string; hops: { from: string; to: string; status: number }[]; finalUrl: string | null; status: number | null; error: string | null }
+  variants: { url: string; finalUrl: string | null; status: number | null; hops: number; permanent: boolean; error: string | null }[]
+  issues: string[]
+}
+
+function RedirectChecker() {
+  const [url, setUrl] = useState('')
+  const { busy, result, error, run } = useRun<RedirectResult>()
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    run(() => api.post<RedirectResult>('/api/tools/redirect-check', { url }))
+  }
+  const r = result
+  return (
+    <>
+      <form onSubmit={submit} className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-5 shadow-card sm:flex-row sm:items-end sm:p-6">
+        <div className="flex-1">
+          <Label htmlFor="tool-4">URL to follow</Label>
+          <Input id="tool-4" required value={url} onChange={(e) => setUrl(e.target.value)} placeholder="http://yoursite.com/old-page" />
+        </div>
+        <Button type="submit" variant="primary" size="lg" loading={busy}>
+          Follow redirects
+        </Button>
+      </form>
+      {busy && <p className="mt-3 text-[12.5px] text-fg-4">Checking the URL and its http/https and www variants — this takes a few seconds.</p>}
+      {error && <ErrorBox text={error} />}
+      {r && (
+        <ResultCard good={r.issues.length === 0} title={r.issues.length === 0 ? 'Clean: one address, permanent redirects' : `${r.issues.length} thing${r.issues.length === 1 ? '' : 's'} to fix`} subtitle={r.chain.finalUrl ? `Ends at ${r.chain.finalUrl}` : undefined}>
+          <ol className="space-y-1.5 rounded-lg border border-line p-3.5 font-mono text-[12px]">
+            <li className="break-all text-fg">{r.chain.url}</li>
+            {r.chain.hops.map((h, i) => (
+              <li key={i} className="flex gap-2 break-all text-fg-2">
+                <CornerDownRight className="mt-0.5 size-3.5 shrink-0 text-fg-4" />
+                <span className={cn('shrink-0 font-semibold', h.status === 301 || h.status === 308 ? 'text-success-ink' : 'text-warning-ink')}>{h.status}</span>
+                {h.to}
+              </li>
+            ))}
+            {r.chain.status !== null && <li className="pl-5.5 text-fg-3">→ HTTP {r.chain.status}</li>}
+          </ol>
+          {r.issues.length > 0 && (
+            <ul className="mt-4 space-y-2">
+              {r.issues.map((x) => (
+                <li key={x} className="flex gap-2 text-[13px] text-fg-2">
+                  <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" />
+                  <span className="break-words">{x}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <h3 className="mt-5 mb-2 text-[12.5px] font-semibold text-fg-2">Every version of this address</h3>
+          <Facts
+            rows={r.variants.map((v) => [
+              v.url.replace(/^(https?:\/\/[^/]+).*$/, '$1'),
+              v.error ? (
+                <span key={v.url} className="text-fg-4">Doesn’t answer</span>
+              ) : (
+                <span key={v.url} className="break-all font-mono text-[12px]">
+                  {v.hops ? `${v.permanent ? '301' : '302'} → ` : ''}
+                  {v.finalUrl}
+                </span>
+              ),
+            ])}
+          />
+        </ResultCard>
+      )}
+    </>
+  )
+}
+
+interface SslResult {
+  ok: boolean
+  host: string
+  valid: boolean
+  expiresAt: string | null
+  daysLeft: number | null
+  issuer: string | null
+  error: string | null
+  explanation: string | null
+}
+
+function SslChecker() {
+  const [host, setHost] = useState('')
+  const { busy, result, error, run } = useRun<SslResult>()
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    run(() => api.post<SslResult>('/api/tools/ssl-check', { host }))
+  }
+  const r = result
+  return (
+    <>
+      <form onSubmit={submit} className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-5 shadow-card sm:flex-row sm:items-end sm:p-6">
+        <div className="flex-1">
+          <Label htmlFor="tool-5">Domain</Label>
+          <Input id="tool-5" required value={host} onChange={(e) => setHost(e.target.value)} placeholder="yoursite.com" />
+        </div>
+        <Button type="submit" variant="primary" size="lg" loading={busy}>
+          Check certificate
+        </Button>
+      </form>
+      {error && <ErrorBox text={error} />}
+      {r && (
+        <ResultCard
+          good={r.valid && (r.daysLeft ?? 0) > 14}
+          title={!r.valid ? (r.expiresAt ? 'Browsers don’t trust this certificate' : 'No working HTTPS certificate found') : (r.daysLeft ?? 0) > 14 ? 'Certificate is valid' : `Valid, but expires in ${r.daysLeft} days`}
+          subtitle={r.host}
+        >
+          <Facts
+            rows={[
+              ['Trusted by browsers', r.valid ? <Ok key="t" text="Yes" /> : <No key="t" text="No" />],
+              ['Expires', r.expiresAt ? `${new Date(r.expiresAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}${r.daysLeft !== null ? ` · ${r.daysLeft < 0 ? 'expired' : `${r.daysLeft} days left`}` : ''}` : '—'],
+              ['Issuer', r.issuer ?? '—'],
+            ]}
+          />
+          {r.explanation && (
+            <p className="mt-4 flex gap-2 text-[13px] text-fg-2">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" />
+              {r.explanation}
+            </p>
+          )}
+        </ResultCard>
+      )}
+    </>
+  )
+}
+
 const Ok = ({ text = 'Allowed' }: { text?: string }) => (
   <span className="inline-flex items-center gap-1 text-success-ink">
     <Check className="size-3.5" /> {text}
@@ -258,15 +389,18 @@ function ErrorBox({ text }: { text: string }) {
   )
 }
 
+const upsell: Record<string, [string, string]> = {
+  'backlink-checker': ['Don’t check your links by hand every week.', 'Indexora re-checks every backlink daily and emails you the moment one disappears or turns nofollow.'],
+  'indexability-checker': ['Don’t wait for traffic to drop to find out.', 'Indexora checks every URL in your sitemap and asks Google for its index status daily — and tells you when something changes.'],
+  'redirect-checker': ['Redirects break quietly after every migration.', 'Indexora watches every URL in your sitemap and alerts you when one starts redirecting, erroring or turns noindex.'],
+  'ssl-checker': ['Never find out from a customer that your certificate expired.', 'Indexora checks your certificate daily and your domain registration weekly, and warns you 30, 14, 7, 3 and 1 days ahead.'],
+}
+
 function Upsell({ slug }: { slug: string }) {
   return (
     <div className="mt-10 rounded-2xl border border-primary/25 bg-primary-soft p-6">
-      <h2 className="text-[17px] font-semibold text-fg">{slug === 'backlink-checker' ? 'Don’t check your links by hand every week.' : 'Don’t wait for traffic to drop to find out.'}</h2>
-      <p className="mt-1.5 text-[14px] text-fg-2">
-        {slug === 'backlink-checker'
-          ? 'Indexora re-checks every backlink daily and emails you the moment one disappears or turns nofollow.'
-          : 'Indexora checks every URL in your sitemap and asks Google for its index status daily — and tells you when something changes.'}
-      </p>
+      <h2 className="text-[17px] font-semibold text-fg">{upsell[slug]?.[0] ?? upsell['indexability-checker'][0]}</h2>
+      <p className="mt-1.5 text-[14px] text-fg-2">{upsell[slug]?.[1] ?? upsell['indexability-checker'][1]}</p>
       <div className="mt-4 flex flex-wrap gap-2">
         <Link to="/signup">
           <Button variant="primary" rightIcon={<ArrowRight />}>

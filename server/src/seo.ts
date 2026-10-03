@@ -14,7 +14,7 @@ const pages: Record<string, PageMeta> = {
     description: 'Monitor Google index status, indexability and every backlink from one place. Lost links and de-indexed pages alert you within a day. Free plan available.',
     index: true,
   },
-  '/tools': { title: 'Free SEO tools — Indexora', description: 'Free backlink checker and indexability checker. No signup — real live checks by the Indexora crawler.', index: true },
+  '/tools': { title: 'Free SEO tools — Indexora', description: 'Free backlink, indexability, redirect and SSL checkers. No signup — real live checks by the Indexora crawler.', index: true },
   '/tools/backlink-checker': {
     title: 'Free Backlink Checker — Does this page link to me? | Indexora',
     description: 'Check if a page links to your site, see the anchor text and whether the link is dofollow, nofollow, UGC or sponsored. Free, no signup.',
@@ -23,6 +23,16 @@ const pages: Record<string, PageMeta> = {
   '/tools/indexability-checker': {
     title: 'Free Indexability Checker — Can Google index this URL? | Indexora',
     description: 'Check a URL the way Googlebot sees it: status code, redirects, robots.txt, noindex and canonical, with a plain-English verdict. Free, no signup.',
+    index: true,
+  },
+  '/tools/redirect-checker': {
+    title: 'Free Redirect Checker — Follow every redirect hop | Indexora',
+    description: 'See every redirect hop and status code, find temporary redirects and chains, and check that http/https and www/non-www land on one URL. Free, no signup.',
+    index: true,
+  },
+  '/tools/ssl-checker': {
+    title: 'Free SSL Certificate Checker — Expiry date & errors | Indexora',
+    description: 'Check when your SSL certificate expires, who issued it and whether browsers trust it, with a plain-English explanation of any error. Free, no signup.',
     index: true,
   },
   '/demo': { title: 'Live demo — Indexora', description: 'Explore Indexora with sample data: index coverage, backlink monitoring, audits and alerts.', index: true },

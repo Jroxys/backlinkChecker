@@ -48,3 +48,40 @@ test('free tools refuse private addresses in production mode', async () => {
   assert.equal(r.json.ok, false)
   assert.match(r.json.problem, /can’t be checked/)
 })
+
+test('redirect checker flags chains, temporary redirects and plain-HTTP finals', async (t) => {
+  const site = await fixtureSite()
+  t.after(() => site.close())
+  site.set('/old', { status: 302, headers: { location: site.url('/older') } })
+  site.set('/older', { status: 301, headers: { location: site.url('/new') } })
+  site.set('/new', '<title>New</title><p>hello</p>')
+  const { ctx } = testCtx()
+  const r = await client(ctx).post('/api/tools/redirect-check', { url: site.url('/old') })
+  assert.equal(r.status, 200)
+  assert.equal(r.json.chain.hops.length, 2)
+  assert.equal(r.json.chain.finalUrl, site.url('/new'))
+  const issues: string = r.json.issues.join('\n')
+  assert.match(issues, /2 redirects in a row/)
+  assert.match(issues, /temporary redirect \(302\)/)
+  assert.match(issues, /plain HTTP/)
+  assert.equal(r.json.variants.length, 4)
+})
+
+test('SSL checker reports days left and explains verification errors', async () => {
+  const { ctx } = testCtx()
+  const soon = new Date(ctx.now().getTime() + 5 * 86_400_000).toISOString()
+  ctx.probes = {
+    certificate: async (host) => (host === 'bad.example' ? { host, expiresAt: soon, issuer: 'Acme', error: 'ERR_TLS_CERT_ALTNAME_INVALID' } : { host, expiresAt: soon, issuer: "Let's Encrypt", error: null }),
+    domain: async () => ({ expiresAt: null, registrar: null }),
+  }
+  const api = client(ctx)
+  const ok = await api.post('/api/tools/ssl-check', { host: 'https://www.good.example/page' })
+  assert.equal(ok.json.host, 'www.good.example')
+  assert.equal(ok.json.valid, true)
+  assert.equal(ok.json.daysLeft, 5)
+  assert.match(ok.json.explanation, /expires in 5 days/)
+  const bad = await api.post('/api/tools/ssl-check', { host: 'bad.example' })
+  assert.equal(bad.json.valid, false)
+  assert.match(bad.json.explanation, /different hostname/)
+  assert.equal((await api.post('/api/tools/ssl-check', { host: 'not a host' })).status, 422)
+})

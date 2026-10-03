@@ -188,3 +188,13 @@ Yeni yetki yüzeylerini (API anahtarları, ekipler, herkese açık raporlar) ve 
 10. **Bekleyen davetleri olan biri başka bir ekibe katılabiliyordu.** Bu artık engelli.
 
 Kurucu panelinin e-postayla belirlenmesi ve e-posta doğrulamasının olmaması DEPLOY.md'de belgelendi: yönetici hesabını yayından önce kendin aç.
+
+### K31 · İki yeni ücretsiz araç: yönlendirme denetleyici ve SSL denetleyici
+- 0 müşteride en önemli darboğaz trafik. Ücretsiz araçlar arama motorlarından gelen ziyaretçinin girişi. Bu iki araç sık aranıyor ve elimizdeki parçalarla (tarayıcı, TLS yoklaması) neredeyse bedavaya yapıldı.
+- **Yönlendirme denetleyici:**
+  - URL'nin zincirini adım adım gösteriyor.
+  - 302/307 geçici yönlendirmeleri ve 2 veya daha fazla adımlı zincirleri işaretliyor.
+  - http/https × www/www'siz dört varyantın tek bir adrese çıkıp çıkmadığını kontrol ediyor. Yinelenen ana makine, gerçek ve yaygın bir SEO hatası.
+- **SSL denetleyici:** OpenSSL hata kodlarını sade İngilizceye çeviriyor: süresi dolmuş, yanlış ana makine, kendinden imzalı, eksik ara sertifika.
+- **Her araç sayfasının sonunda** ilgili izleme özelliğine yönlendiren bir çağrı var. Araç sorunu bir kez gösteriyor, ürün sürekli izliyor.
+- **Güvenlik ve sınırlar:** diğer araçlarla aynı IP ve genel sınırlar geçerli; SSRF koruması bağlantı anında yapılıyor.

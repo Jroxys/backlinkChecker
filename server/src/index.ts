@@ -8,6 +8,7 @@ import { PoliteFetcher } from './lib/fetcher.js'
 import { DataForSeoProvider } from './services/discovery.js'
 import { createGoogleClient } from './services/google.js'
 import { createNotifier } from './services/notifier.js'
+import { defaultProbes } from './services/health.js'
 
 const db = openDb(config.databasePath)
 const ctx: Ctx = {
@@ -17,6 +18,7 @@ const ctx: Ctx = {
   notifier: await createNotifier(config.smtpUrl, config.mailFrom),
   provider: config.dataforseo.login ? new DataForSeoProvider(config.dataforseo.login, config.dataforseo.password) : null,
   google: createGoogleClient(config.google.clientId, config.google.clientSecret),
+  probes: defaultProbes(config.crawlerAllowPrivate),
   now: () => new Date(),
 }
 

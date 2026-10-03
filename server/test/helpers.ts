@@ -51,6 +51,10 @@ export function testCtx(overrides: Partial<Ctx> = {}) {
     notifier,
     provider: null,
     google: createGoogleClient('', '') as GoogleClient,
+    probes: {
+      certificate: async (host) => ({ host, expiresAt: null, issuer: null, error: 'ECONNREFUSED' }),
+      domain: async () => ({ expiresAt: null, registrar: null }),
+    },
     now: () => clock,
     ...overrides,
   }
