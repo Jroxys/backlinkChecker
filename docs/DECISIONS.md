@@ -134,3 +134,18 @@ Her kararda önce seçenekleri, sonra kendi itirazlarımı yazıyorum. Yeni kara
 - **Uyarılar** sahibe e-postayla gider. Tüm ekibe ulaşmak için Slack webhook öneriliyor (bunu arayüzde de söylüyoruz).
 - **Güvenlik:** giriş ve kayıt sonrası `next` parametresi artık yalnızca uygulama içi yolları kabul ediyor (açık yönlendirme koruması).
 - **Süreç dersi:** derleme hata verdiği halde bir commit gitti, çünkü komutlar ayrı satırlardaydı. Bundan sonra derleme ve commit aynı `&&` zincirinde çalışıyor.
+
+### K27 · Müşteri rapor bağlantısı ve aylık rapor e-postası
+- Starter planında "aylık raporlar" vaat ediliyordu; elimizde yalnızca yazdırılabilir bir sayfa vardı. Ajanslar için PDF göndermekten daha değerlisi, müşterinin her zaman güncel bir bağlantıya sahip olması.
+- **Bağlantı `/r/:token`:**
+  - Tahmin edilemez bir token, giriş gerekmez, salt okunur.
+  - Yenilenebilir (eski bağlantı hemen ölür) ve kapatılabilir.
+  - Plan rapor özelliğini kaybedince bağlantı 404 döner.
+  - `noindex` ve `X-Robots-Tag` ile işaretli; `robots.txt` içinde engelli.
+  - IP başına saatte 120 istek.
+  - **Önemli:** herkese açık bağlantı hiçbir zaman Google API çağrısı tetiklemez; yalnızca kayıtlı veri okunur. Aksi halde bir bağlantıyı yenileyen biri kullanıcının Search Console kotasını tüketebilirdi.
+- **Uygulama içi ve paylaşılan rapor** aynı `ReportDocument` bileşenini ve aynı sunucu yükünü kullanıyor; müşteri tam olarak bizim gördüğümüzü görüyor.
+- **Aylık e-posta:**
+  - Ayın 1'inde, yalnızca ücretli planlara gider.
+  - Her ay en fazla bir kez gider; kapatma seçeneği Uyarılar sayfasında.
+  - Paylaşım bağlantısı varsa e-postaya eklenir.

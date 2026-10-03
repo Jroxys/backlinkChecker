@@ -175,12 +175,17 @@ function NotificationPrefs() {
       <Card>
         <CardHeader title="How we notify you" icon={<Settings2 />} />
         <div className="mt-3 divide-y divide-line-soft border-t border-line-soft">
-          <Row title="Email alerts" desc={me?.user.email ?? ''} icon={<Mail className="size-4 text-fg-4" />}>
+          <Row title="Email alerts" desc={me?.team?.role === 'member' ? `Sent to ${me.team.ownerName}, the workspace owner` : (me?.user.email ?? '')} icon={<Mail className="size-4 text-fg-4" />}>
             <Switch size="sm" label="Email alerts" checked={!!s?.email} onChange={(v) => save.mutate([{ email: v }])} />
           </Row>
           <Row title="Daily digest" desc="One email at 08:00 instead of instant alerts">
             <Switch size="sm" label="Daily digest" checked={!!s?.digest} onChange={(v) => save.mutate([{ digest: v }])} />
           </Row>
+          {me?.plan.features.reports && (
+            <Row title="Monthly report" desc="A 30-day summary of every project on the 1st of each month">
+              <Switch size="sm" label="Monthly report" checked={(s?.monthlyReport ?? 1) !== 0} onChange={(v) => save.mutate([{ monthlyReport: v }])} />
+            </Row>
+          )}
           <div className="px-5 py-3">
             <Label>Minimum severity</Label>
             <Select

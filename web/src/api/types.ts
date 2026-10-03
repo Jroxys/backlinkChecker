@@ -179,6 +179,7 @@ export interface NotificationSettings {
   webhookUrl: string | null
   digest: number
   minSeverity: 'info' | 'warning' | 'critical'
+  monthlyReport?: number
 }
 
 export interface Sitemap {
@@ -263,4 +264,17 @@ export interface Competitor {
   id: string
   domain: string
   createdAt: string
+}
+
+/** Client report payload: GET /api/projects/:id/report and the public GET /api/reports/:token. */
+export interface Report {
+  project: { name: string; domain: string }
+  period: { start: string; end: string }
+  gsc: boolean
+  stats: ProjectStats
+  history: { date: string; indexed: number; indexable: number; backlinks: number; ref_domains: number }[]
+  audit: { score: number | null; issues: { id: string; title: string; severity: 'error' | 'warning' | 'notice'; affected: number; fix: string }[] }
+  queries: { query: string; position: number; clicks: number; impressions: number }[]
+  branding: Branding | null
+  generatedAt: string
 }

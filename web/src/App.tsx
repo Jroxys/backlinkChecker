@@ -26,6 +26,7 @@ const Signup = lazy(() => import('./pages/auth/Login').then((m) => ({ default: m
 const ForgotPassword = lazy(() => import('./pages/auth/Login').then((m) => ({ default: m.ForgotPassword })))
 const ResetPassword = lazy(() => import('./pages/auth/Login').then((m) => ({ default: m.ResetPassword })))
 const Join = lazy(() => import('./pages/auth/Join').then((m) => ({ default: m.Join })))
+const PublicReport = lazy(() => import('./pages/PublicReport').then((m) => ({ default: m.PublicReport })))
 const Tools = lazy(() => import('./pages/marketing/Tools').then((m) => ({ default: m.Tools })))
 const Legal = lazy(() => import('./pages/marketing/Legal').then((m) => ({ default: m.Legal })))
 const NotFound = lazy(() => import('./pages/NotFound').then((m) => ({ default: m.NotFound })))
@@ -44,6 +45,7 @@ export function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/join" element={<Join />} />
+        <Route path="/r/:token" element={<PublicReport />} />
         <Route path="/app" element={<Shell source={liveSource} />}>
           {appRoutes()}
           <Route path="onboarding" element={<Onboarding />} />

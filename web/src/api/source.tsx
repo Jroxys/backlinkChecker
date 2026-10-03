@@ -96,7 +96,7 @@ export interface DataSource {
   deleteBacklink(id: string): Promise<void>
   markAlertRead(id: string): Promise<void>
   markAllAlertsRead(): Promise<void>
-  saveNotificationSettings(s: Partial<{ email: boolean; slackWebhook: string | null; webhookUrl: string | null; digest: boolean; minSeverity: string }>): Promise<void>
+  saveNotificationSettings(s: Partial<{ email: boolean; slackWebhook: string | null; webhookUrl: string | null; digest: boolean; minSeverity: string; monthlyReport: boolean }>): Promise<void>
   googleSites(): Promise<{ siteUrl: string; permissionLevel: string }[]>
   disconnectGoogle(): Promise<void>
   checkout(plan: 'starter' | 'pro' | 'agency', cycle: 'monthly' | 'yearly'): Promise<{ url: string; founding: boolean }>
