@@ -297,3 +297,17 @@ Yeni kodu (deneme, sınırlar, blog, dışa aktarma, CWV, araçlar) yine ayrı b
 - Var olmayan blog yolları artık 404 dönüyor.
 - Blog dosyası okunurken silinirse 500 yerine önbellek sunuluyor.
 - Yönlendirme aracı (5 istek yapıyor) saatlik hakkın 3'ünü tüketiyor.
+
+### K38 · Neden burada durdum?
+- Fiyat sayfasında vaat edilip eksik kalan her şey tamamlandı: deneme, API, koltuklar, white-label, aylık rapor ve müşteri bağlantısı.
+- İki bağımsız güvenlik incelemesinin tüm bulguları düzeltildi ve her biri için regresyon testi yazıldı. Toplam 100 test geçiyor.
+- Müşteri edinmenin ilk adımları da hazır:
+  - 4 ücretsiz araç, blog ve 3 rehber, Türkçe tanıtım sayfası
+  - ters deneme, aktivasyon e-postaları, ilk tarama e-postası, kurulum listesi
+- Bundan sonrası müşteri olmadan yapılırsa tahmine dayanır. LANSMAN.md'deki kural geçerli: **bir özelliği ancak iki ödeyen müşteri isterse yap.**
+- Sıradaki iş kod değil, dağıtım:
+  1. Yayına al (DEPLOY.md).
+  2. Google OAuth doğrulamasını başlat.
+  3. Kendi siteni ekle.
+  4. 5 tanıdık SEO'cuya kullandır.
+  5. Haftada bir blog yazısı yayınla.
