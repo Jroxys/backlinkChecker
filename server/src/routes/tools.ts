@@ -1,3 +1,4 @@
+import { isIP } from 'node:net'
 import { z } from 'zod'
 import { ApiError, body, router } from '../http.js'
 import { RateLimiter, clientIp } from '../lib/auth.js'
@@ -133,7 +134,8 @@ const hostOf = (input: string) => {
   const s = input.trim().toLowerCase()
   try {
     const h = new URL(/^[a-z][a-z0-9+.-]*:\/\//.test(s) ? s : `https://${s}`).hostname.replace(/\.$/, '')
-    return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(h) ? h : null
+    // Names only: IP literals bypass DNS-based SSRF checks and aren't what these tools are for
+    return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(h) && !isIP(h) ? h : null
   } catch {
     return null
   }
@@ -172,10 +174,11 @@ interface Hop {
  */
 toolRoutes.post('/redirect-check', async (c) => {
   const input = await body(c, z.object({ url: z.string().min(4).max(2000) }))
-  limit(c.var.ctx, ipOf((k) => c.req.header(k)))
+  // Five fetches per request: count it as three uses of the hourly allowance
+  for (let i = 0; i < 3; i++) limit(c.var.ctx, ipOf((k) => c.req.header(k)))
   track(c.var.ctx.db, 'tool_redirect_check')
   const u = parseHttpUrl(input.url)
-  if (!u || !hostOf(u.hostname)) throw new ApiError(422, 'invalid_url', 'Enter a full URL, like https://example.com/page')
+  if (!u) throw new ApiError(422, 'invalid_url', 'Enter a full URL, like https://example.com/page')
   const { fetcher } = c.var.ctx
   const follow = async (url: string) => {
     try {

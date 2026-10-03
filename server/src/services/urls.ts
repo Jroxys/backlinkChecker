@@ -35,12 +35,13 @@ export interface UrlRow {
 const GOOGLEBOT = 'Googlebot'
 
 export function addUrls(ctx: Ctx, projectId: string, rawUrls: string[], source: 'manual' | 'sitemap' | 'import' = 'manual') {
-  const project = ctx.db.get<{ domain: string; user_id: string; plan: string }>(
-    'SELECT p.domain, p.user_id, u.plan FROM projects p JOIN users u ON u.id = p.user_id WHERE p.id = ?',
+  const project = ctx.db.get<{ domain: string; user_id: string; plan: string; paused: number }>(
+    'SELECT p.domain, p.user_id, p.paused, u.plan FROM projects p JOIN users u ON u.id = p.user_id WHERE p.id = ?',
     [projectId],
   )
   if (!project) throw new Error('Project not found')
-  const limit = getPlan(project.plan).limits.urls
+  // A paused project (over the plan's project limit) takes no new entries
+  const limit = project.paused ? 0 : getPlan(project.plan).limits.urls
   const used = ctx.db.get<{ n: number }>('SELECT COUNT(*) AS n FROM monitored_urls m JOIN projects p ON p.id = m.project_id WHERE p.user_id = ?', [project.user_id])!.n
   const at = ctx.now().toISOString()
   const created: string[] = []
@@ -138,7 +139,7 @@ export async function checkUrl(ctx: Ctx, urlId: string): Promise<UrlChange[]> {
   ctx.db.tx(() => {
     ctx.db.run(
       `UPDATE monitored_urls SET http_status = :http, indexable = :indexable, robots = :robots, canonical = :canonical, canonical_url = :curl,
-         title = :title, word_count = :words, load_ms = :load, last_checked_at = :at, next_check_at = :next WHERE id = :id`,
+         title = :title, word_count = :words, load_ms = :load, last_checked_at = :at, next_check_at = CASE WHEN paused = 1 THEN NULL ELSE :next END WHERE id = :id`,
       { id: row.id, http, indexable, robots, canonical, curl: canonicalUrl, title, words, load: loadMs, at, next: addHours(at, hours) },
     )
     if (first) ctx.db.run('INSERT INTO url_events (id, url_id, at, kind, detail) VALUES (?, ?, ?, ?, ?)', [id('ue'), row.id, at, 'first_check', `First check: HTTP ${http ?? '—'}, ${indexable ? 'indexable' : 'not indexable'}`])
@@ -215,7 +216,7 @@ export async function sweepDueUrls(ctx: Ctx, { limit = 200, concurrency = 4 } = 
   const nowIso = ctx.now().toISOString()
   const due = ctx.db.all<{ id: string; index_checked_at: string | null; project_id: string; gsc_property: string | null }>(
     `SELECT m.id, m.index_checked_at, m.project_id, p.gsc_property FROM monitored_urls m JOIN projects p ON p.id = m.project_id
-      WHERE m.next_check_at IS NOT NULL AND m.next_check_at <= ? ORDER BY m.next_check_at LIMIT ?`,
+      WHERE m.paused = 0 AND p.paused = 0 AND m.next_check_at IS NOT NULL AND m.next_check_at <= ? ORDER BY m.next_check_at LIMIT ?`,
     [nowIso, limit],
   )
   const dayAgo = addHours(nowIso, -24)

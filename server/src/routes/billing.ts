@@ -81,10 +81,11 @@ billingRoutes.post('/webhooks/lemonsqueezy', async (c) => {
           'UPDATE users SET plan = ?, plan_renews_at = ?, billing_customer_id = COALESCE(?, billing_customer_id), subscription_id = COALESCE(?, subscription_id), trial_ends_at = NULL, founding = CASE WHEN ? = 1 THEN 1 ELSE founding END WHERE id = ?',
           [plan, a.ends_at ?? a.renews_at ?? null, a.customer_id ? String(a.customer_id) : null, subId, founding ? 1 : 0, userId],
         )
-      } else if (!paid && current) db.run("UPDATE users SET plan = 'free', plan_renews_at = NULL WHERE id = ?", [userId])
+      } else if (!paid && user.subscription_id && current) db.run("UPDATE users SET plan = 'free', plan_renews_at = NULL WHERE id = ?", [userId])
+      // No subscription on file (free or on the trial): a failed checkout changes nothing.
       break
     case 'subscription_expired':
-      if (!current) return c.json({ ignored: 'not the current subscription' })
+      if (!current || !user.subscription_id) return c.json({ ignored: 'not the current subscription' })
       db.run("UPDATE users SET plan = 'free', plan_renews_at = NULL, subscription_id = NULL WHERE id = ?", [userId])
       break
     default:

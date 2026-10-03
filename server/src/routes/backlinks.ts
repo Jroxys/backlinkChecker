@@ -1,3 +1,4 @@
+import { enforceLimits } from '../services/plan.js'
 import { z } from 'zod'
 import { ApiError, body, notFound, ownedProject, pageParams, requireUser, router, type C } from '../http.js'
 import { extractLinks } from '../lib/csv.js'
@@ -122,6 +123,7 @@ function ownedBacklink(c: C, blId: string) {
 
 backlinkRoutes.post('/backlinks/:id/recheck', async (c) => {
   const b = ownedBacklink(c, c.req.param('id'))
+  if (b.paused) throw new ApiError(402, 'paused', 'This is paused because it’s over your plan’s limits. Upgrade, or remove something, to resume it.')
   const events = await verifyBacklink(c.var.ctx, b.id)
   alertForEvents(c.var.ctx, events)
   return c.json({ backlink: presentBacklink(ownedBacklink(c, b.id)), events: events.map((e) => e.type) })
@@ -135,5 +137,6 @@ backlinkRoutes.get('/backlinks/:id/checks', (c) => {
 backlinkRoutes.delete('/backlinks/:id', (c) => {
   const b = ownedBacklink(c, c.req.param('id'))
   c.var.ctx.db.run('DELETE FROM backlinks WHERE id = ?', [b.id])
+  enforceLimits(c.var.ctx, c.var.account.id)
   return c.json({ ok: true })
 })

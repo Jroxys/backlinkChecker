@@ -29,21 +29,27 @@ export const handlers: Record<string, Handler> = {
   },
   'sitemaps.sync': (ctx, p) => syncSitemap(ctx, String(p.sitemapId)),
   'sitemaps.sweep': async (ctx) => {
-    const due = ctx.db.all<{ id: string }>("SELECT id FROM sitemaps WHERE last_fetched_at IS NULL OR last_fetched_at < datetime('now', '-1 day')")
+    const due = ctx.db.all<{ id: string }>(
+      "SELECT s.id FROM sitemaps s JOIN projects p ON p.id = s.project_id WHERE p.paused = 0 AND (s.last_fetched_at IS NULL OR s.last_fetched_at < datetime('now', '-1 day'))",
+    )
     for (const s of due) enqueue(ctx.db, 'sitemaps.sync', { sitemapId: s.id }, { dedupeKey: `sitemap:${s.id}` })
     return { queued: due.length }
   },
   /** Pull newest backlinks from the discovery provider for projects whose plan includes it. */
   'discovery.sweep': async (ctx) => {
     if (!ctx.provider) return { skipped: 'no provider configured' }
+    // Discovery is a paid API call per project: paying plans only (not trials), and timed per project
+    // so a provider that returns nothing new doesn't get called again every hour.
     const projects = ctx.db.all<{ id: string; domain: string; plan: string; last: string | null }>(
-      `SELECT p.id, p.domain, u.plan, (SELECT MAX(created_at) FROM backlinks b WHERE b.project_id = p.id AND b.origin = 'discovery') AS last
-         FROM projects p JOIN users u ON u.id = p.user_id WHERE u.plan IN ('pro', 'agency')`,
+      `SELECT p.id, p.domain, u.plan, p.discovery_checked_at AS last
+         FROM projects p JOIN users u ON u.id = p.user_id
+        WHERE u.plan IN ('pro', 'agency') AND u.trial_ends_at IS NULL AND p.paused = 0`,
     )
     let added = 0
     for (const p of projects) {
       const every = getPlan(p.plan).limits.discovery === 'daily' ? 24 : 168
       if (p.last && Date.now() - new Date(p.last).getTime() < every * 3_600_000) continue
+      ctx.db.run('UPDATE projects SET discovery_checked_at = ? WHERE id = ?', [new Date().toISOString(), p.id])
       const found = await ctx.provider.discover(p.domain, { limit: 100 })
       // Discovered links still go through our own verification before anyone sees them as "new".
       added += addBacklinks(ctx, p.id, found.map((f) => ({ sourceUrl: f.sourceUrl, targetUrl: f.targetUrl, authority: f.authority })), 'discovery').created.length
@@ -62,7 +68,7 @@ export const handlers: Record<string, Handler> = {
   'firstscan.sweep': (ctx) => sendFirstScanEmails(ctx),
   /** robots.txt for every project, hourly: a bad Disallow can de-index a site overnight. */
   'robots.sweep': async (ctx) => {
-    const ps = ctx.db.all<{ id: string }>('SELECT id FROM projects')
+    const ps = ctx.db.all<{ id: string }>('SELECT id FROM projects WHERE paused = 0')
     let changed = 0
     for (const p of ps) if ((await checkRobots(ctx, p.id)).changed) changed++
     return { projects: ps.length, changed }

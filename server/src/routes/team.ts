@@ -122,6 +122,8 @@ teamRoutes.post('/join', async (c) => {
     throw new ApiError(409, 'has_projects', 'Your account has its own projects. Delete them first, or accept with a different account — members work inside the team’s projects.')
   db.tx(() => {
     db.run('INSERT INTO team_members (member_id, owner_id, created_at) VALUES (?, ?, ?)', [me.id, inv.owner_id, c.var.ctx.now().toISOString()])
+    // Members work under the owner's plan; their own trial would only produce confusing emails.
+    db.run("UPDATE users SET plan = CASE WHEN subscription_id IS NULL THEN 'free' ELSE plan END, trial_ends_at = NULL WHERE id = ?", [me.id])
     db.run('DELETE FROM team_invites WHERE id = ?', [inv.id])
   })
   track(db, 'team_joined', me.id)

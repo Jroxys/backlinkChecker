@@ -55,8 +55,8 @@ export interface NewBacklinkInput {
 
 /** Adds backlinks to a project, de-duplicating and enforcing the owner's plan limit. Returns ids of new rows. */
 export function addBacklinks(ctx: Ctx, projectId: string, items: NewBacklinkInput[], origin: 'manual' | 'import' | 'discovery' = 'manual') {
-  const project = ctx.db.get<{ id: string; domain: string; user_id: string; plan: string }>(
-    'SELECT p.id, p.domain, p.user_id, u.plan FROM projects p JOIN users u ON u.id = p.user_id WHERE p.id = ?',
+  const project = ctx.db.get<{ id: string; domain: string; user_id: string; plan: string; paused: number }>(
+    'SELECT p.id, p.domain, p.user_id, p.paused, u.plan FROM projects p JOIN users u ON u.id = p.user_id WHERE p.id = ?',
     [projectId],
   )
   if (!project) throw new Error('Project not found')
@@ -92,7 +92,7 @@ export function addBacklinks(ctx: Ctx, projectId: string, items: NewBacklinkInpu
         }
         target = t.href
       }
-      if (used + created.length >= plan.limits.backlinks) {
+      if (project.paused || used + created.length >= plan.limits.backlinks) {
         skipped.push({ sourceUrl: item.sourceUrl, reason: 'plan_limit' })
         continue
       }
@@ -207,7 +207,7 @@ export async function verifyBacklink(ctx: Ctx, backlinkId: string): Promise<Back
   ctx.db.tx(() => {
     ctx.db.run(
       `UPDATE backlinks SET status = :status, http_status = :http, anchor = :anchor, rel = :rel, found_target = :ft,
-         page_noindex = :noindex, last_error = :error, miss_count = :miss, last_checked_at = :at, next_check_at = :next,
+         page_noindex = :noindex, last_error = :error, miss_count = :miss, last_checked_at = :at, next_check_at = CASE WHEN paused = 1 THEN NULL ELSE :next END,
          first_seen = CASE WHEN :found = 1 AND first_seen IS NULL THEN :at ELSE first_seen END,
          last_seen = CASE WHEN :found = 1 THEN :at ELSE last_seen END
        WHERE id = :id`,
@@ -313,7 +313,8 @@ export function alertForEvents(ctx: Ctx, events: BacklinkEvent[]) {
 /** Verify every backlink that is due, a bounded batch at a time. Different hosts run in parallel; the fetcher serialises per host. */
 export async function sweepDueBacklinks(ctx: Ctx, { limit = 200, concurrency = 8 } = {}) {
   const due = ctx.db.all<{ id: string; source_domain: string }>(
-    'SELECT id, source_domain FROM backlinks WHERE next_check_at IS NOT NULL AND next_check_at <= ? ORDER BY next_check_at LIMIT ?',
+    `SELECT b.id, b.source_domain FROM backlinks b JOIN projects p ON p.id = b.project_id
+      WHERE b.paused = 0 AND p.paused = 0 AND b.next_check_at IS NOT NULL AND b.next_check_at <= ? ORDER BY b.next_check_at LIMIT ?`,
     [ctx.now().toISOString(), limit],
   )
   // Interleave hosts so one big referring domain doesn't block the pool

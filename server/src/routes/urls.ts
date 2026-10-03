@@ -1,3 +1,4 @@
+import { enforceLimits } from '../services/plan.js'
 import { z } from 'zod'
 import { ApiError, body, notFound, ownedProject, pageParams, requireUser, router } from '../http.js'
 import { addUrls, checkUrl, inspectUrl, alertForUrlChanges, type UrlRow } from '../services/urls.js'
@@ -91,6 +92,7 @@ urlRoutes.get('/urls/:id', (c) => {
 
 urlRoutes.post('/urls/:id/recheck', async (c) => {
   const u = ownedUrl(c, c.req.param('id'))
+  if (u.paused) throw new ApiError(402, 'paused', 'This is paused because it’s over your plan’s limits. Upgrade, or remove something, to resume it.')
   const changes = [...(await checkUrl(c.var.ctx, u.id))]
   try {
     changes.push(...(await inspectUrl(c.var.ctx, u.id)))
@@ -105,5 +107,6 @@ urlRoutes.post('/urls/:id/recheck', async (c) => {
 urlRoutes.delete('/urls/:id', (c) => {
   const u = ownedUrl(c, c.req.param('id'))
   c.var.ctx.db.run('DELETE FROM monitored_urls WHERE id = ?', [u.id])
+  enforceLimits(c.var.ctx, c.var.account.id)
   return c.json({ ok: true })
 })

@@ -98,12 +98,13 @@ export function injectHead(html: string, path: string, appUrl: string, extra?: P
     ...(m.lang === 'tr' ? [`<meta property="og:locale" content="tr_TR" />`] : []),
     ...(extra?.jsonLd ? [`<script type="application/ld+json">${JSON.stringify(extra.jsonLd).replace(/</g, '\\u003c')}</script>`] : []),
   ].join('\n    ')
-  const withLang = m.lang && m.lang !== 'en' ? html.replace('<html lang="en">', `<html lang="${m.lang}">`) : html
-  const withBody = extra?.body ? withLang.replace('<div id="root"></div>', `<div id="root">${extra.body}</div>`) : withLang
+  const withLang = m.lang && m.lang !== 'en' ? html.replace('<html lang="en">', () => `<html lang="${m.lang}">`) : html
+  const withBody = extra?.body ? withLang.replace('<div id="root"></div>', () => `<div id="root">${extra.body}</div>`) : withLang
   return withBody
-    .replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(m.title)}</title>`)
+    // Function replacers: `$&` and friends in content must stay literal
+    .replace(/<title>[\s\S]*?<\/title>/, () => `<title>${esc(m.title)}</title>`)
     .replace(/<meta name="description"[^>]*>\s*/, '')
-    .replace('</head>', `    ${tags}\n  </head>`)
+    .replace('</head>', () => `    ${tags}\n  </head>`)
 }
 
 export function robotsTxt(appUrl: string) {

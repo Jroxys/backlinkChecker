@@ -26,20 +26,30 @@ export function enforceLimits(ctx: Ctx, userId: string) {
   const nowIso = ctx.now().toISOString()
   let paused = 0
   let resumed = 0
+  // Projects beyond the plan's count: oldest stay active. Everything inside a paused project is paused too.
+  const projects = ctx.db.all<{ id: string; paused: number }>('SELECT id, paused FROM projects WHERE user_id = ? ORDER BY created_at, id', [userId])
+  projects.forEach((p, i) => {
+    const should = i >= limits.projects ? 1 : 0
+    if (p.paused !== should) ctx.db.run('UPDATE projects SET paused = ? WHERE id = ?', [should, p.id])
+  })
   for (const [table, limit] of [
     ['monitored_urls', limits.urls],
     ['backlinks', limits.backlinks],
   ] as const) {
-    const ids = ctx.db.all<{ id: string; paused: number }>(
-      `SELECT t.id, t.paused FROM ${table} t JOIN projects p ON p.id = t.project_id WHERE p.user_id = ? ORDER BY t.created_at, t.id`,
+    const ids = ctx.db.all<{ id: string; paused: number; project_paused: number }>(
+      `SELECT t.id, t.paused, p.paused AS project_paused FROM ${table} t JOIN projects p ON p.id = t.project_id
+        WHERE p.user_id = ? ORDER BY p.paused, t.created_at, t.id`,
       [userId],
     )
     ctx.db.tx(() => {
-      ids.forEach((r, i) => {
-        if (i >= limit && !r.paused) {
+      let active = 0
+      ids.forEach((r) => {
+        const fits = !r.project_paused && active < limit
+        if (fits) active++
+        if (!fits && !r.paused) {
           ctx.db.run(`UPDATE ${table} SET paused = 1, next_check_at = NULL WHERE id = ?`, [r.id])
           paused++
-        } else if (i < limit && r.paused) {
+        } else if (fits && r.paused) {
           ctx.db.run(`UPDATE ${table} SET paused = 0, next_check_at = ? WHERE id = ?`, [nowIso, r.id])
           resumed++
         }
@@ -58,7 +68,7 @@ export async function processTrials(ctx: Ctx) {
   let ended = 0
 
   const ending = ctx.db.all<{ id: string; email: string; name: string; trial_ends_at: string }>(
-    'SELECT id, email, name, trial_ends_at FROM users WHERE trial_ends_at IS NOT NULL AND trial_ends_at > ? AND trial_ends_at <= ? AND trial_reminded = 0',
+    'SELECT id, email, name, trial_ends_at FROM users WHERE trial_ends_at IS NOT NULL AND trial_ends_at > ? AND trial_ends_at <= ? AND trial_reminded = 0 AND id NOT IN (SELECT member_id FROM team_members)',
     [nowIso, soon],
   )
   for (const u of ending) {

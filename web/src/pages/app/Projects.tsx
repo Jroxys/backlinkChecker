@@ -1,3 +1,4 @@
+import { Badge } from '@/components/ui/Badge'
 import { useState } from 'react'
 import { ArrowUpRight, Globe, MoreHorizontal, Plus, RefreshCw, Settings2, Trash2, ShieldCheck } from 'lucide-react'
 import type { Project } from '@/api/types'
@@ -68,7 +69,10 @@ export function Projects() {
                 <div className="flex min-w-0 items-center gap-3">
                   <DomainIcon domain={p.domain} size={36} />
                   <div className="min-w-0">
-                    <div className="truncate text-[15px] font-semibold text-fg">{p.domain}</div>
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-[15px] font-semibold text-fg">{p.domain}</span>
+                      {p.paused && <Badge tone="outline">Paused — over plan limit</Badge>}
+                    </div>
                     <div className="mt-0.5 flex items-center gap-3">
                       <StatusIndicator state={!s?.urls ? 'running' : health >= 85 ? 'online' : health >= 60 ? 'warning' : 'error'} pulse={!s?.urls} label={!s?.urls ? 'Setting up…' : health >= 85 ? 'Healthy' : health >= 60 ? 'Needs attention' : 'Critical issues'} />
                       {p.gscProperty && (

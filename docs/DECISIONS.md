@@ -275,3 +275,25 @@ Kurucu panelinin e-postayla belirlenmesi ve e-posta doğrulamasının olmaması 
   - Önce "gönderildi" işaretleniyor, sonra gönderiliyor: hiçbir zaman iki kez gitmez.
   - E-postayı kapatan kullanıcıya gitmiyor.
   - Yalnızca son 72 saatte açılan projelere gidiyor; böylece özellik yayına girdiğinde eski projelere e-posta yağmaz.
+
+### K37 · İkinci bağımsız inceleme: deneme ve sınırlar etrafındaki hatalar
+Yeni kodu (deneme, sınırlar, blog, dışa aktarma, CWV, araçlar) yine ayrı bir ajana inceletttim. Bulunan ve düzeltilen sorunlar:
+1. **Duraklatılan kayıtlar sonsuza kadar taranabiliyordu.** "Şimdi tara", tek tek yeniden kontrol, robots değişikliği ya da bir yarış durumu duraklatılmış bir satıra yeniden tarih yazınca, satır her turda taranıyordu. Artık:
+   - taramalar `paused = 0` filtreliyor,
+   - kontrol sonucu duraklatılmış bir satıra asla yeni tarih yazmıyor,
+   - yeniden kontrol 402 döndürüyor.
+2. **SSL aracında SSRF vardı.** `tls.connect`, IP adresi verilince DNS adımını (ve dolayısıyla korumamızı) atlıyor; `127.0.0.1` veya `169.254.169.254` taranabiliyordu. Artık IP adresleri reddediliyor; sertifika yoklaması da özel IP'leri kendisi kontrol ediyor.
+3. **Yer açılınca duraklatılanlar devam etmiyordu.** Silme işlemlerinden sonra `enforceLimits` çalışıyor.
+4. **Proje sınırı uygulanmıyordu.** Free'ye düşen bir hesap 10 projenin hepsini taratmaya devam ediyordu. Artık fazla projeler de duraklatılıyor; robots, sitemap, sağlık, CWV ve keşif işleri bu projeleri atlıyor.
+5. **Plan düşünce Slack ve webhook uyarıları çalışmaya devam ediyordu.** Kanallar artık gönderim anındaki plana göre açılıp kapanıyor.
+6. **Ücretli keşif API'sinde maliyet riski vardı.** Her kayıt Pro olduğu için deneme hesapları da her proje için DataForSEO çağırıyordu. Sonuç dönmeyen projeler ise her saat yeniden sorgulanıyordu. Artık:
+   - keşif yalnızca ödeyen hesaplarda çalışıyor,
+   - proje başına "son sorgu" zamanı tutuluyor.
+
+**Daha düşük öncelikli olanlar:**
+- Başarısız bir ödeme denemesi denemeyi erken bitirmiyor.
+- Ekibe katılanın kendi denemesi kapanıyor, ona deneme e-postası gitmiyor.
+- HTML enjeksiyonunda `$&` kalıplarına karşı fonksiyon tabanlı değiştirme kullanılıyor.
+- Var olmayan blog yolları artık 404 dönüyor.
+- Blog dosyası okunurken silinirse 500 yerine önbellek sunuluyor.
+- Yönlendirme aracı (5 istek yapıyor) saatlik hakkın 3'ünü tüketiyor.

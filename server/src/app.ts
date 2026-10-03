@@ -90,9 +90,10 @@ export function createApp(ctx: Ctx) {
     // SPA fallback: any non-API GET renders the app shell
     app.get('*', (c) => {
       if (c.req.path.startsWith('/api/')) return c.json({ error: { code: 'not_found', message: 'No such endpoint' } }, 404)
+      const inBlog = /^\/blog\/[^/]+\/?$/.test(c.req.path)
       const slug = c.req.path.match(/^\/blog\/([a-z0-9-]+)\/?$/)?.[1]
       const post = slug ? posts().find((p) => p.slug === slug) : undefined
-      if (slug && !post) return c.html(injectHead(indexHtml(), c.req.path, ctx.config.appUrl), 404)
+      if (inBlog && !post) return c.html(injectHead(indexHtml(), c.req.path, ctx.config.appUrl), 404)
       return c.html(injectHead(indexHtml(), c.req.path, ctx.config.appUrl, post ? blogExtra(post, ctx.config.appUrl) : undefined))
     })
   }

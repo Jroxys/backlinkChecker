@@ -10,6 +10,7 @@ import { runAudit } from '../services/audit.js'
 import { keywordsFor } from '../services/keywords.js'
 import { track } from '../services/events.js'
 import { healthFor } from '../services/health.js'
+import { enforceLimits } from '../services/plan.js'
 import { cwvFor } from '../services/cwv.js'
 
 export const projectRoutes = router()
@@ -21,8 +22,8 @@ const createSchema = z.object({
   gscProperty: z.string().trim().max(300).nullish(),
 })
 
-function present(p: { id: string; name: string; domain: string; gsc_property: string | null; created_at: string }, stats?: ReturnType<typeof projectSnapshot>) {
-  return { id: p.id, name: p.name, domain: p.domain, gscProperty: p.gsc_property, createdAt: p.created_at, stats }
+function present(p: { id: string; name: string; domain: string; gsc_property: string | null; created_at: string; paused?: number }, stats?: ReturnType<typeof projectSnapshot>) {
+  return { id: p.id, name: p.name, domain: p.domain, gscProperty: p.gsc_property, createdAt: p.created_at, paused: Boolean(p.paused), stats }
 }
 
 projectRoutes.get('/', (c) => {
@@ -80,6 +81,7 @@ projectRoutes.patch('/:id', async (c) => {
 projectRoutes.delete('/:id', (c) => {
   const p = ownedProject(c, c.req.param('id'))
   c.var.ctx.db.run('DELETE FROM projects WHERE id = ?', [p.id])
+  enforceLimits(c.var.ctx, c.var.account.id) // freed room resumes paused projects and entries
   return c.json({ ok: true })
 })
 
@@ -87,9 +89,10 @@ projectRoutes.delete('/:id', (c) => {
 projectRoutes.post('/:id/scan', (c) => {
   const p = ownedProject(c, c.req.param('id'))
   const { db } = c.var.ctx
+  if (db.get('SELECT 1 FROM projects WHERE id = ? AND paused = 1', [p.id])) throw new ApiError(402, 'paused', 'This is paused because it’s over your plan’s limits. Upgrade, or remove something, to resume it.')
   const at = now()
-  const u = db.run('UPDATE monitored_urls SET next_check_at = ? WHERE project_id = ?', [at, p.id]).changes
-  const b = db.run("UPDATE backlinks SET next_check_at = ? WHERE project_id = ? AND status != 'blocked'", [at, p.id]).changes
+  const u = db.run('UPDATE monitored_urls SET next_check_at = ? WHERE project_id = ? AND paused = 0', [at, p.id]).changes
+  const b = db.run("UPDATE backlinks SET next_check_at = ? WHERE project_id = ? AND paused = 0 AND status != 'blocked'", [at, p.id]).changes
   enqueue(db, 'urls.sweep', {}, { dedupeKey: 'periodic:urls.sweep' })
   enqueue(db, 'backlinks.sweep', {}, { dedupeKey: 'periodic:backlinks.sweep' })
   enqueue(db, 'sitemaps.discover', { projectId: p.id }, { dedupeKey: `discover:${p.id}` })

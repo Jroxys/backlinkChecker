@@ -1,7 +1,8 @@
 import tls from 'node:tls'
+import { isIP } from 'node:net'
 import type { Ctx } from '../context.js'
 import { guardedLookup } from '../lib/fetcher.js'
-import { rootDomain } from '../lib/url.js'
+import { isPublicHost, rootDomain } from '../lib/url.js'
 import { createAlert } from './alerts.js'
 
 const DAY = 86_400_000
@@ -32,6 +33,8 @@ export function defaultProbes(allowPrivate: boolean): HealthProbes {
 }
 
 function probeCertificate(host: string, allowPrivate: boolean): Promise<CertInfo> {
+  // tls.connect skips `lookup` for IP literals, so the connect-time guard can't see them: check here.
+  if (!allowPrivate && isIP(host) && !isPublicHost(host)) return Promise.resolve({ host, expiresAt: null, issuer: null, error: 'Private address' })
   return new Promise((resolve) => {
     const socket = tls.connect({ host, port: 443, servername: host, rejectUnauthorized: false, timeout: 10_000, ...(allowPrivate ? {} : { lookup: guardedLookup }) })
     const done = (info: CertInfo) => {
@@ -171,7 +174,7 @@ export function healthFor(ctx: Ctx, projectId: string) {
 }
 
 export async function sweepHealth(ctx: Ctx, probes: HealthProbes) {
-  const ps = ctx.db.all<{ id: string }>('SELECT id FROM projects')
+  const ps = ctx.db.all<{ id: string }>('SELECT id FROM projects WHERE paused = 0')
   for (const p of ps) await checkHealth(ctx, p.id, probes).catch((e) => console.error('[health]', p.id, e))
   return { projects: ps.length }
 }

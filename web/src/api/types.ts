@@ -91,6 +91,8 @@ export interface ProjectStats {
 }
 
 export interface Project {
+  /** Over the plan's project limit after a downgrade: kept, not monitored */
+  paused?: boolean
   id: string
   name: string
   domain: string

@@ -403,4 +403,14 @@ export const migrations: { id: number; name: string; sql: string }[] = [
       ALTER TABLE projects ADD COLUMN first_scan_sent_at TEXT;
     `,
   },
+  {
+    id: 18,
+    name: 'project_pausing',
+    sql: `
+      -- Projects beyond the plan's project limit after a downgrade: kept, not monitored.
+      ALTER TABLE projects ADD COLUMN paused INTEGER NOT NULL DEFAULT 0;
+      -- Last time we asked the paid discovery provider about this project.
+      ALTER TABLE projects ADD COLUMN discovery_checked_at TEXT;
+    `,
+  },
 ]

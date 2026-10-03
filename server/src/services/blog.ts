@@ -55,8 +55,14 @@ let cache: { key: string; posts: Post[] } = { key: '', posts: [] }
 /** Published posts, newest first. Re-reads the folder only when a file changed. */
 export function loadPosts(dir: string, today = new Date().toISOString().slice(0, 10)): Post[] {
   if (!existsSync(dir)) return []
-  const files = readdirSync(dir).filter((f) => f.endsWith('.md') && SLUG.test(f.slice(0, -3)))
-  const key = files.map((f) => `${f}:${statSync(join(dir, f)).mtimeMs}`).join('|')
+  let files: string[]
+  let key: string
+  try {
+    files = readdirSync(dir).filter((f) => f.endsWith('.md') && SLUG.test(f.slice(0, -3)))
+    key = files.map((f) => `${f}:${statSync(join(dir, f)).mtimeMs}`).join('|')
+  } catch {
+    return cache.posts // a file vanished mid-read (deploy in progress): serve what we had
+  }
   if (key !== cache.key) {
     const all: Post[] = []
     for (const f of files) {

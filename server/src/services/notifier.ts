@@ -1,3 +1,4 @@
+import { getPlan } from '../plans.js'
 import type { Ctx } from '../context.js'
 
 export interface OutgoingAlert {
@@ -81,9 +82,10 @@ export async function deliverPendingAlerts(ctx: Ctx, { digest = false } = {}) {
     webhook_url: string | null
     s_digest: number | null
     min_severity: string | null
+    plan: string
   }>(
     `SELECT a.id, a.user_id, u.email, a.title, a.body, a.severity, a.href, p.domain,
-            s.email AS s_email, s.slack_webhook, s.webhook_url, s.digest AS s_digest, s.min_severity
+            s.email AS s_email, s.slack_webhook, s.webhook_url, s.digest AS s_digest, s.min_severity, u.plan
        FROM alerts a
        JOIN users u ON u.id = a.user_id
        LEFT JOIN projects p ON p.id = a.project_id
@@ -110,9 +112,11 @@ export async function deliverPendingAlerts(ctx: Ctx, { digest = false } = {}) {
           const text = relevant.map((i) => `• ${i.title}${i.domain ? ` — ${i.domain}` : ''}\n  ${i.body}\n  ${link(i.href)}`).join('\n\n')
           await ctx.notifier.email(u.email, subject, text + '\n\nManage notifications: ' + ctx.config.appUrl + '/app/alerts')
         }
-        if (u.slack_webhook)
+        // Channels follow the plan at send time: settings saved during a trial stop working after it.
+        const features = getPlan(u.plan).features
+        if (u.slack_webhook && features.slack)
           await ctx.notifier.slack(u.slack_webhook, relevant.map((i) => `*${slackEscape(i.title)}*${i.domain ? ` · ${slackEscape(i.domain)}` : ''}\n${slackEscape(i.body)}\n<${link(i.href)}|Open in Indexora>`).join('\n\n'))
-        if (u.webhook_url)
+        if (u.webhook_url && features.webhooks)
           await ctx.notifier.webhook(u.webhook_url, { alerts: relevant.map((i) => ({ id: i.id, title: i.title, body: i.body, severity: i.severity, project: i.domain, url: link(i.href) })) })
       }
       for (const i of items) ctx.db.run('UPDATE alerts SET notified_at = ? WHERE id = ?', [at, i.id])

@@ -85,3 +85,11 @@ test('SSL checker reports days left and explains verification errors', async () 
   assert.match(bad.json.explanation, /different hostname/)
   assert.equal((await api.post('/api/tools/ssl-check', { host: 'not a host' })).status, 422)
 })
+
+test('SSL checker refuses IP literals (tls.connect bypasses DNS-based SSRF checks)', async () => {
+  const { ctx } = testCtx()
+  const api = client(ctx)
+  for (const host of ['127.0.0.1', '169.254.169.254', 'https://10.0.0.1/']) assert.equal((await api.post('/api/tools/ssl-check', { host })).status, 422, host)
+  const { defaultProbes } = await import('../src/services/health.js')
+  assert.equal((await defaultProbes(false).certificate('127.0.0.1')).error, 'Private address')
+})

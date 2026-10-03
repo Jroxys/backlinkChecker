@@ -124,7 +124,7 @@ export function cwvFor(ctx: Ctx, projectId: string) {
 
 export async function sweepCwv(ctx: Ctx) {
   if (!ctx.crux.configured) return { skipped: true }
-  const ps = ctx.db.all<{ id: string }>('SELECT id FROM projects')
+  const ps = ctx.db.all<{ id: string }>('SELECT id FROM projects WHERE paused = 0')
   for (const p of ps) await refreshCwv(ctx, p.id).catch((e) => console.error('[cwv]', p.id, e))
   return { projects: ps.length }
 }
