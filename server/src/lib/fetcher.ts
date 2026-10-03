@@ -70,23 +70,22 @@ function isPrivateAddress(address: string, family: number) {
  * answer with a public IP first and 127.0.0.1 on the second lookup (DNS rebinding).
  */
 export function guardedAgent() {
-  return new Agent({
-    connect: {
-      lookup(hostname, options, callback) {
-        lookupCb(hostname, { ...options, all: true }, (err, addresses) => {
-          if (err) return callback(err, '', 0)
-          const list = (Array.isArray(addresses) ? addresses : [{ address: addresses as unknown as string, family: 4 }]) as LookupAddress[]
-          const bad = list.find((a) => isPrivateAddress(a.address, a.family))
-          if (bad) return callback(Object.assign(new Error(`Refusing to connect to private address ${bad.address}`), { code: 'ESSRF' }), '', 0)
-          const pick = list[0]
-          // undici calls lookup with `all` unset by default; honour both shapes
-          if ((options as { all?: boolean }).all) return (callback as unknown as (e: null, a: LookupAddress[]) => void)(null, list)
-          callback(null, pick.address, pick.family)
-        })
-      },
-    },
-  })
+  return new Agent({ connect: { lookup: guardedLookup } })
 }
+
+/** A dns.lookup replacement that refuses private addresses. Usable by undici and by net/tls sockets. */
+export const guardedLookup: typeof lookupCb = ((hostname: string, options: object, callback: (err: Error | null, address: string | LookupAddress[], family?: number) => void) => {
+  lookupCb(hostname, { ...options, all: true }, (err, addresses) => {
+    if (err) return callback(err, '', 0)
+    const list = (Array.isArray(addresses) ? addresses : [{ address: addresses as unknown as string, family: 4 }]) as LookupAddress[]
+    const bad = list.find((a) => isPrivateAddress(a.address, a.family))
+    if (bad) return callback(Object.assign(new Error(`Refusing to connect to private address ${bad.address}`), { code: 'ESSRF' }), '', 0)
+    const pick = list[0]
+    // callers ask with or without `all`; honour both shapes
+    if ((options as { all?: boolean }).all) return callback(null, list)
+    callback(null, pick.address, pick.family)
+  })
+}) as unknown as typeof lookupCb
 
 export class PoliteFetcher {
   private robots = new Map<string, RobotsEntry>()

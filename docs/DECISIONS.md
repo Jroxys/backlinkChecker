@@ -155,3 +155,16 @@ Her kararda önce seçenekleri, sonra kendi itirazlarımı yazıyorum. Yeni kara
 - "Raporlar zamanında gönderilir" vaadi artık doğru: aylık e-posta ve canlı müşteri bağlantısı. "PDF gönderilir" iddiası ise kaldırıldı; PDF tarayıcıdan alınıyor.
 - "Ekibimiz birkaç saat içinde yanıt verir" ifadesi tek kişilik bir kurucu için gerçekçi değil. "Bir iş günü içinde" olarak değiştirildi.
 - Otomasyonlar sayfasına gerçekten çalışan ama listede görünmeyen işler eklendi: robots.txt izleyici, haftalık özet ve aylık rapor.
+
+### K29 · SSL ve alan adı süresi izleme
+- **Lehte:**
+  - Sertifikanın veya alan adının süresinin dolması küçük siteler için en yaygın "site çöktü" sebeplerinden biri.
+  - Yapması ucuz: günlük bir TLS bağlantısı ve haftalık bir RDAP isteği.
+  - Kullanıcıya her gün "izleniyorsun" hissi verir.
+- **Aleyhte:** SEO ürününün ana işi değil. Ama indekslenme ve sıralama, sitenin açık olmasına bağlı.
+- **Karar:** yap.
+  - Uyarılar 30, 14, 7, 3 ve 1 gün kala gider; her eşik bir kez. Yenilenince eşikler sıfırlanır ve "yenilendi" bildirimi gider.
+  - Güvenilmeyen sertifika (yanlış host, kendinden imzalı) tarih uygun olsa bile bir kez kritik uyarı üretir.
+  - Kök alan adında HTTPS yoksa `www.` deneniyor.
+  - RDAP her TLD'de yayınlanmıyor; o durumda "bu kayıt otoritesi yayınlamıyor" deniyor, hata verilmiyor.
+- **Güvenlik:** TLS bağlantısı da tarayıcıyla aynı bağlantı anı DNS korumasını (`guardedLookup`) kullanıyor; ortak kod tek yere taşındı.

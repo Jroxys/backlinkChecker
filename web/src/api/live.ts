@@ -1,6 +1,6 @@
 import { api, qs, request } from './client'
 import type { DataSource } from './source'
-import type { ApiKey, HistoryPoint, NotificationSettings, Project } from './types'
+import type { ApiKey, DomainHealth, HistoryPoint, NotificationSettings, Project } from './types'
 
 export const liveSource: DataSource = {
   mode: 'live',
@@ -43,6 +43,7 @@ export const liveSource: DataSource = {
   checkout: (plan, cycle) => api.post('/api/billing/checkout', { plan, cycle }),
   logout: async () => void (await api.post('/api/auth/logout')),
   deleteAccount: async (password) => void (await request('DELETE', '/api/auth/account', { password })),
+  health: async (id) => (await api.get<{ health: DomainHealth | null }>(`/api/projects/${id}/health`)).health,
   team: () => api.get('/api/team'),
   inviteMember: async (email) => void (await api.post('/api/team/invites', { email })),
   revokeInvite: async (id) => void (await api.del(`/api/team/invites/${id}`)),

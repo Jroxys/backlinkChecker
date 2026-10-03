@@ -96,6 +96,11 @@ export function useApiKeys(enabled = true) {
   return useQuery({ queryKey: [s.mode, 'apiKeys'], queryFn: () => s.apiKeys(), enabled })
 }
 
+export function useHealth(projectId?: string) {
+  const s = useSource()
+  return useQuery({ queryKey: [s.mode, 'health', projectId], queryFn: () => s.health(projectId!), enabled: !!projectId })
+}
+
 export function useTeam() {
   const s = useSource()
   return useQuery({ queryKey: [s.mode, 'team'], queryFn: () => s.team() })

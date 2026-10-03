@@ -1,4 +1,4 @@
-import { CheckCircle2, Clock3, FileSearch, Link2, Map, Search, Sparkles, Bell, CalendarClock, ArrowRight } from 'lucide-react'
+import { ShieldCheck, CheckCircle2, Clock3, FileSearch, Link2, Map, Search, Sparkles, Bell, CalendarClock, ArrowRight } from 'lucide-react'
 import { useMe, useNotificationSettings } from '@/api/hooks'
 import { useSource } from '@/api/source'
 import { Link } from '@/lib/router'
@@ -29,6 +29,7 @@ function AutomationsLive() {
     { icon: Map, title: 'Sitemap watcher', desc: 'Re-reads your sitemaps and starts monitoring any new URLs.', freq: 'Every 24 hours', on: true },
     { icon: Sparkles, title: 'New backlink discovery', desc: 'Pulls newly found links from a backlink index and verifies them before showing them.', freq: l?.discovery ? 'Every week' : 'Pro plan', on: !!l?.discovery, cta: l?.discovery ? null : { to: '/app/settings?tab=billing', label: 'Upgrade' } },
     { icon: FileSearch, title: 'robots.txt watcher', desc: 'Fetches robots.txt every hour and alerts you if a change blocks Googlebot from pages you monitor.', freq: 'Every hour', on: true },
+    { icon: ShieldCheck, title: 'SSL & domain expiry', desc: 'Reads your certificate daily and your domain registration weekly; warns 30, 14, 7, 3 and 1 days ahead.', freq: 'Daily · weekly', on: true },
     { icon: CalendarClock, title: 'Daily snapshot', desc: 'Stores index coverage and link counts so every chart has history.', freq: 'Every hour (one point per day)', on: true },
     { icon: Bell, title: notif?.digest ? 'Daily digest email' : 'Instant alerts', desc: notif?.digest ? 'One summary email every morning at 08:00.' : 'Changes are batched and sent within five minutes.', freq: notif?.digest ? 'Daily · 08:00' : 'Every 5 minutes', on: true, cta: { to: '/app/alerts', label: 'Notification settings' } },
     { icon: Bell, title: 'Weekly summary', desc: 'What we checked and what changed, every Monday morning.', freq: 'Mondays · 08:00', on: notif ? notif.email !== 0 : true, cta: null },

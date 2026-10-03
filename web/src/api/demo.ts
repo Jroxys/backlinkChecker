@@ -291,6 +291,10 @@ export const demoSource: DataSource = {
   apiKeys: async () => [{ id: 'k1', name: 'Looker Studio sync', prefix: 'ix_8fK2pQ1', createdAt: '2026-08-12T10:00:00Z', lastUsedAt: '2026-10-02T06:14:00Z' }],
   createApiKey: demoOnly,
   saveBranding: demoOnly,
+  health: async () => ({
+    certificate: { host: 'acme-analytics.com', expiresAt: new Date(Date.now() + 61 * 86_400_000).toISOString(), issuer: "Let's Encrypt", error: null, checkedAt: new Date().toISOString() },
+    domain: { expiresAt: new Date(Date.now() + 23 * 86_400_000).toISOString(), registrar: 'Namecheap, Inc.', checkedAt: new Date().toISOString() },
+  }),
   team: async () => ({
     role: 'owner' as const,
     seats: { used: 3, limit: 3 },

@@ -343,4 +343,24 @@ export const migrations: { id: number; name: string; sql: string }[] = [
       ALTER TABLE users ADD COLUMN last_report_month TEXT;
     `,
   },
+  {
+    id: 13,
+    name: 'domain_health',
+    sql: `
+      -- TLS certificate and domain registration expiry, one row per project.
+      CREATE TABLE domain_health (
+        project_id TEXT PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE,
+        cert_host TEXT,
+        cert_expires_at TEXT,
+        cert_issuer TEXT,
+        cert_error TEXT,
+        cert_checked_at TEXT,
+        cert_alerted INTEGER,
+        domain_expires_at TEXT,
+        registrar TEXT,
+        domain_checked_at TEXT,
+        domain_alerted INTEGER
+      );
+    `,
+  },
 ]

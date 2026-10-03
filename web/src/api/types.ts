@@ -41,6 +41,11 @@ export interface Me {
   team?: { role: 'owner' | 'member'; ownerName: string; suspended: boolean }
 }
 
+export interface DomainHealth {
+  certificate: { host: string | null; expiresAt: string | null; issuer: string | null; error: string | null; checkedAt: string } | null
+  domain: { expiresAt: string | null; registrar: string | null; checkedAt: string } | null
+}
+
 export interface Team {
   role: 'owner' | 'member'
   seats: { used: number; limit: number }

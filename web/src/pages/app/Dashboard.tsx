@@ -1,11 +1,11 @@
 import { cn } from '@/lib/cn'
 import { useMemo } from 'react'
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { ArrowRight, FileCheck2, Globe2, Link2, Play, ShieldAlert, Sparkles, ShieldCheck, Upload, CheckCircle2, Clock3, BellRing } from 'lucide-react'
+import { ArrowRight, FileCheck2, Globe2, Link2, Play, ShieldAlert, Sparkles, ShieldCheck, Upload, CheckCircle2, Clock3, BellRing, AlertTriangle } from 'lucide-react'
 import { Link } from '@/lib/router'
 import { useChartColors } from '@/lib/chartColors'
 import { useProject } from '@/lib/project'
-import { useAction, useAlerts, useHistory, useMe } from '@/api/hooks'
+import { useAction, useAlerts, useHistory, useMe, useHealth } from '@/api/hooks'
 import type { HistoryPoint, Project } from '@/api/types'
 import { greeting, formatNumber, timeAgo, formatShortDate } from '@/utils/format'
 import { Card, CardHeader } from '@/components/ui/Card'
@@ -400,9 +400,15 @@ function AlertsCard() {
 /** What Indexora is doing for this project right now. */
 function MonitoringCard({ project }: { project: Project | undefined }) {
   const me = useMe().data
+  const health = useHealth(project?.id).data
   const s = project?.stats
   const plan = me?.plan
-  const items = [
+  const days = (iso: string) => Math.floor((new Date(iso).getTime() - Date.now()) / 86_400_000)
+  const cert = health?.certificate
+  const dom = health?.domain
+  const certDays = cert?.expiresAt ? days(cert.expiresAt) : null
+  const domDays = dom?.expiresAt ? days(dom.expiresAt) : null
+  const items: { ok: boolean; warn?: boolean; title: string; detail: string; cta: null | { label: string; to: string } }[] = [
     {
       ok: !!s?.urls,
       title: 'URL monitoring',
@@ -429,6 +435,24 @@ function MonitoringCard({ project }: { project: Project | undefined }) {
       detail: plan?.limits.discovery ? `Weekly on ${plan.name}` : 'Included from the Pro plan',
       cta: plan?.limits.discovery ? null : { label: 'Upgrade', to: '/app/settings?tab=billing' },
     },
+    {
+      ok: !!cert?.expiresAt && !cert.error && (certDays ?? 0) > 14,
+      warn: !!cert && (!!cert.error || (certDays !== null && certDays <= 14)),
+      title: 'SSL certificate',
+      detail: !cert
+        ? 'First check within the hour'
+        : cert.error && !cert.expiresAt
+          ? `Couldn’t read it: ${cert.error}`
+          : `${cert.error ? `Not trusted (${cert.error}) · ` : ''}${certDays !== null && certDays < 0 ? 'Expired' : `Expires in ${certDays} days`}${cert.issuer ? ` · ${cert.issuer}` : ''}`,
+      cta: null,
+    },
+    {
+      ok: domDays !== null && domDays > 30,
+      warn: domDays !== null && domDays <= 30,
+      title: 'Domain registration',
+      detail: !dom ? 'First check within the hour' : domDays === null ? 'Expiry not published by this registry' : `${domDays < 0 ? 'Expired' : `Renews in ${domDays} days`}${dom.registrar ? ` · ${dom.registrar}` : ''}`,
+      cta: null,
+    },
   ]
   return (
     <Card className="lg:col-span-2 xl:col-span-1">
@@ -436,7 +460,7 @@ function MonitoringCard({ project }: { project: Project | undefined }) {
       <ol className="mt-4 space-y-4 px-5 pb-5">
         {items.map((t) => (
           <li key={t.title} className="flex gap-3">
-            {t.ok ? <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" /> : <Clock3 className="mt-0.5 size-4 shrink-0 text-fg-4" />}
+            {t.warn ? <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" /> : t.ok ? <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" /> : <Clock3 className="mt-0.5 size-4 shrink-0 text-fg-4" />}
             <div className="min-w-0 flex-1">
               <p className="text-[13px] font-medium text-fg">{t.title}</p>
               <p className="mt-0.5 truncate text-[12px] text-fg-3">{t.detail}</p>

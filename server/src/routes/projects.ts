@@ -9,6 +9,7 @@ import { projectSnapshot } from '../services/stats.js'
 import { runAudit } from '../services/audit.js'
 import { keywordsFor } from '../services/keywords.js'
 import { track } from '../services/events.js'
+import { healthFor } from '../services/health.js'
 
 export const projectRoutes = router()
 projectRoutes.use('*', requireUser)
@@ -123,6 +124,12 @@ projectRoutes.post('/:id/sitemaps', async (c) => {
   const row = c.var.ctx.db.get<{ id: string }>('SELECT id FROM sitemaps WHERE project_id = ? AND url = ?', [p.id, url])!
   enqueue(c.var.ctx.db, 'sitemaps.sync', { sitemapId: row.id }, { dedupeKey: `sitemap:${row.id}` })
   return c.json({ sitemap: row }, 201)
+})
+
+/** SSL certificate and domain registration expiry (null until the first check has run). */
+projectRoutes.get('/:id/health', (c) => {
+  const p = ownedProject(c, c.req.param('id'))
+  return c.json({ health: healthFor(c.var.ctx, p.id) })
 })
 
 /** Rule-based technical audit over everything we've crawled for this project. */
