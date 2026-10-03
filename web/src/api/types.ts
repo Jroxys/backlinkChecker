@@ -290,12 +290,18 @@ export interface Opportunity {
   targetUrl: string | null
   competitors: string[]
   priority: number
+  /** 'page' = we saw the linking page; 'domain' = domain-level link from the Common Crawl graph */
+  evidence?: 'page' | 'domain' | null
+  status?: OutreachStatus
 }
+
+export type OutreachStatus = 'todo' | 'contacted' | 'won' | 'rejected'
 
 export interface OpportunitiesResponse {
   opportunities: Opportunity[]
-  gapStatus: 'ok' | 'no_provider' | 'no_competitors' | 'error'
+  gapStatus: 'ok' | 'no_data' | 'no_provider' | 'no_competitors' | 'error'
   competitors: string[]
+  graph?: { ccRelease: string | null; ccImportedAt: string | null; pagesCrawled: number }
 }
 
 export interface Competitor {

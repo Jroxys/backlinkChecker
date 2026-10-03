@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { opportunitiesFor } from '../src/services/opportunities.js'
 import { seedProject, seedUser, testCtx } from './helpers.js'
 
-test('opportunities: reclaim lost dofollow links and redirect 404 targets; gap needs a provider', async () => {
+test('opportunities: reclaim lost dofollow links and redirect 404 targets; gap needs competitors', async () => {
   const { ctx } = testCtx()
   const p = seedProject(ctx, seedUser(ctx), 'example.com')
   const bl = (id: string, f: Record<string, string | number | null>) => {
@@ -20,5 +20,5 @@ test('opportunities: reclaim lost dofollow links and redirect 404 targets; gap n
   const kinds = r.opportunities.map((o) => `${o.kind}:${o.domain}`)
   assert.deepEqual(kinds.sort(), ['reclaim:gone.test', 'redirect:points-at-404.test'])
   assert.equal(r.opportunities[0].kind, 'redirect', 'no-outreach fix ranks first at equal authority')
-  assert.equal(r.gapStatus, 'no_provider')
+  assert.equal(r.gapStatus, 'no_competitors')
 })

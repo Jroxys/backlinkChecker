@@ -87,18 +87,18 @@ function CompetitorsLive() {
 
         <Card className="overflow-hidden">
           <CardHeader title="Backlink gap" description="Sites linking to your competitors but not to you — your warmest outreach targets" />
-          {!list.data?.providerConfigured ? (
-            <EmptyState
-              icon={<Info />}
-              title="Gap analysis is coming to Pro"
-              description="Finding who links to your competitors needs a commercial backlink index. We switch it on as our first Pro customers arrive — your competitor list will be ready when it does."
-            />
-          ) : comps.length === 0 ? (
+          {comps.length === 0 ? (
             <EmptyState icon={<Swords />} title="Add a competitor to see the gap" description="We’ll compare referring domains and list the ones you’re missing." />
           ) : opps.isLoading ? (
             <div className="p-5">
               <Skeleton className="h-40 w-full" />
             </div>
+          ) : gap.length === 0 && opps.data?.gapStatus !== 'ok' ? (
+            <EmptyState
+              icon={<Info />}
+              title="Mapping who links to them"
+              description="Our link map grows with every page we crawl and with each import of the Common Crawl web graph. Sites linking to your competitors appear here as soon as we find them."
+            />
           ) : gap.length === 0 ? (
             <EmptyState icon={<Swords />} title="No gap found" description="Every domain linking to your competitors also links to you. Impressive." />
           ) : (
@@ -106,7 +106,7 @@ function CompetitorsLive() {
               <Table minWidth={620}>
                 <THead>
                   <TH>Referring domain</TH>
-                  <TH>Authority</TH>
+                  <TH>Found</TH>
                   <TH>Links to</TH>
                   <TH />
                 </THead>
@@ -119,9 +119,7 @@ function CompetitorsLive() {
                           <span className="font-medium text-fg">{g.domain}</span>
                         </span>
                       </TD>
-                      <TD>
-                        <AuthorityPill value={g.authority} />
-                      </TD>
+                      <TD>{g.authority !== null ? <AuthorityPill value={g.authority} /> : <span className="text-[12.5px] text-fg-3">{g.evidence === 'page' ? 'Linking page' : 'Site-level'}</span>}</TD>
                       <TD>{g.competitors.join(', ')}</TD>
                       <TD align="right">
                         <Link to="/app/opportunities" className="text-[12.5px] font-medium text-primary-ink hover:underline">

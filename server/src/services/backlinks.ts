@@ -6,6 +6,7 @@ import { addHours, id } from '../lib/ids.js'
 import { normalizeDomain, parseHttpUrl, rootDomain } from '../lib/url.js'
 import { getPlan } from '../plans.js'
 import { createAlert, plural } from './alerts.js'
+import { recordPageLinks } from './linkgraph.js'
 
 export type BacklinkStatus = 'pending' | 'active' | 'lost' | 'broken' | 'blocked'
 
@@ -160,6 +161,12 @@ export async function verifyBacklink(ctx: Ctx, backlinkId: string): Promise<Back
     httpStatus = res.status
     if (res.status >= 200 && res.status < 300) {
       const page = analyzeHtml(res.body, res.finalUrl, res.headers)
+      // Feed the link graph: this page's other outbound links are free data
+      try {
+        recordPageLinks(ctx, res.finalUrl, page, { requestedUrl: bl.source_url })
+      } catch (e) {
+        console.error('[linkgraph] record failed', e)
+      }
       const match = findBacklink(page, project.domain, bl.target_url || undefined)
       noindex = page.noindex ? 1 : 0
       if (match.found) {

@@ -15,6 +15,7 @@ import { sendFirstScanEmails } from '../services/firstScan.js'
 import { refreshPriorityPages, sweepWatch } from '../services/watch.js'
 import { refreshSerp, sweepRankings, syncGscPositions } from '../services/rankings.js'
 import { checkRobots } from '../services/robots.js'
+import { checkLinkTargets, sweepFrontier } from '../services/linkgraph.js'
 import { claim, complete, enqueue, fail, prune, recoverStale, type Job } from './queue.js'
 
 type Handler = (ctx: Ctx, payload: Record<string, unknown>) => Promise<unknown>
@@ -84,6 +85,9 @@ export const handlers: Record<string, Handler> = {
     }
   },
   'rankings.sweep': (ctx) => sweepRankings(ctx),
+  /** Link graph: visit domains that link to competitors to find the exact page; check competitor URLs others link to. */
+  'linkgraph.frontier': (ctx) => sweepFrontier(ctx),
+  'linkgraph.targets': (ctx) => checkLinkTargets(ctx),
   /** robots.txt for every project, hourly: a bad Disallow can de-index a site overnight. */
   'robots.sweep': async (ctx) => {
     const ps = ctx.db.all<{ id: string }>('SELECT id FROM projects WHERE paused = 0')
@@ -112,6 +116,8 @@ const schedule: { kind: string; everyMinutes: number }[] = [
   { kind: 'watch.sweep', everyMinutes: 1 },
   { kind: 'priority.refresh', everyMinutes: 360 },
   { kind: 'rankings.sweep', everyMinutes: 360 },
+  { kind: 'linkgraph.frontier', everyMinutes: 30 },
+  { kind: 'linkgraph.targets', everyMinutes: 60 },
   { kind: 'activation.sweep', everyMinutes: 60 },
   { kind: 'health.sweep', everyMinutes: 60 },
   { kind: 'cwv.sweep', everyMinutes: 360 },

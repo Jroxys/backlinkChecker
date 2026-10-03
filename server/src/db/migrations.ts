@@ -494,4 +494,78 @@ export const migrations: { id: number; name: string; sql: string }[] = [
       CREATE INDEX comparisons_project ON comparisons(project_id, created_at);
     `,
   },
+  {
+    id: 21,
+    name: 'link_graph',
+    sql: `
+      -- Outbound links of every external page we fetch (backlink checks, probes, comparisons)
+      CREATE TABLE page_links (
+        src_url TEXT NOT NULL,
+        dst_url TEXT NOT NULL,
+        src_domain TEXT NOT NULL,
+        dst_domain TEXT NOT NULL,
+        anchor TEXT,
+        rel TEXT,
+        seen_at TEXT NOT NULL,
+        PRIMARY KEY (src_url, dst_url)
+      );
+      CREATE INDEX page_links_dst ON page_links(dst_domain);
+      CREATE INDEX page_links_src_domain ON page_links(src_domain);
+
+      -- Domain-level graph: from our crawls ('crawl') and Common Crawl's web graph ('cc')
+      CREATE TABLE domain_links (
+        dst_domain TEXT NOT NULL,
+        src_domain TEXT NOT NULL,
+        source TEXT NOT NULL,
+        seen_at TEXT NOT NULL,
+        PRIMARY KEY (dst_domain, src_domain, source)
+      );
+      CREATE INDEX domain_links_src ON domain_links(src_domain);
+
+      -- Facts about domains in the graph; cc_release is set on domains whose in-links were imported
+      CREATE TABLE graph_domains (
+        domain TEXT PRIMARY KEY,
+        hosts INTEGER,
+        cc_release TEXT,
+        updated_at TEXT NOT NULL
+      );
+
+      CREATE TABLE cc_imports (
+        id TEXT PRIMARY KEY,
+        release TEXT NOT NULL,
+        started_at TEXT NOT NULL,
+        finished_at TEXT,
+        targets INTEGER NOT NULL DEFAULT 0,
+        edges INTEGER NOT NULL DEFAULT 0,
+        error TEXT
+      );
+
+      -- HTTP status of competitor URLs other sites link to (finds broken-link opportunities)
+      CREATE TABLE link_targets (
+        url TEXT PRIMARY KEY,
+        status INTEGER,
+        checked_at TEXT NOT NULL
+      );
+
+      -- Domains to visit to find the exact page behind a domain-level link
+      CREATE TABLE crawl_frontier (
+        domain TEXT PRIMARY KEY,
+        reason TEXT,
+        pages INTEGER NOT NULL DEFAULT 0,
+        probed_at TEXT,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE TABLE outreach (
+        project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        opp_key TEXT NOT NULL,
+        domain TEXT NOT NULL,
+        status TEXT NOT NULL, -- todo | contacted | won | rejected
+        note TEXT,
+        backlink_id TEXT,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (project_id, opp_key)
+      );
+    `,
+  },
 ]

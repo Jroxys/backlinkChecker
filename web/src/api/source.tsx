@@ -1,6 +1,7 @@
 import { createContext, useContext, type ReactNode } from 'react'
 import type {
   ApiKey,
+  OutreachStatus,
   RankingsResponse,
   KeywordSuggestion,
   KeywordDetail,
@@ -89,6 +90,7 @@ export interface DataSource {
   competitors(projectId: string): Promise<{ competitors: Competitor[]; providerConfigured: boolean }>
   addCompetitor(projectId: string, domain: string): Promise<void>
   deleteCompetitor(projectId: string, id: string): Promise<void>
+  setOpportunityStatus(projectId: string, input: { key: string; domain: string; status: OutreachStatus; linkUrl?: string; note?: string }): Promise<{ status: OutreachStatus; backlinkId: string | null; alreadyMonitored: boolean }>
   rankings(projectId: string): Promise<RankingsResponse>
   rankingSuggestions(projectId: string): Promise<{ suggestions: KeywordSuggestion[] }>
   addRankedKeywords(projectId: string, keywords: string[]): Promise<{ created: number; skipped: number }>

@@ -23,6 +23,7 @@ export const liveSource: DataSource = {
   competitors: (id) => api.get(`/api/projects/${id}/competitors`),
   addCompetitor: async (id, domain) => void (await api.post(`/api/projects/${id}/competitors`, { domain })),
   deleteCompetitor: async (id, cid) => void (await api.del(`/api/projects/${id}/competitors/${cid}`)),
+  setOpportunityStatus: (id, input) => api.put(`/api/projects/${id}/opportunities/status`, input),
   rankings: (id) => api.get(`/api/projects/${id}/rankings`),
   rankingSuggestions: (id) => api.get(`/api/projects/${id}/rankings/suggestions`),
   addRankedKeywords: (id, keywords) => api.post(`/api/projects/${id}/rankings`, { keywords }),

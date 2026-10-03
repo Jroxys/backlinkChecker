@@ -335,3 +335,17 @@ Yeni kodu (deneme, sınırlar, blog, dışa aktarma, CWV, araçlar) yine ayrı b
   - `/app/rankings/:id`: pozisyon grafiği (ters eksen), ilk 10 listesi, karşılaştırma ve yapılacaklar.
   - Kelime ekleme penceresi Search Console'dan öneri getiriyor.
 - **Sınır:** Search Console pozisyonu bir ortalama; tek bir aramadaki sırayla birebir aynı değil. Arayüz bunu açıkça yazıyor.
+
+### K41 · Kendi link haritamız ve fırsat motoru (otomatik backlink botu yerine)
+- **Neden:** rakip raporundaki ikinci zayıflık "kendi backlink veritabanı yok" idi. Ahrefs ölçeğinde bir tarayıcı bütçemizin çok dışında. Ama iki ücretsiz kaynak var: (1) zaten okuduğumuz sayfalar, (2) Common Crawl'ın yayınladığı alan adı link grafiği.
+- **Karar:**
+  - **Sayfa grafiği (`page_links`):** her backlink kontrolünde ve her rakip karşılaştırmasında okunan sayfanın dış linkleri kaydediliyor (sayfa başına en fazla 300). Ek tarama maliyeti sıfır.
+  - **Alan adı grafiği (`domain_links`):** kaynağı ya bizim taramalarımız (`crawl`) ya da Common Crawl (`cc`). İçe aktarıcı vertices ve edges dosyalarını üç geçişte akış hâlinde okuyor ve sadece projelere ve rakiplere gelen kenarları tutuyor. Hedef başına en fazla 20.000 kaynak alan adı saklanıyor, büyük siteler önce.
+  - **Ücretsiz keşif:** taranan bir sayfa bir müşterinin alan adına link veriyorsa, bu link o müşteriye "keşfedilen backlink" olarak ekleniyor. Kullanıcı görmeden önce her zamanki gibi doğrulanıyor ve plan limitine uyuluyor.
+  - **Referans alan adı sayısı:** `refDomainsFor` artık grafikten besleniyor. Karşılaştırmadaki "Referring domains" satırı da böylece doluyor. Veri yoksa 0 değil "bilinmiyor" (null) dönüyor.
+  - **Rakip açığı:** rakibe link verip bize vermeyen alan adları listeleniyor. Facebook ve Wikipedia gibi herkese link veren platformlar eleniyor. Sayfası bilinen fırsat, sadece alan adı düzeyinde bilinenden önce sıralanıyor. Alan adı düzeyindeki ilk 25 fırsat "frontier" kuyruğuna giriyor: tarayıcı o sitenin ana sayfasına ve link listesine benzeyen birkaç sayfasına bakıp linkin tam olduğu sayfayı buluyor.
+  - **Kırık link fırsatları:** başka sitelerin rakibe verdiği linklerin hedefleri ayda bir kontrol ediliyor. 404 dönenler "onların kırık linkini senin sayfanla değiştir" fırsatı oluyor.
+  - **Outreach takibi:** durumlar Yapılacak → İletişime geçildi → Kazanıldı / Olmadı / Reddedildi. "Kazanıldı" seçilip linkin olduğu sayfa girilince sayfa backlink izlemesine ekleniyor. Önceki "Kaydet" butonu sadece tarayıcıda saklıyordu; artık sunucuda tutuluyor.
+  - DataForSEO hâlâ takılabilir. Yapılandırılırsa sonuçları grafikle birleştiriliyor, tekrarlar ayıklanıyor.
+- **Otomatik backlink botu yapılmadı:** müşterilere birbirine otomatik link verdirmek Google'ın "link şeması" politikasına aykırı ve müşterilerin sitelerine ceza riski taşıyor. Bunun yerine kullanıcı gerçek fırsatları buluyor ve linki kendisi kazanıyor.
+- **Sınırlar:** Common Crawl birkaç ayda bir güncelleniyor ve sayfa değil alan adı düzeyinde. Tam sayfayı bizim tarayıcımız buluyor. Kapsam Ahrefs kadar geniş değil; bunu "kendi haritamız, her gün büyüyor" diye anlatıyoruz.

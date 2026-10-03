@@ -2,11 +2,12 @@ import type { Ctx } from '../context.js'
 import { enqueue } from '../jobs/queue.js'
 import { FetchError } from '../lib/fetcher.js'
 import { id } from '../lib/ids.js'
+import { analyzeHtml } from '../lib/html.js'
 import { comparePages, fold, pageFacts, todo, type ComparisonCheck } from '../lib/onpage.js'
 import { rootDomain } from '../lib/url.js'
 import { getPlan } from '../plans.js'
 import { accessTokenFor } from './google.js'
-import { refDomainsFor } from './linkgraph.js'
+import { recordPageLinks, refDomainsFor } from './linkgraph.js'
 
 const DAY = 86_400_000
 const day = (d: Date) => d.toISOString().slice(0, 10)
@@ -189,6 +190,7 @@ export async function comparePage(ctx: Ctx, projectId: string, input: { keyword:
     try {
       const r = await ctx.fetcher.fetchPage(url, { ownSite })
       if (r.status >= 400) throw new RankingError('fetch_failed', `${url} answered HTTP ${r.status}`)
+      if (!ownSite) recordPageLinks(ctx, r.finalUrl, analyzeHtml(r.body, r.finalUrl, r.headers))
       return pageFacts(r.body, r.finalUrl, r.timeMs)
     } catch (e) {
       if (e instanceof RankingError) throw e

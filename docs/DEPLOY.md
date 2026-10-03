@@ -78,6 +78,24 @@ docker compose up -d
 ```
 Ayda bir geri yükleme provası yap. Test edilmemiş yedek, yedek değildir.
 
+## 6b. Link haritası (Common Crawl, ücretsiz)
+
+Rakip açığı ve referans alan adı sayıları için Common Crawl'ın ücretsiz alan adı link grafiği kullanılıyor. Sadece projelerin ve rakiplerin alan adlarına gelen linkler saklanıyor; dosyanın tamamı diske inmiyor, akış hâlinde okunuyor.
+
+1. https://commoncrawl.org/web-graphs adresinden en yeni sürümün adını al (ör. `cc-main-2025-may-jun-jul`).
+2. İlk içe aktarmayı elle çalıştır:
+   ```bash
+   docker compose exec app node dist/scripts/cc-import.js cc-main-2025-may-jun-jul
+   ```
+   Kenar dosyası büyük olduğu için ağ hızına göre 1–3 saat sürebilir. Bu sırada site çalışmaya devam eder.
+3. Ayda bir cron ile tekrarla. Yeni eklenen projeler ve rakipler bir sonraki çalıştırmada kapsanır. Örnek (her ayın 3'ü, 03:00):
+   ```
+   0 3 3 * * cd /root/indexora/deploy && docker compose exec -T app node dist/scripts/cc-import.js $CC_GRAPH_RELEASE >> /var/log/cc-import.log 2>&1
+   ```
+   Common Crawl yeni sürüm yayınlayınca `CC_GRAPH_RELEASE` değerini güncelle.
+
+İçe aktarma olmadan da harita büyür: her backlink kontrolünde ve karşılaştırmada okunan sayfaların dış linkleri kaydedilir. Rakibe link veren sitelerde de nazikçe (robots.txt'ye uyularak) birkaç sayfaya bakılır.
+
 ## 7. Güncelleme
 
 ```bash

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowUpRight, Bookmark, BookmarkCheck, Mail, Swords, Unlink, MessageSquareQuote, LibraryBig, Undo2, CornerUpRight, Copy, Sparkles, Plus } from 'lucide-react'
-import type { Opportunity } from '@/api/types'
-import { useOpportunities, useMe } from '@/api/hooks'
+import { ArrowUpRight, Mail, Swords, Unlink, MessageSquareQuote, LibraryBig, Undo2, CornerUpRight, Copy, Sparkles, Plus, Trophy, Send, X, RotateCcw, Network } from 'lucide-react'
+import type { Opportunity, OutreachStatus } from '@/api/types'
+import { useAction, useOpportunities, useMe } from '@/api/hooks'
 import { cn } from '@/lib/cn'
 import { Link } from '@/lib/router'
 import { useProject } from '@/lib/project'
@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { DomainIcon } from '@/components/ui/Avatar'
 import { useToast } from '@/components/ui/Toast'
+import { formatDate, formatNumber } from '@/utils/format'
 
 const kinds: Record<Opportunity['kind'], { label: string; icon: typeof Swords }> = {
   reclaim: { label: 'Reclaim lost link', icon: Undo2 },
@@ -27,6 +28,7 @@ const kinds: Record<Opportunity['kind'], { label: string; icon: typeof Swords }>
 }
 
 type KindFilter = 'all' | Opportunity['kind']
+type Stage = 'open' | 'contacted' | 'won' | 'dismissed'
 
 export function Opportunities() {
   const { project } = useProject()
@@ -35,33 +37,25 @@ export function Opportunities() {
   const [kind, setKind] = useState<KindFilter>('all')
   const [outreach, setOutreach] = useState<Opportunity | null>(null)
   const [fix, setFix] = useState<Opportunity | null>(null)
-  const storeKey = `indexora-saved-opps-${project?.id}`
-  const [saved, setSaved] = useState<Set<string>>(new Set())
-  const toast = useToast()
+  const [stage, setStage] = useState<Stage>('open')
+  const [winning, setWinning] = useState<Opportunity | null>(null)
+  const setStatus = useAction((s) => s.setOpportunityStatus, {
+    invalidate: ['opportunities', 'backlinks', 'projects'],
+    success: (r) =>
+      r.status === 'won'
+        ? { title: 'Nice — link won', description: r.backlinkId ? 'It’s now in backlink monitoring; we’ll verify it shortly.' : r.alreadyMonitored ? 'That page was already being monitored.' : undefined }
+        : r.status === 'contacted'
+          ? { title: 'Marked as contacted', description: 'Follow up in about a week if you hear nothing.' }
+          : null,
+  })
+  const mark = (o: Opportunity, status: OutreachStatus, linkUrl?: string) => project && setStatus.mutateAsync([project.id, { key: o.id, domain: o.domain, status, linkUrl }])
 
-  useEffect(() => {
-    try {
-      setSaved(new Set(JSON.parse(localStorage.getItem(storeKey) ?? '[]')))
-    } catch {
-      setSaved(new Set())
-    }
-  }, [storeKey])
-  const toggleSave = (id: string) =>
-    setSaved((s) => {
-      const n = new Set(s)
-      if (n.has(id)) n.delete(id)
-      else n.add(id)
-      try {
-        localStorage.setItem(storeKey, JSON.stringify([...n]))
-      } catch {
-        /* ignore */
-      }
-      return n
-    })
-
-  const all = useMemo(() => q.data?.opportunities ?? [], [q.data])
+  const everything = useMemo(() => q.data?.opportunities ?? [], [q.data])
+  const stageOf = (o: Opportunity): Stage => (o.status === 'contacted' ? 'contacted' : o.status === 'won' ? 'won' : o.status === 'rejected' ? 'dismissed' : 'open')
+  const all = everything.filter((o) => stageOf(o) === stage)
   const present = (Object.keys(kinds) as Opportunity['kind'][]).filter((k) => all.some((o) => o.kind === k))
   const list = all.filter((o) => kind === 'all' || o.kind === kind)
+  const count = (st: Stage) => everything.filter((o) => stageOf(o) === st).length
   const gap = q.data?.gapStatus
 
   return (
@@ -72,9 +66,29 @@ export function Opportunities() {
             Ranked by impact
           </Badge>
         }
-        title={q.isLoading ? 'Backlink opportunities' : `${all.length} backlink ${all.length === 1 ? 'opportunity' : 'opportunities'} found`}
+        title={q.isLoading ? 'Backlink opportunities' : `${count('open')} backlink ${count('open') === 1 ? 'opportunity' : 'opportunities'} found`}
         description="Each one explains why it’s worth your time — starting with links you can win back without any cold outreach."
       />
+
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <Segmented<Stage>
+          value={stage}
+          onChange={(v) => (setStage(v), setKind('all'))}
+          items={[
+            { value: 'open', label: `To do (${count('open')})` },
+            { value: 'contacted', label: `Contacted (${count('contacted')})` },
+            { value: 'won', label: `Won (${count('won')})` },
+            { value: 'dismissed', label: `Dismissed (${count('dismissed')})` },
+          ]}
+        />
+        {q.data?.graph && (q.data.graph.ccRelease || q.data.graph.pagesCrawled > 0) && (
+          <span className="flex items-center gap-1.5 text-[12px] text-fg-4">
+            <Network className="size-3.5" />
+            Link map: {formatNumber(q.data.graph.pagesCrawled)} pages crawled
+            {q.data.graph.ccImportedAt && ` · web graph from ${formatDate(q.data.graph.ccImportedAt)}`}
+          </span>
+        )}
+      </div>
 
       {present.length > 1 && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -87,7 +101,7 @@ export function Opportunities() {
         </div>
       )}
 
-      {gap && gap !== 'ok' && (
+      {stage === 'open' && gap && gap !== 'ok' && (
         <Card className="mb-4 flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
             <Swords className="mt-0.5 size-4 shrink-0 text-primary" />
@@ -96,9 +110,9 @@ export function Opportunities() {
                 <>
                   <span className="font-medium text-fg">Add competitors to find gap opportunities.</span> We’ll list sites that link to them but not to you.
                 </>
-              ) : gap === 'no_provider' ? (
+              ) : gap === 'no_data' || gap === 'no_provider' ? (
                 <>
-                  <span className="font-medium text-fg">Competitor gap analysis is coming to Pro.</span> It needs a commercial backlink index, which we switch on as our first Pro customers arrive. Reclaim and redirect opportunities below are already live.
+                  <span className="font-medium text-fg">We’re mapping who links to your competitors.</span> Our link map grows with every page we crawl and with each import of the Common Crawl web graph. Gaps appear here as soon as we find them — reclaim and redirect opportunities below are already live.
                 </>
               ) : (
                 <>
@@ -136,19 +150,28 @@ export function Opportunities() {
           <Card className="lg:col-span-2">
             <EmptyState
               icon={<Sparkles />}
-              title="No opportunities right now"
-              description="That’s good news: no lost links to reclaim and no backlinks pointing at broken pages. We re-check daily and list new opportunities here as soon as they appear."
+              title={stage === 'open' ? 'No opportunities right now' : stage === 'won' ? 'No links won yet' : stage === 'contacted' ? 'Nobody contacted yet' : 'Nothing dismissed'}
+              description={
+                stage === 'open'
+                  ? 'That’s good news: no lost links to reclaim and no backlinks pointing at broken pages. We re-check daily and list new opportunities here as soon as they appear.'
+                  : stage === 'won'
+                    ? 'When an outreach works, mark it as won: the link goes straight into backlink monitoring.'
+                    : stage === 'contacted'
+                      ? 'Send an outreach email from the To do tab and mark it as contacted to keep track of follow-ups.'
+                      : 'Opportunities you dismiss end up here, in case you change your mind.'
+              }
               action={
-                <Link to="/app/backlinks">
-                  <Button size="sm">Review backlinks</Button>
-                </Link>
+                stage === 'open' && (
+                  <Link to="/app/backlinks">
+                    <Button size="sm">Review backlinks</Button>
+                  </Link>
+                )
               }
             />
           </Card>
         )}
         {list.map((o, i) => {
           const K = kinds[o.kind]
-          const isSaved = saved.has(o.id)
           return (
             <Card key={o.id} interactive className="flex animate-rise flex-col" style={{ animationDelay: `${Math.min(i, 8) * 30}ms` }}>
               <div className="flex items-start justify-between gap-3 p-5 pb-0">
@@ -161,6 +184,10 @@ export function Opportunities() {
                         <span className="tnum">
                           Authority <span className="font-semibold text-fg">{o.authority}</span>
                         </span>
+                      ) : o.evidence === 'domain' ? (
+                        'Site-level link · finding the exact page'
+                      ) : o.evidence === 'page' && o.kind !== 'reclaim' && o.kind !== 'redirect' ? (
+                        'Linking page found'
                       ) : (
                         'Authority unknown'
                       )}
@@ -198,25 +225,44 @@ export function Opportunities() {
                     </Button>
                   </a>
                 )}
-                <Button size="sm" variant={isSaved ? 'soft' : 'secondary'} leftIcon={isSaved ? <BookmarkCheck /> : <Bookmark />} onClick={() => (toggleSave(o.id), toast({ title: isSaved ? 'Removed from your list' : 'Added to your list', description: o.domain }))}>
-                  {isSaved ? 'Saved' : 'Save'}
-                </Button>
-                {o.kind === 'redirect' ? (
-                  <Button size="sm" variant="primary" leftIcon={<CornerUpRight />} className="ml-auto" onClick={() => setFix(o)}>
-                    Show the fix
-                  </Button>
-                ) : (
-                  <Button size="sm" variant="primary" leftIcon={<Mail />} className="ml-auto" onClick={() => setOutreach(o)}>
-                    Create Outreach
+                {stage === 'open' && (
+                  <Button size="sm" variant="ghost" leftIcon={<X />} onClick={() => mark(o, 'rejected')}>
+                    Dismiss
                   </Button>
                 )}
+                {(stage === 'dismissed' || stage === 'won') && (
+                  <Button size="sm" variant="ghost" leftIcon={<RotateCcw />} className="ml-auto" onClick={() => mark(o, 'todo')}>
+                    Move back to to-do
+                  </Button>
+                )}
+                {stage === 'contacted' && (
+                  <>
+                    <Button size="sm" variant="ghost" leftIcon={<X />} onClick={() => mark(o, 'rejected')}>
+                      No luck
+                    </Button>
+                    <Button size="sm" variant="primary" leftIcon={<Trophy />} className="ml-auto" onClick={() => setWinning(o)}>
+                      Won the link
+                    </Button>
+                  </>
+                )}
+                {stage === 'open' &&
+                  (o.kind === 'redirect' ? (
+                    <Button size="sm" variant="primary" leftIcon={<CornerUpRight />} className="ml-auto" onClick={() => setFix(o)}>
+                      Show the fix
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="primary" leftIcon={<Mail />} className="ml-auto" onClick={() => setOutreach(o)}>
+                      Create Outreach
+                    </Button>
+                  ))}
               </div>
             </Card>
           )
         })}
       </div>
 
-      <OutreachModal o={outreach} name={me?.user.name ?? ''} domain={project?.domain ?? ''} onClose={() => setOutreach(null)} />
+      <OutreachModal o={outreach} name={me?.user.name ?? ''} domain={project?.domain ?? ''} onClose={() => setOutreach(null)} onSent={(o) => mark(o, 'contacted')} />
+      <WonModal o={winning} onClose={() => setWinning(null)} onSave={async (o, url) => (await mark(o, 'won', url), setWinning(null))} pending={setStatus.isPending} />
       <RedirectModal o={fix} onClose={() => setFix(null)} />
     </>
   )
@@ -241,7 +287,7 @@ function emailFor(o: Opportunity, name: string, domain: string) {
   }
 }
 
-function OutreachModal({ o, name, domain, onClose }: { o: Opportunity | null; name: string; domain: string; onClose: () => void }) {
+function OutreachModal({ o, name, domain, onClose, onSent }: { o: Opportunity | null; name: string; domain: string; onClose: () => void; onSent: (o: Opportunity) => void }) {
   const toast = useToast()
   const draft = o ? emailFor(o, name, domain) : { subject: '', body: '' }
   const [subject, setSubject] = useState('')
@@ -271,10 +317,13 @@ function OutreachModal({ o, name, domain, onClose }: { o: Opportunity | null; na
             Copy
           </Button>
           <a href={`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`} onClick={onClose}>
-            <Button variant="primary" leftIcon={<Mail />}>
+            <Button variant="secondary" leftIcon={<Mail />}>
               Open in email app
             </Button>
           </a>
+          <Button variant="primary" leftIcon={<Send />} onClick={() => (o && onSent(o), onClose())}>
+            Mark as sent
+          </Button>
         </>
       }
     >
@@ -334,6 +383,35 @@ function RedirectModal({ o, onClose }: { o: Opportunity | null; onClose: () => v
         </Button>
       </div>
       <p className="mt-3 text-[12.5px] text-fg-3">Using WordPress? The free “Redirection” plugin does the same without touching server config.</p>
+    </Modal>
+  )
+}
+
+function WonModal({ o, onClose, onSave, pending }: { o: Opportunity | null; onClose: () => void; onSave: (o: Opportunity, url: string) => void; pending: boolean }) {
+  const [url, setUrl] = useState('')
+  useEffect(() => {
+    setUrl(o?.evidence === 'page' && o.sourceUrl ? o.sourceUrl : '')
+  }, [o])
+  const valid = /^https?:\/\/\S+\.\S+/.test(url.trim())
+  return (
+    <Modal
+      open={!!o}
+      onClose={onClose}
+      title="You won the link"
+      description="Paste the page that now links to you. We’ll add it to backlink monitoring and verify it right away — and tell you if it ever disappears."
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button variant="primary" leftIcon={<Trophy />} loading={pending} disabled={!valid} onClick={() => o && onSave(o, url.trim())}>
+            Save and monitor
+          </Button>
+        </>
+      }
+    >
+      <Label htmlFor="won-url">Linking page on {o?.domain}</Label>
+      <Input id="won-url" autoFocus value={url} onChange={(e) => setUrl(e.target.value)} placeholder={`https://${o?.domain ?? 'site.com'}/the-page`} />
     </Modal>
   )
 }

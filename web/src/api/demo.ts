@@ -14,6 +14,9 @@ import { rankingsDemo, rankedKeywordDemo, demoCompare } from '@/data/rankings'
 
 const wait = <T>(v: T, ms = 380) => new Promise<T>((r) => setTimeout(() => r(structuredClone(v)), ms))
 
+/** Outreach progress in the demo lives in memory, so the workflow can be tried. */
+const demoOutreach = new Map<string, 'todo' | 'contacted' | 'won' | 'rejected'>([['op1', 'contacted']])
+
 const demoOnly = () =>
   Promise.reject(new ApiError(403, 'demo', 'This is the interactive demo. Create a free account to monitor your own site.'))
 
@@ -265,10 +268,15 @@ export const demoSource: DataSource = {
   notificationSettings: () => wait({ email: 1, slackWebhook: 'https://hooks.slack.com/services/demo', webhookUrl: null, digest: 0, minSeverity: 'warning' as const }),
 
   audit: () => wait(demoAudit),
+  setOpportunityStatus: async (_p, input) => {
+    demoOutreach.set(input.key, input.status)
+    return { status: input.status, backlinkId: null, alreadyMonitored: false }
+  },
   opportunities: () =>
     wait({
       gapStatus: 'ok' as const,
       competitors: ['crawlwise.io', 'rankpilot.com', 'serpstack.dev'],
+      graph: { ccRelease: 'cc-main-2026-jun-jul-aug', ccImportedAt: '2026-09-14T03:12:00Z', pagesCrawled: 18_420 },
       opportunities: [
         {
           id: 'reclaim:backlinko',
@@ -281,6 +289,20 @@ export const demoSource: DataSource = {
           targetUrl: 'https://northwindlabs.com/',
           competitors: [],
           priority: 97,
+          evidence: 'page' as const,
+        },
+        {
+          id: 'broken:resources',
+          kind: 'broken-link' as const,
+          domain: 'seotoolsdirectory.net',
+          authority: null,
+          headline: 'Links to a dead page on crawlwise.io (404)',
+          reason: '/resources/technical-seo links to https://crawlwise.io/guides/log-file-analysis (“log file analysis guide”), which now returns 404. Site owners fix broken links gladly — tell them, and suggest your page as the replacement.',
+          sourceUrl: 'https://seotoolsdirectory.net/resources/technical-seo',
+          targetUrl: null,
+          competitors: ['crawlwise.io'],
+          priority: 70,
+          evidence: 'page' as const,
         },
         ...mockOpps.map((o) => ({
           id: o.id,
@@ -293,8 +315,9 @@ export const demoSource: DataSource = {
           targetUrl: `https://northwindlabs.com${o.suggestedTarget}`,
           competitors: o.competitors,
           priority: o.relevance,
+          evidence: o.kind === 'competitor-gap' ? ((o.authority ?? 0) > 85 ? ('page' as const) : ('domain' as const)) : ('page' as const),
         })),
-      ],
+      ].map((o) => ({ ...o, status: demoOutreach.get(o.id) ?? ('todo' as const) })),
     }),
   competitors: () =>
     wait({
