@@ -41,6 +41,12 @@ export interface Me {
   team?: { role: 'owner' | 'member'; ownerName: string; suspended: boolean }
 }
 
+export type CwvMetric = 'lcp' | 'inp' | 'cls' | 'fcp' | 'ttfb'
+export type CwvResponse =
+  | { configured: false }
+  | { configured: true; checked: false }
+  | { configured: true; checked: true; origin: string | null; series: { dates: string[]; p75: Record<CwvMetric, (number | null)[]> } | null; fetchedAt: string }
+
 export interface DomainHealth {
   certificate: { host: string | null; expiresAt: string | null; issuer: string | null; error: string | null; checkedAt: string } | null
   domain: { expiresAt: string | null; registrar: string | null; checkedAt: string } | null

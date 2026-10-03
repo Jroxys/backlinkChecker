@@ -9,6 +9,7 @@ import { DataForSeoProvider } from './services/discovery.js'
 import { createGoogleClient } from './services/google.js'
 import { createNotifier } from './services/notifier.js'
 import { defaultProbes } from './services/health.js'
+import { createCruxClient } from './services/cwv.js'
 
 const db = openDb(config.databasePath)
 const ctx: Ctx = {
@@ -19,6 +20,7 @@ const ctx: Ctx = {
   provider: config.dataforseo.login ? new DataForSeoProvider(config.dataforseo.login, config.dataforseo.password) : null,
   google: createGoogleClient(config.google.clientId, config.google.clientSecret),
   probes: defaultProbes(config.crawlerAllowPrivate),
+  crux: createCruxClient(config.cruxApiKey),
   now: () => new Date(),
 }
 

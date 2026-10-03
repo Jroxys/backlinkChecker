@@ -198,3 +198,16 @@ Kurucu panelinin e-postayla belirlenmesi ve e-posta doğrulamasının olmaması 
 - **SSL denetleyici:** OpenSSL hata kodlarını sade İngilizceye çeviriyor: süresi dolmuş, yanlış ana makine, kendinden imzalı, eksik ara sertifika.
 - **Her araç sayfasının sonunda** ilgili izleme özelliğine yönlendiren bir çağrı var. Araç sorunu bir kez gösteriyor, ürün sürekli izliyor.
 - **Güvenlik ve sınırlar:** diğer araçlarla aynı IP ve genel sınırlar geçerli; SSRF koruması bağlantı anında yapılıyor.
+
+### K32 · Core Web Vitals: kendi ölçümümüz değil, CrUX saha verisi
+- **Seçenekler:**
+  - (a) PageSpeed Insights API ile laboratuvar ölçümü: yavaş (sayfa başına ~20 sn) ve Google'ın sıralamada kullandığı veri bu değil.
+  - (b) Kendi tarayıcımızla Lighthouse çalıştırmak: sunucuda Chrome demek, pahalı.
+  - (c) Chrome UX Report History API: ücretsiz, gerçek kullanıcı verisi ve Google'ın sayfa deneyimi sinyali tam olarak bu. Tek çağrıda 25 haftalık geçmiş geldiği için grafik ilk günden dolu.
+- **Karar:** (c). Origin düzeyinde, telefon, p75 değerleri: LCP, INP, CLS (ek olarak FCP ve TTFB saklanıyor).
+- **Ayrıntılar:**
+  - Haftada bir yenileniyor.
+  - Bir metriğin derecesi kötüleşirse (iyi → iyileştirilmeli → kötü) tek bir uyarı gidiyor.
+  - Az trafikli siteler CrUX'ta görünmüyor; bu durum hata gibi değil, açıklamasıyla gösteriliyor.
+  - `CRUX_API_KEY` yoksa kart tamamen gizleniyor.
+- **Test edilebilirlik:** sandbox CrUX'a erişemiyor. İstemci `fetch` enjekte edilebilir şekilde yazıldı ve testler belgelenmiş yanıt biçimiyle çalışıyor.

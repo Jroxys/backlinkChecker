@@ -10,6 +10,7 @@ import { runAudit } from '../services/audit.js'
 import { keywordsFor } from '../services/keywords.js'
 import { track } from '../services/events.js'
 import { healthFor } from '../services/health.js'
+import { cwvFor } from '../services/cwv.js'
 
 export const projectRoutes = router()
 projectRoutes.use('*', requireUser)
@@ -130,6 +131,12 @@ projectRoutes.post('/:id/sitemaps', async (c) => {
 projectRoutes.get('/:id/health', (c) => {
   const p = ownedProject(c, c.req.param('id'))
   return c.json({ health: healthFor(c.var.ctx, p.id) })
+})
+
+/** Core Web Vitals (CrUX field data), refreshed weekly by the worker. */
+projectRoutes.get('/:id/cwv', (c) => {
+  const p = ownedProject(c, c.req.param('id'))
+  return c.json(cwvFor(c.var.ctx, p.id))
 })
 
 /** Rule-based technical audit over everything we've crawled for this project. */

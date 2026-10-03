@@ -101,6 +101,11 @@ export function useHealth(projectId?: string) {
   return useQuery({ queryKey: [s.mode, 'health', projectId], queryFn: () => s.health(projectId!), enabled: !!projectId })
 }
 
+export function useCwv(projectId?: string) {
+  const s = useSource()
+  return useQuery({ queryKey: [s.mode, 'cwv', projectId], queryFn: () => s.cwv(projectId!), enabled: !!projectId })
+}
+
 export function useTeam() {
   const s = useSource()
   return useQuery({ queryKey: [s.mode, 'team'], queryFn: () => s.team() })

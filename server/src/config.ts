@@ -27,6 +27,8 @@ export const config = {
     login: env.DATAFORSEO_LOGIN ?? '',
     password: env.DATAFORSEO_PASSWORD ?? '',
   },
+  /** Google API key with the Chrome UX Report API enabled (free). Empty = Core Web Vitals hidden. */
+  cruxApiKey: env.CRUX_API_KEY ?? '',
   slackWebhookUrl: env.SLACK_WEBHOOK_URL ?? '',
   smtpUrl: env.SMTP_URL ?? '',
   mailFrom: env.MAIL_FROM ?? 'Indexora <alerts@indexora.app>',

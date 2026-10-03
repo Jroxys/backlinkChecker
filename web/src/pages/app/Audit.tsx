@@ -1,3 +1,4 @@
+import { CoreWebVitals } from '@/components/domain/CoreWebVitals'
 import { useState } from 'react'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { AlertTriangle, CheckCircle2, ChevronDown, Cog, FileText, Gauge, Link2, Play, ScanSearch, XCircle, Wrench, Info, ExternalLink } from 'lucide-react'
@@ -119,6 +120,8 @@ export function Audit() {
               </div>
             </Card>
           </div>
+
+          {project && <CoreWebVitals projectId={project.id} />}
 
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
             {a.categories.map((k) => {

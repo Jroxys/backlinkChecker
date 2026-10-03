@@ -7,6 +7,7 @@ import { openDb } from '../src/db/index.js'
 import { PoliteFetcher } from '../src/lib/fetcher.js'
 import { createGoogleClient, type GoogleClient } from '../src/services/google.js'
 import { memoryNotifier } from '../src/services/notifier.js'
+import { createCruxClient } from '../src/services/cwv.js'
 
 export interface Route {
   status?: number
@@ -51,6 +52,7 @@ export function testCtx(overrides: Partial<Ctx> = {}) {
     notifier,
     provider: null,
     google: createGoogleClient('', '') as GoogleClient,
+    crux: createCruxClient(''),
     probes: {
       certificate: async (host) => ({ host, expiresAt: null, issuer: null, error: 'ECONNREFUSED' }),
       domain: async () => ({ expiresAt: null, registrar: null }),

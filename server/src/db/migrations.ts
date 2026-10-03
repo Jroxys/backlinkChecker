@@ -371,4 +371,17 @@ export const migrations: { id: number; name: string; sql: string }[] = [
       ALTER TABLE users ADD COLUMN subscription_id TEXT;
     `,
   },
+  {
+    id: 15,
+    name: 'cwv',
+    sql: `
+      -- Core Web Vitals history from CrUX (one JSON series per project; origin NULL = not in CrUX).
+      CREATE TABLE cwv (
+        project_id TEXT PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE,
+        origin TEXT,
+        body TEXT,
+        fetched_at TEXT NOT NULL
+      );
+    `,
+  },
 ]

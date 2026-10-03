@@ -295,6 +295,17 @@ export const demoSource: DataSource = {
     certificate: { host: 'acme-analytics.com', expiresAt: new Date(Date.now() + 61 * 86_400_000).toISOString(), issuer: "Let's Encrypt", error: null, checkedAt: new Date().toISOString() },
     domain: { expiresAt: new Date(Date.now() + 23 * 86_400_000).toISOString(), registrar: 'Namecheap, Inc.', checkedAt: new Date().toISOString() },
   }),
+  cwv: async () => {
+    const dates = Array.from({ length: 25 }, (_, i) => new Date(Date.now() - (24 - i) * 7 * 86_400_000).toISOString().slice(0, 10))
+    const wave = (base: number, amp: number, drift: number) => dates.map((_, i) => Math.round((base + Math.sin(i / 3) * amp + i * drift) * 100) / 100)
+    return {
+      configured: true as const,
+      checked: true as const,
+      origin: 'https://northwindlabs.com',
+      fetchedAt: new Date().toISOString(),
+      series: { dates, p75: { lcp: wave(2700, 160, -20), inp: wave(230, 15, -2.4), cls: wave(0.08, 0.012, 0.0016), fcp: wave(1700, 120, -10), ttfb: wave(720, 60, -6) } },
+    }
+  },
   team: async () => ({
     role: 'owner' as const,
     seats: { used: 3, limit: 3 },

@@ -1,6 +1,7 @@
 import { createContext, useContext, type ReactNode } from 'react'
 import type {
   ApiKey,
+  CwvResponse,
   DomainHealth,
   Team,
   Branding,
@@ -105,6 +106,7 @@ export interface DataSource {
   deleteAccount(password: string): Promise<void>
   saveBranding(b: Branding): Promise<void>
   health(projectId: string): Promise<DomainHealth | null>
+  cwv(projectId: string): Promise<CwvResponse>
   team(): Promise<Team>
   inviteMember(email: string): Promise<void>
   revokeInvite(id: string): Promise<void>

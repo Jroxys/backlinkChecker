@@ -44,6 +44,7 @@ export const liveSource: DataSource = {
   logout: async () => void (await api.post('/api/auth/logout')),
   deleteAccount: async (password) => void (await request('DELETE', '/api/auth/account', { password })),
   health: async (id) => (await api.get<{ health: DomainHealth | null }>(`/api/projects/${id}/health`)).health,
+  cwv: (id) => api.get(`/api/projects/${id}/cwv`),
   team: () => api.get('/api/team'),
   inviteMember: async (email) => void (await api.post('/api/team/invites', { email })),
   revokeInvite: async (id) => void (await api.del(`/api/team/invites/${id}`)),
