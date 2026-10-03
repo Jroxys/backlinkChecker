@@ -7,7 +7,10 @@ import { Button } from '@/components/ui/Button'
 import { Input, Label } from '@/components/ui/Controls'
 import { AuthLayout } from './AuthLayout'
 
-function FormError({ message }: { message: string | null }) {
+/** Only same-app paths: never let a crafted link bounce someone to another site after sign-in. */
+const safeNext = (n: string | null) => (n && n.startsWith('/') && !n.startsWith('//') && !n.startsWith('/\\') ? n : null)
+
+export function FormError({ message }: { message: string | null }) {
   if (!message) return null
   return (
     <div role="alert" className="mb-4 flex items-start gap-2 rounded-lg border border-error/25 bg-error-soft px-3 py-2.5 text-[13px] text-error-ink">
@@ -33,7 +36,7 @@ export function Login() {
     try {
       await api.post('/api/auth/login', { email, password })
       qc.clear()
-      nav(params.get('next') ?? '/app', { replace: true })
+      nav(safeNext(params.get('next')) ?? '/app', { replace: true })
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not sign in')
     } finally {
@@ -48,7 +51,7 @@ export function Login() {
       footer={
         <>
           New to Indexora?{' '}
-          <Link to="/signup" className="font-medium text-primary-ink hover:underline">
+          <Link to={`/signup${params.get('next') ? `?next=${encodeURIComponent(params.get('next')!)}` : ''}`} className="font-medium text-primary-ink hover:underline">
             Create a free account
           </Link>
         </>
@@ -81,8 +84,8 @@ export function Login() {
 }
 
 export function Signup() {
-  const [form, setForm] = useState({ name: '', email: '', password: '' })
   const [params] = useSearchParams()
+  const [form, setForm] = useState({ name: '', email: params.get('email') ?? '', password: '' })
   const plan = params.get('plan')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -101,7 +104,7 @@ export function Signup() {
         /* ignore */
       }
       qc.clear()
-      nav('/app/onboarding', { replace: true })
+      nav(safeNext(params.get('next')) ?? '/app/onboarding', { replace: true })
     } catch (err) {
       const d = err instanceof ApiError && Array.isArray(err.details) ? (err.details as { message: string }[]).map((x) => x.message).join('. ') : null
       setError(d || (err instanceof ApiError ? err.message : 'Could not create your account'))
@@ -117,7 +120,7 @@ export function Signup() {
       footer={
         <>
           Already have an account?{' '}
-          <Link to="/login" className="font-medium text-primary-ink hover:underline">
+          <Link to={`/login${params.get('next') ? `?next=${encodeURIComponent(params.get('next')!)}` : ''}`} className="font-medium text-primary-ink hover:underline">
             Sign in
           </Link>
         </>

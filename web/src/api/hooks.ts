@@ -96,6 +96,11 @@ export function useApiKeys(enabled = true) {
   return useQuery({ queryKey: [s.mode, 'apiKeys'], queryFn: () => s.apiKeys(), enabled })
 }
 
+export function useTeam() {
+  const s = useSource()
+  return useQuery({ queryKey: [s.mode, 'team'], queryFn: () => s.team() })
+}
+
 export function useAction<A extends unknown[], R>(
   pick: (s: ReturnType<typeof useSource>) => (...args: A) => Promise<R>,
   opts: { invalidate?: string[]; success?: (r: R) => { title: string; description?: string } | null } = {},

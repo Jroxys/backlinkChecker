@@ -38,6 +38,15 @@ export interface Me {
   usage: { projects: number; urls: number; backlinks: number }
   google: { connected: boolean; email: string | null; configured: boolean }
   branding?: Branding
+  team?: { role: 'owner' | 'member'; ownerName: string; suspended: boolean }
+}
+
+export interface Team {
+  role: 'owner' | 'member'
+  seats: { used: number; limit: number }
+  owner: { id: string; name: string; email: string }
+  members: { id: string; name: string; email: string; joinedAt: string }[]
+  invites: { id: string; email: string; createdAt: string; expiresAt: string; expired: boolean }[]
 }
 
 export interface Branding {

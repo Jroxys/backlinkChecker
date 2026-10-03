@@ -110,7 +110,7 @@ export function Dashboard() {
               hint="Links verified present on the linking page at the last check."
               footer={
                 <span>
-                  <span className="tnum font-medium text-success-ink">+{formatNumber(s.gained30d)}</span> new · <span className="tnum font-medium text-error-ink">−{formatNumber(s.lost30d)}</span> lost in 30 days
+                  <span className={cn('tnum font-medium', s.gained30d ? 'text-success-ink' : 'text-fg-3')}>{s.gained30d ? '+' : ''}{formatNumber(s.gained30d)}</span> new · <span className={cn('tnum font-medium', s.lost30d ? 'text-error-ink' : 'text-fg-3')}>{formatNumber(s.lost30d)}</span> lost in 30 days
                 </span>
               }
               style={{ animationDelay: '40ms' }}

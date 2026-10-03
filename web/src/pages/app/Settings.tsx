@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Copy, KeyRound, Trash2, Check, Moon, Sun, Monitor, ShieldCheck, ExternalLink, Sparkles, MessageSquare } from 'lucide-react'
+import { Copy, KeyRound, Trash2, Users, UserPlus, LogOut, Check, Moon, Sun, Monitor, ShieldCheck, ExternalLink, Sparkles, MessageSquare } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { useTheme } from '@/lib/theme'
 import { Link } from '@/lib/router'
 import { useProject } from '@/lib/project'
-import { useAction, useApiKeys, useMe, usePlans } from '@/api/hooks'
+import { useAction, useApiKeys, useMe, usePlans, useTeam } from '@/api/hooks'
 import { useSource } from '@/api/source'
 import { ApiError } from '@/api/client'
 import type { PlanId } from '@/api/types'
@@ -21,12 +21,12 @@ import { Select } from '@/components/ui/Dropdown'
 import { useToast } from '@/components/ui/Toast'
 import { formatDate, formatNumber } from '@/utils/format'
 
-type Tab = 'general' | 'integrations' | 'api' | 'billing'
+type Tab = 'general' | 'team' | 'integrations' | 'api' | 'billing'
 
 export function Settings() {
   const [params, setParams] = useSearchParams()
   const initial = (params.get('tab') as Tab) || 'general'
-  const [tab, setTab] = useState<Tab>(['general', 'integrations', 'api', 'billing'].includes(initial) ? initial : 'general')
+  const [tab, setTab] = useState<Tab>(['general', 'team', 'integrations', 'api', 'billing'].includes(initial) ? initial : 'general')
   const toast = useToast()
 
   useEffect(() => {
@@ -48,6 +48,7 @@ export function Settings() {
         onChange={setTab}
         items={[
           { value: 'general', label: 'General' },
+          { value: 'team', label: 'Team' },
           { value: 'integrations', label: 'Integrations' },
           { value: 'api', label: 'API' },
           { value: 'billing', label: 'Plan & billing' },
@@ -55,6 +56,7 @@ export function Settings() {
       />
       <div key={tab} className="max-w-3xl animate-rise space-y-4">
         {tab === 'general' && <General />}
+        {tab === 'team' && <TeamTab />}
         {tab === 'integrations' && <Integrations />}
         {tab === 'api' && <ApiKeys />}
         {tab === 'billing' && <Billing />}
@@ -88,7 +90,7 @@ function General() {
           <p className="text-[12.5px] text-fg-4">Need to change your email? Write to support and we’ll do it within a day.</p>
         </div>
       </Card>
-      {me && <Branding />}
+      {me && me.team?.role !== 'member' && <Branding />}
       <Card>
         <CardHeader title="Appearance" />
         <div className="grid grid-cols-3 gap-3 p-5">
@@ -156,6 +158,8 @@ function Integrations() {
         <div className="space-y-4 p-5">
           {!google?.configured ? (
             <p className="rounded-lg border border-line bg-surface-2 p-3.5 text-[13px] text-fg-3">Google sign-in isn’t configured on this server (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET).</p>
+          ) : !google.connected && me.data?.team?.role === 'member' ? (
+            <p className="text-[13px] text-fg-3">Search Console isn’t connected yet. Only {me.data.team.ownerName} can connect it for this workspace.</p>
           ) : !google.connected ? (
             <a href={`/api/google/connect?return=/app/settings`}>
               <Button variant="primary" rightIcon={<ExternalLink />}>
@@ -186,9 +190,11 @@ function Integrations() {
                   </div>
                 </div>
               )}
-              <button onClick={() => disconnect.mutate([])} className="text-[12.5px] font-medium text-error-ink hover:underline">
-                Disconnect Google
-              </button>
+              {me.data?.team?.role !== 'member' && (
+                <button onClick={() => disconnect.mutate([])} className="text-[12.5px] font-medium text-error-ink hover:underline">
+                  Disconnect Google
+                </button>
+              )}
             </>
           )}
         </div>
@@ -215,6 +221,12 @@ function Billing() {
   const [cycle, setCycle] = useState<'monthly' | 'yearly'>('monthly')
   const checkout = useAction((s) => s.checkout)
   if (!me || !plans) return null
+  if (me.team?.role === 'member')
+    return (
+      <Card className="p-5 text-[13px] text-fg-2">
+        You’re on <span className="font-medium text-fg">{me.team.ownerName}</span>’s team, using their {me.plan.name} plan. Billing is managed by them.
+      </Card>
+    )
   const u = me.usage
   const l = me.plan.limits
   const foundingLeft = plans.founding.left
@@ -305,6 +317,142 @@ function Billing() {
           })}
       </div>
       <p className="text-[12px] text-fg-4">Payments are handled by Lemon Squeezy, our merchant of record — they add VAT/sales tax where required and issue your invoices.</p>
+    </>
+  )
+}
+
+function TeamTab() {
+  const me = useMe().data
+  const team = useTeam()
+  const [email, setEmail] = useState('')
+  const [removing, setRemoving] = useState<{ id: string; name: string } | null>(null)
+  const [leaving, setLeaving] = useState(false)
+  const invite = useAction((s) => s.inviteMember, { invalidate: ['team'], success: () => ({ title: 'Invite sent', description: 'The link works for 7 days.' }) })
+  const revoke = useAction((s) => s.revokeInvite, { invalidate: ['team'], success: () => ({ title: 'Invite cancelled' }) })
+  const remove = useAction((s) => s.removeMember, { invalidate: ['team'], success: () => ({ title: 'Member removed' }) })
+  const leave = useAction((s) => s.leaveTeam)
+  const t = team.data
+  if (!t || !me) return null
+  const isOwner = t.role === 'owner'
+  const full = t.seats.used >= t.seats.limit
+
+  return (
+    <>
+      <Card>
+        <CardHeader
+          icon={<Users />}
+          title={isOwner ? 'Team' : `${t.owner.name}’s team`}
+          description={isOwner ? 'Teammates work in your projects under your plan. Billing, Google and branding stay with you.' : 'You work in this team’s projects under its plan.'}
+          actions={
+            <span className="tnum text-[12.5px] text-fg-3">
+              {t.seats.used} / {t.seats.limit} seats
+            </span>
+          }
+        />
+        <div className="mt-4 border-t border-line">
+          {[{ id: t.owner.id, name: t.owner.name, email: t.owner.email, joinedAt: null as string | null, owner: true }, ...t.members.map((m) => ({ ...m, owner: false }))].map((m) => (
+            <div key={m.id} className="flex items-center justify-between gap-3 border-b border-line px-5 py-3 last:border-0">
+              <div className="flex min-w-0 items-center gap-3">
+                <Avatar initials={m.name.split(/\s+/).map((x) => x[0]).slice(0, 2).join('').toUpperCase()} size={32} />
+                <div className="min-w-0">
+                  <div className="truncate text-[13px] font-medium text-fg">
+                    {m.name} {m.id === me.user.id && <span className="font-normal text-fg-4">(you)</span>}
+                  </div>
+                  <div className="truncate text-[12px] text-fg-3">{m.email}</div>
+                </div>
+              </div>
+              {m.owner ? (
+                <Badge tone="primary">Owner</Badge>
+              ) : isOwner ? (
+                <Button size="sm" variant="ghost" onClick={() => setRemoving({ id: m.id, name: m.name })}>
+                  Remove
+                </Button>
+              ) : m.id === me.user.id ? (
+                <Button size="sm" variant="ghost" leftIcon={<LogOut />} onClick={() => setLeaving(true)}>
+                  Leave
+                </Button>
+              ) : (
+                <span className="text-[12px] text-fg-4">Member</span>
+              )}
+            </div>
+          ))}
+          {t.invites.map((i) => (
+            <div key={i.id} className="flex items-center justify-between gap-3 border-b border-line px-5 py-3 last:border-0">
+              <div className="min-w-0">
+                <div className="truncate text-[13px] text-fg-2">{i.email}</div>
+                <div className="text-[12px] text-fg-4">{i.expired ? 'Invite expired' : `Invited ${formatDate(i.createdAt)} · pending`}</div>
+              </div>
+              <Button size="sm" variant="ghost" onClick={() => revoke.mutate([i.id])}>
+                Cancel invite
+              </Button>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {isOwner &&
+        (t.seats.limit <= 1 ? (
+          <Card className="p-5 text-[13px] text-fg-2">
+            Team seats are included from the Pro plan (3 seats) and Agency (10 seats).{' '}
+            <Link to="/app/settings?tab=billing" className="font-medium text-primary-ink hover:underline">
+              Compare plans
+            </Link>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader icon={<UserPlus />} title="Invite a teammate" description="They’ll get an email with a link to join. Each pending invite holds a seat until it expires." />
+            <form
+              className="flex flex-col gap-2 p-5 pt-4 sm:flex-row"
+              onSubmit={(e) => {
+                e.preventDefault()
+                invite.mutateAsync([email.trim()]).then(() => setEmail(''), () => undefined)
+              }}
+            >
+              <Input type="email" aria-label="Teammate email" placeholder="teammate@youragency.com" value={email} onChange={(e) => setEmail(e.target.value)} className="sm:flex-1" disabled={full} />
+              <Button type="submit" variant="primary" disabled={!email.includes('@') || full} loading={invite.isPending}>
+                Send invite
+              </Button>
+            </form>
+            {full && <p className="-mt-2 px-5 pb-4 text-[12.5px] text-fg-3">All seats are in use. Remove someone or upgrade for more.</p>}
+          </Card>
+        ))}
+
+      {!isOwner && <p className="text-[12px] text-fg-4">Alerts are emailed to {t.owner.name}. Add a Slack webhook under Alerts to reach the whole team.</p>}
+
+      <Modal
+        open={!!removing}
+        onClose={() => setRemoving(null)}
+        size="sm"
+        title={`Remove ${removing?.name}?`}
+        description="They lose access to your projects right away. Their own account stays."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setRemoving(null)}>
+              Cancel
+            </Button>
+            <Button variant="danger" loading={remove.isPending} onClick={() => removing && remove.mutateAsync([removing.id]).then(() => setRemoving(null), () => undefined)}>
+              Remove
+            </Button>
+          </>
+        }
+      />
+      <Modal
+        open={leaving}
+        onClose={() => setLeaving(false)}
+        size="sm"
+        title={`Leave ${t.owner.name}’s team?`}
+        description="You’ll lose access to the team’s projects. You can start your own free workspace afterwards."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setLeaving(false)}>
+              Cancel
+            </Button>
+            <Button variant="danger" loading={leave.isPending} onClick={() => leave.mutateAsync([]).then(() => (window.location.href = '/app'), () => undefined)}>
+              Leave team
+            </Button>
+          </>
+        }
+      />
     </>
   )
 }

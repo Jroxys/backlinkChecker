@@ -113,7 +113,7 @@ export function Sidebar({
             </span>
           </div>
           <ProgressBar value={used * 100} tone={used > 0.9 ? 'warning' : 'primary'} className="mt-1.5" />
-          {me.plan.id !== 'agency' && (
+          {me.plan.id !== 'agency' && me.team?.role !== 'member' && (
             <Link to="/app/settings?tab=billing" onClick={onNavigate} className="mt-2.5 inline-flex items-center gap-1 text-[12px] font-medium text-primary-ink hover:underline">
               {me.plan.id === 'free' ? 'Upgrade — from $9/mo' : 'Compare plans'} <ArrowUpRight className="size-3" />
             </Link>
